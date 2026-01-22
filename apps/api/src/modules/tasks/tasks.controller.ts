@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Patch, Delete, Body, Param, UseGuards } fro
 import { TasksService } from './tasks.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { CreateTaskDto, UpdateTaskDto } from '@goals/shared';
+import { CreateTaskDto, UpdateTaskDto, CompleteRecurringTaskDto } from '@goals/shared';
 import { User, Task } from '@goals/database';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
@@ -38,6 +38,15 @@ export class TasksController {
     @CurrentUser() user: UserWithoutPassword
   ): Promise<Task> {
     return this.tasksService.updateStatus(id, statusId, user.id);
+  }
+
+  @Post(':id/complete-recurring')
+  completeRecurring(
+    @Param('id') id: string,
+    @Body() data: CompleteRecurringTaskDto,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<{ completedTask: Task; nextTask?: Task }> {
+    return this.tasksService.completeRecurringTask(id, user.id, data.createNextOccurrence ?? true);
   }
 
   @Delete(':id')

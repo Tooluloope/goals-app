@@ -8,6 +8,9 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ConfigModule as AppConfigModule } from './modules/config/config.module';
+import { JournalModule } from './modules/journal/journal.module';
+import { HabitsModule } from './modules/habits/habits.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -23,6 +26,9 @@ import { ConfigModule as AppConfigModule } from './modules/config/config.module'
     TasksModule,
     NotificationsModule,
     AppConfigModule,
+    JournalModule,
+    HabitsModule,
+    ReviewsModule,
   ],
 })
 export class AppModule {}

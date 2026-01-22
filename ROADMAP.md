@@ -58,12 +58,31 @@ Features that keep users engaged and motivated.
 
 ### 2.3 Weekly Review Flow
 
-- [ ] Guided weekly review prompts
-- [ ] "What went well?" / "What to improve?" / "Focus for next week?"
+- [x] Guided weekly review prompts
+- [x] "What went well?" / "What to improve?" / "Focus for next week?"
 - [ ] Auto-surface stale projects and overdue items
-- [ ] Review history saved and browsable
+- [x] Review history saved and browsable
 - [ ] Reminder notification for weekly review
 - **Why:** Differentiator feature, builds reflection habit
+
+### 2.4 Monthly Review Cycles (NEW)
+
+- [x] Monthly reflection and goal setting
+- [x] "Highlights" / "Challenges" / "Goals Achieved" / "Goals for Next Month"
+- [x] Lessons learned and gratitude sections
+- [x] Rating system (1-5 stars)
+- [x] Review history saved and browsable
+- **Why:** Longer-term perspective on progress
+
+### 2.5 Daily Journal & Habit Tracker (NEW)
+
+- [x] Daily mood picker (terrible/bad/neutral/good/great)
+- [x] Daily writing prompts
+- [x] Main journal entry with wins/challenges/gratitude sections
+- [x] Habit cards with one-tap completion
+- [x] Habit streaks and progress tracking
+- [x] Combined "Daily Rhythm" page
+- **Why:** Builds daily reflection habit, essential for personal growth tracking
 
 ---
 
@@ -226,26 +245,29 @@ Nice-to-haves for later.
 
 ## Progress Tracker
 
-| Feature                | Priority | Status      | Notes |
-| ---------------------- | -------- | ----------- | ----- |
-| Global Search (Cmd+K)  | P1       | Not Started |       |
-| Keyboard Shortcuts     | P1       | Not Started |       |
-| Recurring Tasks        | P1       | Not Started |       |
-| Progress Charts        | P2       | Not Started |       |
-| Completion Celebration | P2       | Not Started |       |
-| Weekly Review Flow     | P2       | Not Started |       |
-| Focus Mode / Pomodoro  | P3       | Not Started |       |
-| Quick Capture          | P3       | Not Started |       |
-| Time Tracking          | P3       | Not Started |       |
-| Tags / Labels          | P4       | Not Started |       |
-| Saved Views            | P4       | Not Started |       |
-| Bulk Operations        | P4       | Not Started |       |
-| Project Templates      | P4       | Not Started |       |
-| Offline PWA            | P5       | Not Started |       |
-| Push Notifications     | P5       | Not Started |       |
-| Calendar Integration   | P5       | Not Started |       |
-| Data Export            | P5       | Not Started |       |
-| Project Dependencies   | P6       | Not Started |       |
-| Activity Timeline      | P6       | Not Started |       |
-| Archive View           | P6       | Not Started |       |
-| AI Suggestions         | P6       | Not Started |       |
+| Feature                | Priority | Status      | Notes                                              |
+| ---------------------- | -------- | ----------- | -------------------------------------------------- |
+| Global Search (Cmd+K)  | P1       | Done        | Command palette with search, navigation, actions   |
+| Keyboard Shortcuts     | P1       | Done        | D/B/P/C/N/S/R/W/M nav, Shift+N new project, ? help |
+| Recurring Tasks        | P1       | Done        | Daily/weekly/monthly/yearly + streaks              |
+| Progress Charts        | P2       | Not Started |                                                    |
+| Completion Celebration | P2       | Not Started |                                                    |
+| Weekly Review Flow     | P2       | Done        | Guided prompts, rating, history, stats             |
+| Monthly Review Cycles  | P2       | Done        | Full monthly reflection and goal setting           |
+| Daily Journal          | P2       | Done        | Mood picker, prompts, wins/challenges/gratitude    |
+| Habit Tracker          | P2       | Done        | Habit cards, streaks, one-tap completion           |
+| Focus Mode / Pomodoro  | P3       | Not Started |                                                    |
+| Quick Capture          | P3       | Not Started |                                                    |
+| Time Tracking          | P3       | Not Started |                                                    |
+| Tags / Labels          | P4       | Not Started |                                                    |
+| Saved Views            | P4       | Not Started |                                                    |
+| Bulk Operations        | P4       | Not Started |                                                    |
+| Project Templates      | P4       | Not Started |                                                    |
+| Offline PWA            | P5       | Not Started |                                                    |
+| Push Notifications     | P5       | Not Started |                                                    |
+| Calendar Integration   | P5       | Not Started |                                                    |
+| Data Export            | P5       | Not Started |                                                    |
+| Project Dependencies   | P6       | Not Started |                                                    |
+| Activity Timeline      | P6       | Not Started |                                                    |
+| Archive View           | P6       | Not Started |                                                    |
+| AI Suggestions         | P6       | Not Started |                                                    |

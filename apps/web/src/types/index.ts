@@ -34,6 +34,11 @@ export interface CreateTaskData {
   dueDate?: string;
   assignedTo?: string;
   images?: import('@goals/shared').ImageAttachment[];
+  // Recurrence fields
+  isRecurring?: boolean;
+  recurrenceType?: import('@goals/shared').RecurrenceType;
+  recurrenceInterval?: number;
+  recurrenceDays?: number[];
 }
 
 export interface AddReviewData {

@@ -13,6 +13,20 @@ import type {
   UpdateTaskDto,
   AddReviewDto,
   UpdateWorkspaceConfigDto,
+  JournalEntry,
+  Habit,
+  HabitLog,
+  HabitWithStats,
+  WeeklyReview,
+  MonthlyReview,
+  CreateJournalEntryDto,
+  UpdateJournalEntryDto,
+  CreateHabitDto,
+  UpdateHabitDto,
+  CreateWeeklyReviewDto,
+  UpdateWeeklyReviewDto,
+  CreateMonthlyReviewDto,
+  UpdateMonthlyReviewDto,
 } from '@goals/shared';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -308,6 +322,16 @@ class ApiClient {
     return this.fetch<void>(`/tasks/${id}`, { method: 'DELETE' });
   }
 
+  completeRecurringTask(
+    id: string,
+    createNextOccurrence: boolean = true
+  ): Promise<{ completedTask: Task; nextTask?: Task }> {
+    return this.fetch<{ completedTask: Task; nextTask?: Task }>(`/tasks/${id}/complete-recurring`, {
+      method: 'POST',
+      body: JSON.stringify({ createNextOccurrence }),
+    });
+  }
+
   // ============================================================
   // NOTIFICATIONS
   // ============================================================
@@ -350,6 +374,233 @@ class ApiClient {
     return this.fetch<WorkspaceConfig>(`/config/workspace/${workspaceId}/reset`, {
       method: 'POST',
     });
+  }
+
+  // ============================================================
+  // JOURNAL
+  // ============================================================
+
+  getJournalEntries(startDate?: string, endDate?: string): Promise<JournalEntry[]> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const query = params.toString();
+    return this.fetch<JournalEntry[]>(`/journal${query ? `?${query}` : ''}`);
+  }
+
+  getJournalEntry(id: string): Promise<JournalEntry> {
+    return this.fetch<JournalEntry>(`/journal/${id}`);
+  }
+
+  getJournalEntryByDate(date: string): Promise<JournalEntry | null> {
+    return this.fetch<JournalEntry | null>(`/journal/date/${date}`);
+  }
+
+  getTodayJournalEntry(): Promise<JournalEntry | null> {
+    return this.fetch<JournalEntry | null>('/journal/today');
+  }
+
+  getJournalStreak(): Promise<{ currentStreak: number; longestStreak: number }> {
+    return this.fetch<{ currentStreak: number; longestStreak: number }>('/journal/streak');
+  }
+
+  getJournalPrompt(): Promise<{ prompt: string }> {
+    return this.fetch<{ prompt: string }>('/journal/prompt');
+  }
+
+  createJournalEntry(data: CreateJournalEntryDto): Promise<JournalEntry> {
+    return this.fetch<JournalEntry>('/journal', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateJournalEntry(id: string, data: UpdateJournalEntryDto): Promise<JournalEntry> {
+    return this.fetch<JournalEntry>(`/journal/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  upsertJournalEntry(data: CreateJournalEntryDto): Promise<JournalEntry> {
+    return this.fetch<JournalEntry>('/journal/upsert', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteJournalEntry(id: string): Promise<void> {
+    return this.fetch<void>(`/journal/${id}`, { method: 'DELETE' });
+  }
+
+  // ============================================================
+  // HABITS
+  // ============================================================
+
+  getHabits(includeArchived = false): Promise<HabitWithStats[]> {
+    return this.fetch<HabitWithStats[]>(`/habits?includeArchived=${includeArchived}`);
+  }
+
+  getHabit(id: string): Promise<HabitWithStats> {
+    return this.fetch<HabitWithStats>(`/habits/${id}`);
+  }
+
+  getTodayHabits(): Promise<HabitWithStats[]> {
+    return this.fetch<HabitWithStats[]>('/habits/today');
+  }
+
+  createHabit(data: CreateHabitDto): Promise<Habit> {
+    return this.fetch<Habit>('/habits', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateHabit(id: string, data: UpdateHabitDto): Promise<Habit> {
+    return this.fetch<Habit>(`/habits/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteHabit(id: string): Promise<void> {
+    return this.fetch<void>(`/habits/${id}`, { method: 'DELETE' });
+  }
+
+  toggleHabitLog(habitId: string, date: string, notes?: string): Promise<HabitLog | null> {
+    return this.fetch<HabitLog | null>(`/habits/${habitId}/toggle`, {
+      method: 'POST',
+      body: JSON.stringify({ date, notes }),
+    });
+  }
+
+  getHabitLogs(habitId: string, startDate?: string, endDate?: string): Promise<HabitLog[]> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const query = params.toString();
+    return this.fetch<HabitLog[]>(`/habits/${habitId}/logs${query ? `?${query}` : ''}`);
+  }
+
+  reorderHabits(habitIds: string[]): Promise<Habit[]> {
+    return this.fetch<Habit[]>('/habits/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ habitIds }),
+    });
+  }
+
+  // ============================================================
+  // WEEKLY REVIEWS
+  // ============================================================
+
+  getWeeklyReviews(limit?: number): Promise<WeeklyReview[]> {
+    const query = limit ? `?limit=${limit}` : '';
+    return this.fetch<WeeklyReview[]>(`/reviews/weekly${query}`);
+  }
+
+  getWeeklyReview(id: string): Promise<WeeklyReview> {
+    return this.fetch<WeeklyReview>(`/reviews/weekly/${id}`);
+  }
+
+  getCurrentWeekReview(): Promise<WeeklyReview | null> {
+    return this.fetch<WeeklyReview | null>('/reviews/weekly/current');
+  }
+
+  getWeeklyReviewByDate(weekStart: string): Promise<WeeklyReview | null> {
+    return this.fetch<WeeklyReview | null>(`/reviews/weekly/date/${weekStart}`);
+  }
+
+  createWeeklyReview(data: CreateWeeklyReviewDto): Promise<WeeklyReview> {
+    return this.fetch<WeeklyReview>('/reviews/weekly', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateWeeklyReview(id: string, data: UpdateWeeklyReviewDto): Promise<WeeklyReview> {
+    return this.fetch<WeeklyReview>(`/reviews/weekly/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  upsertWeeklyReview(data: CreateWeeklyReviewDto): Promise<WeeklyReview> {
+    return this.fetch<WeeklyReview>('/reviews/weekly/upsert', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteWeeklyReview(id: string): Promise<void> {
+    return this.fetch<void>(`/reviews/weekly/${id}`, { method: 'DELETE' });
+  }
+
+  getWeeklyReviewStats(): Promise<{
+    totalReviews: number;
+    averageRating: number;
+    currentStreak: number;
+  }> {
+    return this.fetch<{ totalReviews: number; averageRating: number; currentStreak: number }>(
+      '/reviews/weekly/stats'
+    );
+  }
+
+  getWeeklyReviewPrompts(): Promise<{ prompts: Record<string, string> }> {
+    return this.fetch<{ prompts: Record<string, string> }>('/reviews/weekly/prompts');
+  }
+
+  // ============================================================
+  // MONTHLY REVIEWS
+  // ============================================================
+
+  getMonthlyReviews(limit?: number): Promise<MonthlyReview[]> {
+    const query = limit ? `?limit=${limit}` : '';
+    return this.fetch<MonthlyReview[]>(`/reviews/monthly${query}`);
+  }
+
+  getMonthlyReview(id: string): Promise<MonthlyReview> {
+    return this.fetch<MonthlyReview>(`/reviews/monthly/${id}`);
+  }
+
+  getCurrentMonthReview(): Promise<MonthlyReview | null> {
+    return this.fetch<MonthlyReview | null>('/reviews/monthly/current');
+  }
+
+  getMonthlyReviewByDate(month: string): Promise<MonthlyReview | null> {
+    return this.fetch<MonthlyReview | null>(`/reviews/monthly/date/${month}`);
+  }
+
+  createMonthlyReview(data: CreateMonthlyReviewDto): Promise<MonthlyReview> {
+    return this.fetch<MonthlyReview>('/reviews/monthly', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateMonthlyReview(id: string, data: UpdateMonthlyReviewDto): Promise<MonthlyReview> {
+    return this.fetch<MonthlyReview>(`/reviews/monthly/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  upsertMonthlyReview(data: CreateMonthlyReviewDto): Promise<MonthlyReview> {
+    return this.fetch<MonthlyReview>('/reviews/monthly/upsert', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteMonthlyReview(id: string): Promise<void> {
+    return this.fetch<void>(`/reviews/monthly/${id}`, { method: 'DELETE' });
+  }
+
+  getMonthlyReviewStats(): Promise<{ totalReviews: number; averageRating: number }> {
+    return this.fetch<{ totalReviews: number; averageRating: number }>('/reviews/monthly/stats');
+  }
+
+  getMonthlyReviewPrompts(): Promise<{ prompts: Record<string, string> }> {
+    return this.fetch<{ prompts: Record<string, string> }>('/reviews/monthly/prompts');
   }
 }
 

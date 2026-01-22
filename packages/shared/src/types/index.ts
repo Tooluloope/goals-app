@@ -133,6 +133,8 @@ export interface Project {
 // TASK TYPES
 // ============================================================
 
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+
 export interface Task {
   id: string;
   projectId: string;
@@ -143,6 +145,15 @@ export interface Task {
   createdAt: Date;
   updatedAt: Date;
   images?: ImageAttachment[];
+  // Recurrence fields
+  isRecurring: boolean;
+  recurrenceType: RecurrenceType;
+  recurrenceInterval: number;
+  recurrenceDays: number[]; // 0=Sun, 1=Mon, ..., 6=Sat
+  nextOccurrence?: Date | null;
+  parentTaskId?: string | null;
+  completedAt?: Date | null;
+  streak: number;
 }
 
 // ============================================================
@@ -229,4 +240,126 @@ export interface ProjectProgress {
   completed: number;
   total: number;
   percentage: number;
+}
+
+// ============================================================
+// JOURNAL TYPES
+// ============================================================
+
+export type Mood = 'terrible' | 'bad' | 'neutral' | 'good' | 'great';
+
+export interface JournalEntry {
+  id: string;
+  userId: string;
+  date: Date;
+  mood?: Mood | null;
+  prompt?: string | null;
+  content: string;
+  wins?: string | null;
+  challenges?: string | null;
+  gratitude?: string | null;
+  photoUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================================
+// HABIT TYPES
+// ============================================================
+
+export interface Habit {
+  id: string;
+  userId: string;
+  name: string;
+  icon: string;
+  color: string;
+  order: number;
+  isArchived: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  // Populated when fetched
+  logs?: HabitLog[];
+  // Computed fields (from API)
+  currentStreak?: number;
+  longestStreak?: number;
+  completedToday?: boolean;
+}
+
+export interface HabitLog {
+  id: string;
+  habitId: string;
+  date: Date;
+  completed: boolean;
+  notes?: string | null;
+  createdAt: Date;
+}
+
+export interface HabitWithStats extends Habit {
+  currentStreak: number;
+  longestStreak: number;
+  completedToday: boolean;
+  completionRate: number; // Last 30 days
+}
+
+// ============================================================
+// WEEKLY & MONTHLY REVIEW TYPES
+// ============================================================
+
+export interface WeeklyReview {
+  id: string;
+  userId: string;
+  weekStart: Date; // Monday of the week
+  wentWell?: string | null;
+  toImprove?: string | null;
+  focusNextWeek?: string | null;
+  lessonsLearned?: string | null;
+  gratitude?: string | null;
+  rating?: number | null; // 1-5 star rating
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MonthlyReview {
+  id: string;
+  userId: string;
+  month: Date; // First day of month
+  highlights?: string | null;
+  challenges?: string | null;
+  goalsAchieved?: string | null;
+  goalsForNextMonth?: string | null;
+  lessonsLearned?: string | null;
+  gratitude?: string | null;
+  rating?: number | null; // 1-5 star rating
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================================
+// STATS TYPES
+// ============================================================
+
+export interface DailyStats {
+  date: Date;
+  habitsCompleted: number;
+  habitsTotal: number;
+  journalWritten: boolean;
+  tasksCompleted: number;
+}
+
+export interface WeeklyStats {
+  weekStart: Date;
+  habitsCompletionRate: number;
+  journalEntriesCount: number;
+  tasksCompleted: number;
+  averageMood?: number;
+}
+
+export interface ProgressStats {
+  currentStreak: number; // Days in a row with activity
+  longestStreak: number;
+  totalJournalEntries: number;
+  totalHabitsCompleted: number;
+  averageHabitCompletionRate: number;
+  weeklyReviewsCount: number;
+  monthlyReviewsCount: number;
 }

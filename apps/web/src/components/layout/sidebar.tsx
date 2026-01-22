@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -13,6 +14,11 @@ import {
   ChevronDown,
   Users,
   Folder,
+  Search,
+  Keyboard,
+  BookOpen,
+  CalendarCheck,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,13 +34,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/auth-store';
+import { useUIStore } from '@/store/ui-store';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
+import { getModifierKey } from '@/hooks/use-keyboard-shortcuts';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Daily Rhythm', href: '/rhythm', icon: BookOpen },
   { name: 'Projects', href: '/projects', icon: Folder },
   { name: 'Board', href: '/board', icon: Kanban },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
+  { name: 'Weekly Review', href: '/reviews/weekly', icon: CalendarCheck },
+  { name: 'Monthly Review', href: '/reviews/monthly', icon: CalendarDays },
   { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -42,7 +53,9 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, currentWorkspace, workspaces, setCurrentWorkspace, logout } = useAuthStore();
+  const { setCommandPaletteOpen, setShortcutsHelpOpen } = useUIStore();
   const { data: unreadCount } = useUnreadNotificationsCount();
+  const modKey = useMemo(() => getModifierKey(), []);
 
   const getInitials = (name: string) => {
     return name
@@ -103,6 +116,21 @@ export function Sidebar() {
 
         <Separator className="my-2" />
 
+        {/* Search Button */}
+        <div className="px-3 pb-2">
+          <Button
+            variant="outline"
+            className="w-full justify-start text-muted-foreground"
+            onClick={() => setCommandPaletteOpen(true)}
+          >
+            <Search className="mr-3 h-4 w-4" />
+            Search...
+            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
+              {modKey}K
+            </kbd>
+          </Button>
+        </div>
+
         {/* Navigation */}
         <ScrollArea className="flex-1 px-3">
           <nav className="flex flex-col gap-1 py-2">
@@ -126,6 +154,21 @@ export function Sidebar() {
               );
             })}
           </nav>
+
+          {/* Keyboard Shortcuts Button */}
+          <div className="py-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => setShortcutsHelpOpen(true)}
+            >
+              <Keyboard className="mr-3 h-5 w-5" />
+              Keyboard shortcuts
+              <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
+                ?
+              </kbd>
+            </Button>
+          </div>
         </ScrollArea>
 
         {/* User Menu */}

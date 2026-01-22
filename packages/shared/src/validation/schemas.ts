@@ -95,12 +95,26 @@ export const addReviewSchema = z.object({
 // TASK SCHEMAS
 // ============================================================
 
+export const recurrenceTypeSchema = z.enum([
+  'none',
+  'daily',
+  'weekly',
+  'monthly',
+  'yearly',
+  'custom',
+]);
+
 export const createTaskSchema = z.object({
   projectId: z.string().uuid('Invalid project ID'),
   title: z.string().min(1, 'Title is required'),
   statusId: z.string().min(1, 'Status is required'),
   dueDate: z.string().datetime().optional().nullable(),
   assignedToId: z.string().uuid().optional().nullable(),
+  // Recurrence fields
+  isRecurring: z.boolean().optional().default(false),
+  recurrenceType: recurrenceTypeSchema.optional().default('none'),
+  recurrenceInterval: z.number().int().min(1).optional().default(1),
+  recurrenceDays: z.array(z.number().int().min(0).max(6)).optional().default([]),
 });
 
 export const updateTaskSchema = z.object({
@@ -108,10 +122,19 @@ export const updateTaskSchema = z.object({
   statusId: z.string().min(1).optional(),
   dueDate: z.string().datetime().optional().nullable(),
   assignedToId: z.string().uuid().optional().nullable(),
+  // Recurrence fields
+  isRecurring: z.boolean().optional(),
+  recurrenceType: recurrenceTypeSchema.optional(),
+  recurrenceInterval: z.number().int().min(1).optional(),
+  recurrenceDays: z.array(z.number().int().min(0).max(6)).optional(),
 });
 
 export const updateTaskStatusSchema = z.object({
   statusId: z.string().min(1, 'Status is required'),
+});
+
+export const completeRecurringTaskSchema = z.object({
+  createNextOccurrence: z.boolean().optional().default(true),
 });
 
 // ============================================================
@@ -121,6 +144,96 @@ export const updateTaskStatusSchema = z.object({
 export const markNotificationReadSchema = z.object({
   notificationId: z.string().uuid('Invalid notification ID'),
 });
+
+// ============================================================
+// JOURNAL SCHEMAS
+// ============================================================
+
+export const moodSchema = z.enum(['terrible', 'bad', 'neutral', 'good', 'great']);
+
+export const createJournalEntrySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  mood: moodSchema.optional().nullable(),
+  prompt: z.string().optional().nullable(),
+  content: z.string().min(1, 'Content is required'),
+  wins: z.string().optional().nullable(),
+  challenges: z.string().optional().nullable(),
+  gratitude: z.string().optional().nullable(),
+  photoUrl: z.string().url().optional().nullable(),
+});
+
+export const updateJournalEntrySchema = createJournalEntrySchema.partial().omit({ date: true });
+
+// ============================================================
+// HABIT SCHEMAS
+// ============================================================
+
+export const createHabitSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(50, 'Name must be 50 characters or less'),
+  icon: z.string().min(1, 'Icon is required'),
+  color: z.string().default('primary'),
+  order: z.number().int().min(0).optional(),
+});
+
+export const updateHabitSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(50, 'Name must be 50 characters or less')
+    .optional(),
+  icon: z.string().min(1, 'Icon is required').optional(),
+  color: z.string().optional(),
+  order: z.number().int().min(0).optional(),
+  isArchived: z.boolean().optional(),
+});
+
+export const logHabitSchema = z.object({
+  habitId: z.string().uuid('Invalid habit ID'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  completed: z.boolean().default(true),
+  notes: z.string().optional().nullable(),
+});
+
+export const toggleHabitLogSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+});
+
+// ============================================================
+// WEEKLY REVIEW SCHEMAS
+// ============================================================
+
+export const createWeeklyReviewSchema = z.object({
+  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Week start must be in YYYY-MM-DD format'),
+  wentWell: z.string().optional().nullable(),
+  toImprove: z.string().optional().nullable(),
+  focusNextWeek: z.string().optional().nullable(),
+  lessonsLearned: z.string().optional().nullable(),
+  gratitude: z.string().optional().nullable(),
+  rating: z.number().int().min(1).max(5).optional().nullable(),
+});
+
+export const updateWeeklyReviewSchema = createWeeklyReviewSchema
+  .partial()
+  .omit({ weekStart: true });
+
+// ============================================================
+// MONTHLY REVIEW SCHEMAS
+// ============================================================
+
+export const createMonthlyReviewSchema = z.object({
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Month must be in YYYY-MM-DD format (first day of month)'),
+  highlights: z.string().optional().nullable(),
+  challenges: z.string().optional().nullable(),
+  goalsAchieved: z.string().optional().nullable(),
+  goalsForNextMonth: z.string().optional().nullable(),
+  lessonsLearned: z.string().optional().nullable(),
+  gratitude: z.string().optional().nullable(),
+  rating: z.number().int().min(1).max(5).optional().nullable(),
+});
+
+export const updateMonthlyReviewSchema = createMonthlyReviewSchema.partial().omit({ month: true });
 
 // ============================================================
 // CONFIG SCHEMAS
@@ -260,4 +373,21 @@ export type AddReviewDto = z.infer<typeof addReviewSchema>;
 export type CreateTaskDto = z.infer<typeof createTaskSchema>;
 export type UpdateTaskDto = z.infer<typeof updateTaskSchema>;
 export type UpdateTaskStatusDto = z.infer<typeof updateTaskStatusSchema>;
+export type CompleteRecurringTaskDto = z.infer<typeof completeRecurringTaskSchema>;
 export type UpdateWorkspaceConfigDto = z.infer<typeof updateWorkspaceConfigSchema>;
+
+// Journal DTOs
+export type CreateJournalEntryDto = z.infer<typeof createJournalEntrySchema>;
+export type UpdateJournalEntryDto = z.infer<typeof updateJournalEntrySchema>;
+
+// Habit DTOs
+export type CreateHabitDto = z.infer<typeof createHabitSchema>;
+export type UpdateHabitDto = z.infer<typeof updateHabitSchema>;
+export type LogHabitDto = z.infer<typeof logHabitSchema>;
+export type ToggleHabitLogDto = z.infer<typeof toggleHabitLogSchema>;
+
+// Review DTOs
+export type CreateWeeklyReviewDto = z.infer<typeof createWeeklyReviewSchema>;
+export type UpdateWeeklyReviewDto = z.infer<typeof updateWeeklyReviewSchema>;
+export type CreateMonthlyReviewDto = z.infer<typeof createMonthlyReviewSchema>;
+export type UpdateMonthlyReviewDto = z.infer<typeof updateMonthlyReviewSchema>;

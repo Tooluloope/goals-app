@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
-import { CreateTaskDto, UpdateTaskDto } from '@goals/shared';
-import { Task } from '@goals/database';
+import { CreateTaskDto, UpdateTaskDto, RecurrenceType } from '@goals/shared';
+import { Task, RecurrenceType as PrismaRecurrenceType } from '@goals/database';
+import { addDays, addWeeks, addMonths, addYears, setDay, isAfter, startOfDay } from 'date-fns';
 
 @Injectable()
 export class TasksService {
@@ -11,9 +12,71 @@ export class TasksService {
     private projectsService: ProjectsService
   ) {}
 
+  private calculateNextOccurrence(
+    recurrenceType: RecurrenceType,
+    interval: number,
+    recurrenceDays: number[],
+    fromDate: Date = new Date()
+  ): Date | null {
+    const baseDate = startOfDay(fromDate);
+
+    switch (recurrenceType) {
+      case 'daily':
+        return addDays(baseDate, interval);
+
+      case 'weekly':
+        if (recurrenceDays.length > 0) {
+          // Find next occurrence based on specified days
+          const today = baseDate.getDay();
+          const sortedDays = [...recurrenceDays].sort((a, b) => a - b);
+
+          // Find the next day in this week
+          const nextDayThisWeek = sortedDays.find((d) => d > today);
+          if (nextDayThisWeek !== undefined) {
+            return setDay(baseDate, nextDayThisWeek, { weekStartsOn: 0 });
+          }
+
+          // Otherwise, go to the first day of next week cycle
+          const firstDay = sortedDays[0];
+          const nextWeek = addWeeks(baseDate, interval);
+          return setDay(nextWeek, firstDay, { weekStartsOn: 0 });
+        }
+        return addWeeks(baseDate, interval);
+
+      case 'monthly':
+        return addMonths(baseDate, interval);
+
+      case 'yearly':
+        return addYears(baseDate, interval);
+
+      case 'custom':
+        return addDays(baseDate, interval);
+
+      default:
+        return null;
+    }
+  }
+
   async create(data: CreateTaskDto, userId: string): Promise<Task> {
     // Verify user has access to the project
     await this.projectsService.findById(data.projectId, userId);
+
+    const isRecurring = data.isRecurring ?? false;
+    const recurrenceType = (data.recurrenceType ?? 'none') as PrismaRecurrenceType;
+    const recurrenceInterval = data.recurrenceInterval ?? 1;
+    const recurrenceDays = data.recurrenceDays ?? [];
+
+    // Calculate next occurrence if recurring
+    let nextOccurrence: Date | null = null;
+    if (isRecurring && recurrenceType !== 'none') {
+      const baseDate = data.dueDate ? new Date(data.dueDate) : new Date();
+      nextOccurrence = this.calculateNextOccurrence(
+        recurrenceType,
+        recurrenceInterval,
+        recurrenceDays,
+        baseDate
+      );
+    }
 
     return this.prisma.task.create({
       data: {
@@ -22,6 +85,11 @@ export class TasksService {
         statusId: data.statusId,
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
         assignedToId: data.assignedToId || null,
+        isRecurring,
+        recurrenceType,
+        recurrenceInterval,
+        recurrenceDays,
+        nextOccurrence,
       },
     });
   }
@@ -32,6 +100,31 @@ export class TasksService {
 
     const updateData: any = { ...data };
     if (data.dueDate) updateData.dueDate = new Date(data.dueDate);
+
+    // Recalculate next occurrence if recurrence settings changed
+    if (
+      data.isRecurring !== undefined ||
+      data.recurrenceType !== undefined ||
+      data.recurrenceInterval !== undefined ||
+      data.recurrenceDays !== undefined
+    ) {
+      const isRecurring = data.isRecurring ?? task.isRecurring;
+      const recurrenceType = (data.recurrenceType ?? task.recurrenceType) as RecurrenceType;
+      const recurrenceInterval = data.recurrenceInterval ?? task.recurrenceInterval;
+      const recurrenceDays = data.recurrenceDays ?? task.recurrenceDays;
+
+      if (isRecurring && recurrenceType !== 'none') {
+        const baseDate = updateData.dueDate ?? task.dueDate ?? new Date();
+        updateData.nextOccurrence = this.calculateNextOccurrence(
+          recurrenceType,
+          recurrenceInterval,
+          recurrenceDays,
+          baseDate
+        );
+      } else {
+        updateData.nextOccurrence = null;
+      }
+    }
 
     return this.prisma.task.update({
       where: { id },
@@ -47,6 +140,69 @@ export class TasksService {
       where: { id },
       data: { statusId },
     });
+  }
+
+  async completeRecurringTask(
+    id: string,
+    userId: string,
+    createNextOccurrence: boolean = true
+  ): Promise<{ completedTask: Task; nextTask?: Task }> {
+    const task = await this.findById(id);
+    await this.projectsService.findById(task.projectId, userId);
+
+    if (!task.isRecurring) {
+      throw new Error('Task is not recurring');
+    }
+
+    const now = new Date();
+
+    // Update the current task as completed
+    const completedTask = await this.prisma.task.update({
+      where: { id },
+      data: {
+        completedAt: now,
+        streak: task.streak + 1,
+      },
+    });
+
+    // Create next occurrence if requested
+    let nextTask: Task | undefined;
+    if (createNextOccurrence && task.recurrenceType !== 'none') {
+      const nextDueDate = this.calculateNextOccurrence(
+        task.recurrenceType as RecurrenceType,
+        task.recurrenceInterval,
+        task.recurrenceDays,
+        now
+      );
+
+      const nextNextOccurrence = nextDueDate
+        ? this.calculateNextOccurrence(
+            task.recurrenceType as RecurrenceType,
+            task.recurrenceInterval,
+            task.recurrenceDays,
+            nextDueDate
+          )
+        : null;
+
+      nextTask = await this.prisma.task.create({
+        data: {
+          projectId: task.projectId,
+          title: task.title,
+          statusId: task.statusId,
+          dueDate: nextDueDate,
+          assignedToId: task.assignedToId,
+          isRecurring: true,
+          recurrenceType: task.recurrenceType,
+          recurrenceInterval: task.recurrenceInterval,
+          recurrenceDays: task.recurrenceDays,
+          nextOccurrence: nextNextOccurrence,
+          parentTaskId: task.parentTaskId ?? task.id,
+          streak: task.streak + 1,
+        },
+      });
+    }
+
+    return { completedTask, nextTask };
   }
 
   async delete(id: string, userId: string): Promise<void> {

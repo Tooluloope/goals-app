@@ -28,6 +28,10 @@ model User {
   notifications        Notification[]
   assignedTasks        Task[]              @relation("AssignedTasks")
   refreshTokens        RefreshToken[]
+  journalEntries       JournalEntry[]
+  habits               Habit[]
+  weeklyReviews        WeeklyReview[]
+  monthlyReviews       MonthlyReview[]
 
   @@index([email])
 }
@@ -205,14 +209,37 @@ model Task {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Recurrence fields
+  isRecurring        Boolean         @default(false)
+  recurrenceType     RecurrenceType  @default(none)
+  recurrenceInterval Int             @default(1)
+  recurrenceDays     Int[]           @default([]) // 0=Sun, 1=Mon, ..., 6=Sat for weekly
+  nextOccurrence     DateTime?
+  parentTaskId       String?
+  completedAt        DateTime?
+  streak             Int             @default(0)
+
   project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   assignedTo    User?             @relation("AssignedTasks", fields: [assignedToId], references: [id])
   images        ImageAttachment[] @relation("TaskImages")
   notifications Notification[]
+  parentTask    Task?             @relation("RecurringTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  childTasks    Task[]            @relation("RecurringTasks")
 
   @@index([projectId])
   @@index([statusId])
   @@index([assignedToId])
+  @@index([parentTaskId])
+  @@index([isRecurring])
+}
+
+enum RecurrenceType {
+  none
+  daily
+  weekly
+  monthly
+  yearly
+  custom
 }
 
 // ============================================================
@@ -285,4 +312,119 @@ model WorkspaceConfig {
   updatedAt   DateTime @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// DAILY JOURNAL
+// ============================================================
+
+model JournalEntry {
+  id          String   @id @default(uuid())
+  userId      String
+  date        DateTime @db.Date
+  mood        Mood?
+  prompt      String?  @db.Text
+  content     String   @db.Text
+  wins        String?  @db.Text
+  challenges  String?  @db.Text
+  gratitude   String?  @db.Text
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+enum Mood {
+  terrible
+  bad
+  neutral
+  good
+  great
+}
+
+// ============================================================
+// HABIT TRACKER
+// ============================================================
+
+model Habit {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  icon        String   // Lucide icon name or emoji
+  color       String   @default("primary") // Tailwind color name
+  order       Int      @default(0)
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs HabitLog[]
+
+  @@index([userId])
+  @@index([userId, isArchived])
+}
+
+model HabitLog {
+  id        String   @id @default(uuid())
+  habitId   String
+  date      DateTime @db.Date
+  completed Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  habit Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([habitId])
+  @@index([date])
+}
+
+// ============================================================
+// WEEKLY & MONTHLY REVIEWS
+// ============================================================
+
+model WeeklyReview {
+  id             String   @id @default(uuid())
+  userId         String
+  weekStart      DateTime @db.Date // Monday of the week
+  wentWell       String?  @db.Text
+  toImprove      String?  @db.Text
+  focusNextWeek  String?  @db.Text
+  lessonsLearned String?  @db.Text
+  gratitude      String?  @db.Text
+  rating         Int?     // 1-5 star rating
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+  @@index([weekStart])
+}
+
+model MonthlyReview {
+  id                String   @id @default(uuid())
+  userId            String
+  month             DateTime @db.Date // First day of month
+  highlights        String?  @db.Text
+  challenges        String?  @db.Text
+  goalsAchieved     String?  @db.Text
+  goalsForNextMonth String?  @db.Text
+  lessonsLearned    String?  @db.Text
+  gratitude         String?  @db.Text
+  rating            Int?     // 1-5 star rating
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId])
+  @@index([month])
 }
