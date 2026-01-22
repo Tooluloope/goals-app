@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { apiClient } from '@/lib/api-client';
 import { AppLoading } from '@/components/ui/app-loading';
 import { NavigationProgress } from '@/components/ui/navigation-progress';
+import { AuthGuard } from '@/components/auth/auth-guard';
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const { initializeAuth } = useAuthStore();
@@ -23,7 +24,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     return <AppLoading message="Starting app..." />;
   }
 
-  return <>{children}</>;
+  return <AuthGuard>{children}</AuthGuard>;
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {

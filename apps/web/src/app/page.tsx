@@ -3,23 +3,20 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
-import { Loader2 } from 'lucide-react';
+import { AppLoading } from '@/components/ui/app-loading';
 
 export default function HomePage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
+    // Redirect based on authentication status
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.replace('/dashboard');
     } else {
-      router.push('/auth/login');
+      router.replace('/auth/login');
     }
   }, [isAuthenticated, router]);
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
-  );
+  return <AppLoading message="Redirecting..." />;
 }

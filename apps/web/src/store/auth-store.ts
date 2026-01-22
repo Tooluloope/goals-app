@@ -166,6 +166,15 @@ export const useAuthStore = create<AuthState>()(
                 currentWorkspace: defaultWorkspace,
                 isAuthenticated: true,
               });
+            } else {
+              // No user returned, clear state
+              apiClient.clearTokens();
+              set({
+                user: null,
+                currentWorkspace: null,
+                workspaces: [],
+                isAuthenticated: false,
+              });
             }
           } catch {
             // Token invalid, clear state
@@ -177,6 +186,14 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: false,
             });
           }
+        } else {
+          // No tokens exist, clear any persisted auth state
+          set({
+            user: null,
+            currentWorkspace: null,
+            workspaces: [],
+            isAuthenticated: false,
+          });
         }
       },
     }),
