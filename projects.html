@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Project Detail - Health &amp; Exercise</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#00d4ff","background-light": "#f6f6f8",
+              "background-dark": "#0A0A0A","surface-light": "#ffffff",
+              "surface-dark": "#1A1A1A","card-border": "rgba(255, 255, 255, 0.08)",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+            boxShadow: {
+                'neon': '0 0 5px theme("colors.primary"), 0 0 10px theme("colors.primary")',
+            }
+          },
+        },
+      }
+    </script>
+<style>.material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }.glass-card {
+            background-color: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-300 font-display min-h-screen flex flex-col overflow-x-hidden selection:bg-primary selection:text-black">
+<header class="sticky top-0 z-50 bg-surface-light dark:bg-[#0A0A0A]/90 dark:backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-6 py-3 shadow-sm transition-colors">
+<div class="max-w-7xl mx-auto flex items-center justify-between">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-slate-900 dark:text-white">
+<div class="size-8 text-primary drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]">
+<svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M36.7273 44C33.9891 44 31.6043 39.8386 30.3636 33.69C29.123 39.8386 26.7382 44 24 44C21.2618 44 18.877 39.8386 17.6364 33.69C16.3957 39.8386 14.0109 44 11.2727 44C7.25611 44 4 35.0457 4 24C4 12.9543 7.25611 4 11.2727 4C14.0109 4 16.3957 8.16144 17.6364 14.31C18.877 8.16144 21.2618 4 24 4C26.7382 4 29.123 8.16144 30.3636 14.31C31.6043 8.16144 33.9891 4 36.7273 4C40.7439 4 44 12.9543 44 24C44 35.0457 40.7439 44 36.7273 44Z"></path>
+</svg>
+</div>
+<h2 class="text-xl font-bold leading-tight tracking-tight">2026 Goals</h2>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium" href="#">Dashboard</a>
+<a class="text-primary font-medium text-sm drop-shadow-[0_0_5px_rgba(0,212,255,0.4)]" href="#">Projects</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium" href="#">Family Workspace</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium" href="#">Settings</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex relative items-center w-64 h-10">
+<span class="absolute left-3 text-slate-400 material-symbols-outlined text-[20px]">search</span>
+<input class="w-full h-full bg-slate-100 dark:bg-[#1A1A1A] border border-transparent dark:border-white/5 rounded-xl pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary dark:text-white placeholder:text-slate-500 transition-all" placeholder="Search..." type="text"/>
+</div>
+<div class="size-10 rounded-full bg-cover bg-center border-2 border-slate-100 dark:border-white/10 cursor-pointer hover:ring-2 hover:ring-primary transition-all" data-alt="User profile avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAKXgCR-Vvr5uV_GaWl9EKAWfDIyiJNG4DtavLqqEICbDs262Ymd-YL7ILLi78jk7HxH8iS3ix72C6HOdzno1Lee6kb3MeKIG_ynZkImGrBP06Zas1aAB7-0Ori134zTvNOuVEDgZ8Vh6RBoM5BY63FvG1f1hvihaA_qoj3OyAbB0xLHYdxMuL7E-iYJPD0nw73C4oO1fXlRdN8AAiTbNGdZuxfKzz90PQs2jm4_vD_cfdQdQ04993ck7KuNtb1VfVD-UCS2Osua0I");'></div>
+</div>
+</div>
+</header>
+<main class="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-8">
+<div class="flex items-center gap-2 mb-6 text-sm">
+<a class="text-slate-500 hover:text-primary dark:text-slate-500 dark:hover:text-primary transition-colors" href="#">Projects</a>
+<span class="material-symbols-outlined text-[16px] text-slate-600 dark:text-slate-600">chevron_right</span>
+<span class="font-semibold text-slate-900 dark:text-white">Health &amp; Exercise</span>
+</div>
+<section class="flex flex-col lg:flex-row gap-6 justify-between items-start mb-8">
+<div class="flex-1 space-y-4">
+<div class="flex flex-wrap items-center gap-3">
+<span class="bg-emerald-500/10 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+<span class="material-symbols-outlined text-[16px] animate-pulse">check_circle</span> Doing
+                    </span>
+<span class="text-slate-400 dark:text-slate-500 text-sm font-medium">Project ID: #HE-2026</span>
+</div>
+<h1 class="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white drop-shadow-sm">Health &amp; Exercise</h1>
+<div class="flex flex-wrap gap-3">
+<div class="flex items-center gap-2 bg-surface-light dark:bg-[#1A1A1A] px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+<span class="material-symbols-outlined text-rose-500 icon-filled">favorite</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-slate-500 dark:text-slate-500 font-bold">Area</span>
+<span class="text-sm font-semibold dark:text-slate-200">Health</span>
+</div>
+</div>
+<div class="flex items-center gap-2 bg-surface-light dark:bg-[#1A1A1A] px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+<span class="material-symbols-outlined text-primary">event</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-slate-500 dark:text-slate-500 font-bold">Target Date</span>
+<span class="text-sm font-semibold dark:text-slate-200">Dec 31, 2026</span>
+</div>
+</div>
+<div class="flex items-center gap-2 bg-surface-light dark:bg-[#1A1A1A] px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm min-w-[140px]">
+<div class="flex flex-col w-full">
+<div class="flex justify-between items-center mb-1">
+<span class="text-[10px] uppercase text-slate-500 dark:text-slate-500 font-bold">Progress</span>
+<span class="text-[10px] font-bold text-primary">35%</span>
+</div>
+<div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full shadow-[0_0_8px_rgba(0,212,255,0.6)]" style="width: 35%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end gap-4 w-full lg:w-auto">
+<div class="flex items-center -space-x-3">
+<div class="size-10 rounded-full border-2 border-white dark:border-[#0A0A0A] bg-cover bg-center" data-alt="Team member portrait" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAExNuVmJawYpfpapF0HIrVInY910CSz_8qpEcpSKD4iCi3neqo0591rO53faDZmgCvAdO_YUDzEHvszp3jnL4erqkMI1lgmEltFIEREhsxSmtsqooj1UOjjYR5XDFdNs0NtT0nRX84q8ghuTinWLTgnjzmOPS7GqKIOEq1qhtmHUckXu8eQAypR0Xw34MUX4QJhDbx7Nsm8Pgsg3daKWp3x9qtHvkYvunaLA9JMeFvoUHVNl8EzRnRc1CFF4plVXlucWmwknFoaX4");'></div>
+<div class="size-10 rounded-full border-2 border-white dark:border-[#0A0A0A] bg-cover bg-center" data-alt="Team member portrait" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCYUFHrPHBY7aF_3tn5gh1wrG5hu4sWm0nWGvZiQa45VyDM4mVDJU5kg9x70ZxbGBUehVQakCrEDOxTzrcYYT15OmeTZLYUcMYJyDULFdfbYNldwbqH8_qXsWq6GCMjyhkLRSUcfiKk6Y24RMhWhrGOg51ffs3u-qaBnp0Fi--xljM57VgCFcwowF-ptcXDrekfwaJk6g97yUdRNyzoSDnRXaSrsz5XsfVHM8RG5VlkEqN3cmPNxob57S8NAJ-6vA0VegwCxXYKZrY");'></div>
+<div class="size-10 rounded-full border-2 border-white dark:border-[#0A0A0A] bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300">+2</div>
+</div>
+<div class="flex flex-wrap gap-3 justify-end w-full">
+<button class="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-3 bg-surface-light dark:bg-[#1A1A1A] hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-xl font-semibold transition-colors shadow-sm">
+<span class="material-symbols-outlined">edit_document</span>
+                        Edit
+                    </button>
+<button class="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-3 bg-primary hover:bg-cyan-400 text-black rounded-xl font-bold shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all">
+<span class="material-symbols-outlined">add</span>
+                        Add Task
+                    </button>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-1 space-y-6">
+<div class="glass-card dark:bg-[#1A1A1A] rounded-xl shadow-lg border border-slate-100 dark:border-white/5 overflow-hidden group">
+<div class="p-5 border-b border-slate-100 dark:border-white/5 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+<h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">target</span>
+                            Objective
+                        </h3>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-transform duration-200">keyboard_arrow_up</span>
+</div>
+<div class="p-5 pt-4">
+<p class="text-slate-600 dark:text-slate-400 leading-relaxed font-light">
+                            Improve overall family cardiovascular health and run a 5k together by the end of the year. Focus on consistent habits over intensity.
+                        </p>
+</div>
+</div>
+<div class="glass-card dark:bg-[#1A1A1A] rounded-xl shadow-lg border border-slate-100 dark:border-white/5 overflow-hidden group">
+<div class="p-5 border-b border-slate-100 dark:border-white/5 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+<h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-400">checklist</span>
+                            Definition of Done
+                        </h3>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white">keyboard_arrow_up</span>
+</div>
+<div class="p-2">
+<ul class="space-y-1">
+<li class="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+<div class="mt-0.5 relative flex items-center justify-center size-5 rounded border-2 border-slate-300 dark:border-slate-600">
+</div>
+<span class="text-slate-700 dark:text-slate-300 font-medium leading-tight">Everyone runs 5k under 30 mins</span>
+</li>
+<li class="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+<div class="mt-0.5 relative flex items-center justify-center size-5 rounded border-2 border-slate-300 dark:border-slate-600">
+</div>
+<span class="text-slate-700 dark:text-slate-300 font-medium leading-tight">Weekly meal prep established</span>
+</li>
+<li class="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer opacity-60">
+<div class="mt-0.5 relative flex items-center justify-center size-5 rounded border-2 border-primary bg-primary shadow-[0_0_8px_rgba(0,212,255,0.8)] text-black">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+<span class="text-slate-700 dark:text-slate-300 font-medium leading-tight line-through decoration-slate-500">Gym membership renewed</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="lg:col-span-2 space-y-6">
+<div class="glass-card dark:bg-[#1A1A1A] rounded-xl shadow-lg border border-slate-100 dark:border-white/5 overflow-hidden min-h-[400px]">
+<div class="p-5 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
+<div class="flex items-center gap-3">
+<h3 class="font-bold text-xl text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-orange-500 icon-filled drop-shadow-sm">bolt</span>
+                                Next Actions
+                            </h3>
+<span class="bg-primary/10 border border-primary/20 text-primary text-xs font-bold px-2 py-1 rounded-md shadow-[0_0_8px_rgba(0,212,255,0.1)]">2 Pending</span>
+</div>
+<button class="text-sm font-semibold text-primary hover:text-cyan-300 transition-colors hover:underline">View All</button>
+</div>
+<div class="divide-y divide-slate-100 dark:divide-white/5">
+<div class="p-4 sm:p-5 flex gap-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group cursor-pointer items-start">
+<div class="mt-1 relative flex items-center justify-center size-6 rounded-lg border-2 border-slate-300 dark:border-slate-600 group-hover:border-primary group-hover:shadow-[0_0_10px_rgba(0,212,255,0.4)] transition-all bg-white dark:bg-transparent">
+<span class="material-symbols-outlined text-white dark:text-primary text-[18px] opacity-0 group-hover:opacity-100 transition-opacity font-bold">check</span>
+</div>
+<div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+<div>
+<p class="text-lg font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">Buy running shoes</p>
+<p class="text-sm text-slate-500 dark:text-slate-500 mt-1">Check local sports store for discounts.</p>
+</div>
+<div class="flex items-center gap-4 mt-2 sm:mt-0">
+<div class="flex items-center gap-2 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-transparent dark:border-white/5">
+<div class="size-5 rounded-full bg-cover bg-center" data-alt="Assignee avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDpvWChSmAnhqXZXyGOTsQBW9VysUZR3Fdv_D9RcVI7f4nGXjdGGMGNiqXMxsCkg7X4h4Oyo6VoJoIDug3iE4EgtgFK64YJczb7dRWHGB5opQlKJaeP6SMFI6oFYFvyZHwqJDr1wAD3sX5DoMHoig77dajsbVWRz1McO3cEa8FCouaE744hWMYqLuCA4R0XezvUIzb96-Ks3KhnvinI4f0Z9syt2ywI2KzsfEnd0eKKxwtzwSoMH8HS7T6z_r4mU35vVvVmsQcFAGA");'></div>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Dad</span>
+</div>
+<span class="flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 px-2 py-1 rounded-md border border-orange-100 dark:border-orange-500/20">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+                                        Jan 15
+                                    </span>
+</div>
+</div>
+</div>
+<div class="p-4 sm:p-5 flex gap-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group cursor-pointer items-start">
+<div class="mt-1 relative flex items-center justify-center size-6 rounded-lg border-2 border-slate-300 dark:border-slate-600 group-hover:border-primary group-hover:shadow-[0_0_10px_rgba(0,212,255,0.4)] transition-all bg-white dark:bg-transparent">
+<span class="material-symbols-outlined text-white dark:text-primary text-[18px] opacity-0 group-hover:opacity-100 transition-opacity font-bold">check</span>
+</div>
+<div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+<div>
+<p class="text-lg font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">Research 5k training plans</p>
+<p class="text-sm text-slate-500 dark:text-slate-500 mt-1">Look for "Couch to 5k" variations suitable for kids.</p>
+</div>
+<div class="flex items-center gap-4 mt-2 sm:mt-0">
+<div class="flex items-center gap-2 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-transparent dark:border-white/5">
+<div class="size-5 rounded-full bg-cover bg-center" data-alt="Assignee avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDhq_SvWUiLmDnm-etZLftT0TEoUFTWm1qG7SG67ToIGlEHkRO7OWRDtKPfpNgZpDRtAjqy4DcjLhUfegMyjGJ3hv0pX1c2Sg4N8JfifKuda2L-NPt20o5PBKlmvIMsZ-nm0ProcqERMhSzvkjPZmG2lopCSNJLPWSRsM8jigoWeIie0bJofL6NQSvZs0WoCAUBluZXv8_ktkyOlyw4Rqt4uXvX7odPNRukA-JjVhL5O2qOE30GIMpcWzfOE94kJYF0JD8irHdJnBA");'></div>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Mom</span>
+</div>
+<span class="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-md border border-slate-200 dark:border-white/10">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+                                        Jan 20
+                                    </span>
+</div>
+</div>
+</div>
+<div class="p-4 sm:p-5 bg-slate-50 dark:bg-white/[0.02]">
+<button class="w-full text-left text-slate-500 hover:text-primary dark:text-slate-500 dark:hover:text-primary font-medium flex items-center gap-3 group transition-colors p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">add_circle</span>
+                                Add a new action item...
+                            </button>
+</div>
+</div>
+</div>
+<div class="glass-card dark:bg-[#1A1A1A] rounded-xl shadow-lg border border-slate-100 dark:border-white/5 overflow-hidden">
+<div class="p-5 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+<h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-purple-500">history_edu</span>
+                            Review Notes
+                        </h3>
+<button class="text-sm font-semibold text-primary hover:text-cyan-300 hover:underline flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+                            Log Note
+                        </button>
+</div>
+<div class="p-5">
+<div class="relative border-l-2 border-slate-200 dark:border-white/10 ml-3 space-y-8">
+<div class="relative pl-6">
+<div class="absolute -left-[9px] top-1 size-4 bg-white dark:bg-[#1A1A1A] border-2 border-purple-500 rounded-full box-border"></div>
+<div class="flex flex-col gap-1">
+<span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Jan 1, 2026</span>
+<p class="text-slate-800 dark:text-slate-300 text-base font-light">
+                                        Kickoff meeting successful. We are excited! We decided that Sunday mornings will be our group run time.
+                                    </p>
+<div class="flex items-center gap-2 mt-2">
+<div class="size-6 rounded-full bg-cover bg-center border border-white dark:border-white/10" data-alt="Author avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB-Rq2yYjHbVXH3TVqe2U7eA44C_g2XbTDbU9eaBEnDfbUfTJ-ANfjDn7gY8dM-JBwOf-YdisgIHLAkKmhu4Rdcbra-BOH4aB9jBxY9RzcmBdSs3bcnHl7FwvnDV6CxWK-Q6OAN_XTj66CnrX5RzsRsFB7275Fn6ooMZLOJQTlAcoGHEIBTgBexcAGICqBjBMA0R2hPXRwHnxtFda2_tIz0My5Q7Ieko3kGjeT3wLbK_SsUVscJT0XC6LnF2-mtJ3NnQOuUTnDNf2c");'></div>
+<span class="text-xs text-slate-500 dark:text-slate-500">Logged by Dad</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="mt-12 py-6 text-center text-slate-400 dark:text-slate-600 text-sm border-t border-slate-200 dark:border-white/5">
+<p>© 2026 Family Goals Tracker</p>
+</footer>
+
+</body></html>
