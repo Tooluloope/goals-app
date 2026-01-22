@@ -1,79 +1,180 @@
-# 2026 Goals Tracker
+# Goals App - Monorepo
 
-A production-grade, mobile-first web application for tracking personal and family goals with a Kanban board, project pages, checklists, tasks, reviews, and notifications.
+A full-stack goals tracking application built with Next.js, NestJS, PostgreSQL, and Prisma.
 
 ## Features
 
-- **Authentication**: Email/password login with demo credentials
+- **Authentication**: JWT-based auth with refresh tokens
 - **Dashboard**: Daily focus tasks, upcoming deadlines, reviews due, and stale project alerts
 - **Kanban Board**: Drag-and-drop goals between Todo, Doing, Done, and Failed columns
 - **Project Pages**: Detailed goal tracking with objectives, requirements, tasks, reviews, and retrospectives
 - **Calendar View**: Visual overview of task due dates and project deadlines
-- **Notifications**: In-app notification feed with summary modal on login
+- **Notifications**: In-app notification feed
 - **Settings**: Profile management, workspace switching, notification preferences
 - **Mobile-First**: Responsive design with bottom navigation on mobile and sidebar on desktop
-
-## Tech Stack
-
-- **Framework**: Next.js 14 (App Router) + TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui components
-- **State Management**: Zustand (UI state) + React Query (server state)
-- **Forms**: React Hook Form + Zod validation
-- **Drag & Drop**: @dnd-kit/core
-- **Icons**: Lucide React
-- **Date Handling**: date-fns
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Demo Credentials
-
-- **Email**: tolu@example.com
-- **Password**: password123
 
 ## Project Structure
 
 ```
-src/
-├── app/                    # Next.js App Router pages
-│   ├── auth/              # Authentication pages
-│   ├── board/             # Kanban board
-│   ├── calendar/          # Calendar view
-│   ├── dashboard/         # Main dashboard
-│   ├── notifications/     # Notifications feed
-│   ├── project/           # Project detail pages
-│   └── settings/          # Settings page
-├── components/
-│   ├── auth/              # Authentication components
-│   ├── board/             # Kanban board components
-│   ├── dashboard/         # Dashboard widgets
-│   ├── layout/            # Layout components (sidebar, nav)
-│   ├── notifications/     # Notification components
-│   ├── project/           # Project page sections
-│   ├── shared/            # Shared modals and components
-│   └── ui/                # Base UI components (shadcn/ui)
-├── hooks/                 # Custom React hooks
-├── lib/                   # Utilities and seed data
-├── services/              # Data service layer
-├── store/                 # Zustand stores
-└── types/                 # TypeScript types
+goals-app/
+├── apps/
+│   ├── web/          # Next.js 14 frontend
+│   └── api/          # NestJS backend
+├── packages/
+│   ├── shared/       # Shared types & validation schemas (Zod)
+│   └── database/     # Prisma schema & client
+├── docker-compose.yml
+├── turbo.json
+├── package.json
+└── pnpm-workspace.yaml
 ```
+
+## Tech Stack
+
+- **Frontend**: Next.js 14, React, Tailwind CSS, Radix UI, React Query, Zustand
+- **Backend**: NestJS, Passport JWT, Prisma
+- **Database**: PostgreSQL
+- **Monorepo**: Turborepo, pnpm workspaces
+- **Validation**: Zod (shared between frontend & backend)
+
+## Prerequisites
+
+- Node.js 18+
+- pnpm 8+
+- Docker (for PostgreSQL)
+
+## Getting Started
+
+### 1. Install Dependencies
+
+```bash
+pnpm install
+```
+
+### 2. Start PostgreSQL
+
+```bash
+docker-compose up -d
+```
+
+### 3. Setup Database
+
+```bash
+# Generate Prisma client
+pnpm db:generate
+
+# Push schema to database
+pnpm db:push
+
+# Seed with demo data (optional)
+pnpm db:seed
+```
+
+### 4. Start Development Servers
+
+```bash
+# Start both web and api
+pnpm dev
+
+# Or start individually
+pnpm dev:web  # Frontend on http://localhost:3008
+pnpm dev:api  # Backend on http://localhost:3001
+```
+
+## Available Scripts
+
+| Command             | Description                        |
+| ------------------- | ---------------------------------- |
+| `pnpm dev`          | Start all apps in development mode |
+| `pnpm dev:web`      | Start frontend only                |
+| `pnpm dev:api`      | Start backend only                 |
+| `pnpm build`        | Build all apps                     |
+| `pnpm lint`         | Lint all apps                      |
+| `pnpm typecheck`    | Run TypeScript type checking       |
+| `pnpm format`       | Format code with Prettier          |
+| `pnpm format:check` | Check code formatting              |
+| `pnpm db:generate`  | Generate Prisma client             |
+| `pnpm db:push`      | Push schema to database            |
+| `pnpm db:migrate`   | Run database migrations            |
+| `pnpm db:seed`      | Seed database with demo data       |
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```env
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/goals_db
+
+# JWT
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# API
+API_PORT=3001
+CORS_ORIGIN=http://localhost:3008
+
+# Frontend
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+## Demo Credentials
+
+After running `pnpm db:seed`:
+
+- **Email**: demo@example.com
+- **Password**: password123
+
+## API Endpoints
+
+### Authentication
+
+- `POST /api/auth/login` - User login
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/refresh` - Refresh access token
+- `POST /api/auth/logout` - User logout
+
+### Users
+
+- `GET /api/users/me` - Get current user
+- `PATCH /api/users/me/settings` - Update user settings
+
+### Workspaces
+
+- `GET /api/workspaces` - List user's workspaces
+- `GET /api/workspaces/:id` - Get workspace details
+- `POST /api/workspaces/:id/invite` - Invite user to workspace
+
+### Projects
+
+- `GET /api/projects/workspace/:id` - List workspace projects
+- `GET /api/projects/:id` - Get project details
+- `POST /api/projects` - Create project
+- `PUT /api/projects/:id` - Update project
+- `PATCH /api/projects/:id/status` - Update project status
+- `DELETE /api/projects/:id` - Delete project
+- `POST /api/projects/:id/requirements` - Add requirement
+- `POST /api/projects/:id/reviews` - Add review
+
+### Tasks
+
+- `GET /api/tasks` - List all tasks
+- `POST /api/tasks` - Create task
+- `PATCH /api/tasks/:id/status` - Update task status
+- `DELETE /api/tasks/:id` - Delete task
+
+### Notifications
+
+- `GET /api/notifications` - List notifications
+- `GET /api/notifications/unread-count` - Get unread count
+- `PATCH /api/notifications/:id/read` - Mark as read
+- `PATCH /api/notifications/read-all` - Mark all as read
+
+### Config
+
+- `GET /api/config/workspace/:id` - Get workspace config
+- `PUT /api/config/workspace/:id` - Update workspace config
 
 ## Data Model
 
@@ -91,139 +192,87 @@ Faith, Family, Learning, Career, Finance, Health, Personal, Business
 
 ### Review Cadences
 
-Weekly (7 days), Monthly (30 days), Quarterly (90 days)
+Weekly (7 days), Bi-weekly (14 days), Monthly (30 days), Quarterly (90 days)
 
-## Extending with a Real Backend
+## Code Quality
 
-The app uses a mock data service (`src/services/data-service.ts`) designed for easy replacement:
+- **Prettier**: Code formatting (configured in `.prettierrc`)
+- **Husky**: Git hooks for pre-commit formatting via lint-staged
+- **TypeScript**: Strict type checking across all packages
 
-### 1. Replace the Data Service
+## Architecture Details
+
+### State Management (`apps/web/src/store/`)
+
+| Store             | Purpose                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| `auth-store.ts`   | User authentication state, login/logout actions, workspace selection |
+| `config-store.ts` | Workspace configuration (statuses, priorities, cadences, etc.)       |
+| `ui-store.ts`     | UI state (modals, sidebar, selected items)                           |
+
+### Type System (`packages/shared/`)
+
+All domain types are centralized in the shared package:
+
+- **Entity types**: `User`, `Workspace`, `Project`, `Task`, `Review`, `Notification`
+- **Configuration types**: `Status`, `Priority`, `Confidence`, `Cadence`, `Area`
+- **DTOs**: `CreateProjectDTO`, `UpdateTaskDTO`, etc.
+
+The web app re-exports these from `@goals/shared` in `apps/web/src/types/index.ts`.
+
+### Date Handling
+
+The shared types use `Date` objects, but JSON serialization converts them to strings at runtime. The web app includes helpers in `apps/web/src/lib/utils.ts`:
 
 ```typescript
-// src/services/data-service.ts
-
-// Instead of in-memory operations, call your API:
-export async function getProjectsForWorkspace(workspaceId: string): Promise<Project[]> {
-  const response = await fetch(`/api/workspaces/${workspaceId}/projects`);
-  return response.json();
-}
+toDate(value: Date | string)     // Converts to Date object
+toISOString(value: Date | string) // Converts to ISO string
 ```
 
-### 2. Add Real Authentication
+### Key Frontend Components
 
-Replace the mock auth with NextAuth.js or your preferred auth provider:
+| Directory               | Contents                                                  |
+| ----------------------- | --------------------------------------------------------- |
+| `components/ui/`        | Reusable UI primitives (Button, Card, Dialog, etc.)       |
+| `components/shared/`    | Shared business components (AddProjectModal, ImageUpload) |
+| `components/dashboard/` | Dashboard-specific widgets                                |
+| `components/project/`   | Project detail page components                            |
+| `components/board/`     | Kanban board components                                   |
+| `components/layout/`    | App layout, sidebar, header, navigation                   |
 
-```typescript
-// Install NextAuth
-npm install next-auth
+## For LLMs/AI Assistants
 
-// Create API route: src/app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
+When working with this codebase:
 
-export const authOptions = {
-  providers: [
-    CredentialsProvider({
-      // Configure your auth
-    }),
-  ],
-};
+1. **Type imports**: Always import types from `@goals/shared` for consistency. The web app re-exports them from `@/types`.
 
-export const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
-```
+2. **Date handling**: Use the `toDate()` helper from `@/lib/utils` when working with dates that may be strings (common after JSON serialization).
 
-### 3. API Routes Structure (Suggested)
+3. **API implementation**: Check `apps/api/src/` for endpoint implementations. Controllers are in module directories (e.g., `projects/projects.controller.ts`).
 
-```
-/api/auth/*           # Authentication
-/api/users/:id        # User management
-/api/workspaces/*     # Workspace operations
-/api/projects/*       # Project CRUD
-/api/notifications/*  # Notifications
-```
+4. **Database schema**: Reference `packages/database/prisma/schema.prisma` for the data model.
 
-### 4. Database Schema (Suggested)
+5. **UI components**: Custom components are in `apps/web/src/components/ui/` - built on Radix UI primitives.
 
-Use your preferred database. Example Prisma schema:
+6. **State management**: Check Zustand stores in `apps/web/src/store/` before adding new global state. Use React Query for server state.
 
-```prisma
-model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String
-  projects  Project[]
-  workspaces Workspace[] @relation("WorkspaceMembers")
-}
+7. **Image handling**: The web app uses `LocalImageAttachment` (base64) for client-side processing, while the shared `ImageAttachment` type uses URLs for server storage.
 
-model Workspace {
-  id       String    @id @default(cuid())
-  name     String
-  type     String
-  members  User[]    @relation("WorkspaceMembers")
-  projects Project[]
-}
+8. **Configuration entities**: Statuses, priorities, cadences, and confidence levels are workspace-scoped and stored in the database, not hardcoded.
 
-model Project {
-  id          String   @id @default(cuid())
-  name        String
-  status      String
-  area        String
-  priority    String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  workspaceId String
-  // ... other fields
-}
-```
+### File Locations Quick Reference
 
-## Key Features Implementation
-
-### Daily Focus Logic
-
-Shows NextAction tasks from Doing projects, prioritized by project priority and deadline.
-
-### Review Due Logic
-
-- Weekly: Due if lastReviewDate > 7 days ago
-- Monthly: Due if lastReviewDate > 30 days ago
-- Quarterly: Due if lastReviewDate > 90 days ago
-
-### Progress Calculation
-
-```
-progress = (completed requirements + completed definition items + done tasks) / total items
-```
-
-### Stale Project Detection
-
-Projects in "Doing" status with no updates in 30+ days.
-
-## Customization
-
-### Theme Colors
-
-Edit CSS variables in `src/app/globals.css`:
-
-```css
-:root {
-  --primary: 222.2 47.4% 11.2%;
-  --secondary: 210 40% 96.1%;
-  /* ... */
-}
-```
-
-### Area Colors
-
-Modify `areaColors` in `src/lib/utils.ts` to change goal category colors.
-
-## Scripts
-
-```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run start    # Start production server
-npm run lint     # Run ESLint
-```
+| What              | Where                                          |
+| ----------------- | ---------------------------------------------- |
+| Prisma schema     | `packages/database/prisma/schema.prisma`       |
+| Shared types      | `packages/shared/src/types/`                   |
+| API controllers   | `apps/api/src/<module>/<module>.controller.ts` |
+| API services      | `apps/api/src/<module>/<module>.service.ts`    |
+| Frontend pages    | `apps/web/src/app/`                            |
+| React components  | `apps/web/src/components/`                     |
+| Zustand stores    | `apps/web/src/store/`                          |
+| React Query hooks | `apps/web/src/hooks/`                          |
+| Utility functions | `apps/web/src/lib/utils.ts`                    |
 
 ## License
 

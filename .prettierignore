@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+.next
+build
+out
+
+# Generated files
+*.generated.*
+pnpm-lock.yaml
+
+# Prisma
+packages/database/prisma/migrations
+
+# IDE
+.vscode
+.idea
+
+# Cache
+.turbo
+.cache

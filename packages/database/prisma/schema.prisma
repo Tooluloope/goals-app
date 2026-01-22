@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  avatar             String?
+  defaultWorkspaceId String?
+  settings           Json      @default("{\"theme\": \"light\", \"compactMode\": false, \"showWelcomeOnLogin\": true}")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  ownedWorkspaces      Workspace[]         @relation("WorkspaceOwner")
+  workspaceMemberships WorkspaceMember[]
+  notifications        Notification[]
+  assignedTasks        Task[]              @relation("AssignedTasks")
+  refreshTokens        RefreshToken[]
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ============================================================
+// WORKSPACE
+// ============================================================
+
+model Workspace {
+  id        String        @id @default(uuid())
+  name      String
+  type      WorkspaceType @default(personal)
+  ownerId   String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relations
+  owner    User               @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members  WorkspaceMember[]
+  projects Project[]
+  config   WorkspaceConfig?
+
+  @@index([ownerId])
+}
+
+model WorkspaceMember {
+  id          String     @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        MemberRole @default(member)
+  joinedAt    DateTime   @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+enum WorkspaceType {
+  personal
+  family
+}
+
+enum MemberRole {
+  owner
+  admin
+  member
+}
+
+// ============================================================
+// PROJECT
+// ============================================================
+
+model Project {
+  id              String    @id @default(uuid())
+  workspaceId     String
+  name            String
+  statusId        String
+  areaId          String
+  startDate       DateTime
+  targetDate      DateTime
+  cadenceId       String
+  priorityId      String
+  successMetric   String
+  lastReviewDate  DateTime?
+  confidenceId    String
+  objective       String    @db.Text
+  failureCriteria String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  checklistItems ChecklistItem[]
+  keyDecisions   KeyDecision[]
+  tasks          Task[]
+  metrics        ProjectMetrics?
+  reviewNotes    ReviewNote[]
+  images         ImageAttachment[] @relation("ProjectImages")
+  notifications  Notification[]
+
+  @@index([workspaceId])
+  @@index([statusId])
+  @@index([areaId])
+}
+
+model ChecklistItem {
+  id        String            @id @default(uuid())
+  projectId String
+  type      ChecklistItemType
+  text      String
+  completed Boolean           @default(false)
+  order     Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+enum ChecklistItemType {
+  requirement
+  definition_of_done
+}
+
+model KeyDecision {
+  id        String   @id @default(uuid())
+  projectId String
+  date      DateTime
+  context   String   @db.Text
+  options   String[]
+  chosen    String
+  rationale String   @db.Text
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ReviewNote {
+  id        String   @id @default(uuid())
+  projectId String
+  date      DateTime
+  notes     String   @db.Text
+  progress  String   @db.Text
+  blockers  String   @db.Text
+  changes   String   @db.Text
+  nextStep  String   @db.Text
+  createdAt DateTime @default(now())
+
+  project Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  images  ImageAttachment[] @relation("ReviewImages")
+
+  @@index([projectId])
+}
+
+model ProjectMetrics {
+  id               String  @id @default(uuid())
+  projectId        String  @unique
+  primaryMetric    String?
+  leadingIndicator String?
+  riskIndicator    String?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// TASK
+// ============================================================
+
+model Task {
+  id           String    @id @default(uuid())
+  projectId    String
+  title        String
+  statusId     String
+  dueDate      DateTime?
+  assignedToId String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo    User?             @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  images        ImageAttachment[] @relation("TaskImages")
+  notifications Notification[]
+
+  @@index([projectId])
+  @@index([statusId])
+  @@index([assignedToId])
+}
+
+// ============================================================
+// IMAGE ATTACHMENT
+// ============================================================
+
+model ImageAttachment {
+  id        String   @id @default(uuid())
+  filename  String
+  url       String
+  mimeType  String
+  size      Int
+  caption   String?
+  createdAt DateTime @default(now())
+
+  // Polymorphic relations
+  projectId    String?
+  taskId       String?
+  reviewNoteId String?
+
+  project    Project?    @relation("ProjectImages", fields: [projectId], references: [id], onDelete: Cascade)
+  task       Task?       @relation("TaskImages", fields: [taskId], references: [id], onDelete: Cascade)
+  reviewNote ReviewNote? @relation("ReviewImages", fields: [reviewNoteId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([taskId])
+  @@index([reviewNoteId])
+}
+
+// ============================================================
+// NOTIFICATION
+// ============================================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String           @db.Text
+  projectId String?
+  taskId    String?
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  task    Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, readAt])
+}
+
+enum NotificationType {
+  DueSoon
+  Overdue
+  ReviewDue
+  StaleProject
+  DailyFocus
+}
+
+// ============================================================
+// WORKSPACE CONFIG
+// ============================================================
+
+model WorkspaceConfig {
+  id          String   @id @default(uuid())
+  workspaceId String   @unique
+  config      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}

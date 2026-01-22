@@ -1,0 +1,107 @@
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { ProjectsService } from './projects.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CreateProjectDto, UpdateProjectDto, AddReviewDto } from '@goals/shared';
+import { User, Project } from '@goals/database';
+
+type UserWithoutPassword = Omit<User, 'passwordHash'>;
+
+@Controller('projects')
+@UseGuards(JwtAuthGuard)
+export class ProjectsController {
+  constructor(private projectsService: ProjectsService) {}
+
+  @Get('workspace/:workspaceId')
+  findAllForWorkspace(
+    @Param('workspaceId') workspaceId: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project[]> {
+    return this.projectsService.findAllForWorkspace(workspaceId, user.id);
+  }
+
+  @Get('user')
+  findAllForUser(@CurrentUser() user: UserWithoutPassword): Promise<Project[]> {
+    return this.projectsService.findAllForUser(user.id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string, @CurrentUser() user: UserWithoutPassword): Promise<Project> {
+    return this.projectsService.findById(id, user.id);
+  }
+
+  @Post()
+  create(
+    @Body() data: CreateProjectDto,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project> {
+    return this.projectsService.create(data, user.id);
+  }
+
+  @Put(':id')
+  update(
+    @Param('id') id: string,
+    @Body() data: UpdateProjectDto,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project> {
+    return this.projectsService.update(id, data, user.id);
+  }
+
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id') id: string,
+    @Body('statusId') statusId: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project> {
+    return this.projectsService.updateStatus(id, statusId, user.id);
+  }
+
+  @Delete(':id')
+  delete(@Param('id') id: string, @CurrentUser() user: UserWithoutPassword): Promise<void> {
+    return this.projectsService.delete(id, user.id);
+  }
+
+  @Post(':id/requirements')
+  addRequirement(
+    @Param('id') id: string,
+    @Body('text') text: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project> {
+    return this.projectsService.addRequirement(id, text, user.id);
+  }
+
+  @Patch(':id/requirements/:itemId/toggle')
+  toggleRequirement(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project> {
+    return this.projectsService.toggleRequirement(id, itemId, user.id);
+  }
+
+  @Post(':id/definition-of-done')
+  addDefinitionOfDone(
+    @Param('id') id: string,
+    @Body('text') text: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project> {
+    return this.projectsService.addDefinitionOfDone(id, text, user.id);
+  }
+
+  @Patch(':id/definition-of-done/:itemId/toggle')
+  toggleDefinitionOfDone(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project> {
+    return this.projectsService.toggleDefinitionOfDone(id, itemId, user.id);
+  }
+
+  @Post(':id/reviews')
+  addReview(
+    @Body() data: AddReviewDto,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Project> {
+    return this.projectsService.addReview(data, user.id);
+  }
+}
