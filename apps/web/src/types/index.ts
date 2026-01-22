@@ -25,6 +25,7 @@ export interface CreateProjectData {
   objective: string;
   successMetric: string;
   confidenceId: string;
+  tagIds?: string[];
 }
 
 export interface CreateTaskData {

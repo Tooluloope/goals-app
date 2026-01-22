@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
 import { CreateTaskDto, UpdateTaskDto, RecurrenceType } from '@goals/shared';
-import { Task, RecurrenceType as PrismaRecurrenceType } from '@goals/database';
+import { Task, TaskDependency, RecurrenceType as PrismaRecurrenceType } from '@goals/database';
 import { addDays, addWeeks, addMonths, addYears, setDay, isAfter, startOfDay } from 'date-fns';
 
 @Injectable()
@@ -213,7 +213,21 @@ export class TasksService {
   }
 
   async findById(id: string): Promise<Task> {
-    const task = await this.prisma.task.findUnique({ where: { id } });
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: {
+        blockedBy: {
+          include: {
+            blocker: { select: { id: true, title: true, statusId: true } },
+          },
+        },
+        blocking: {
+          include: {
+            dependent: { select: { id: true, title: true, statusId: true } },
+          },
+        },
+      },
+    });
     if (!task) {
       throw new NotFoundException('Task not found');
     }
@@ -237,5 +251,151 @@ export class TasksService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  // ============================================================
+  // DEPENDENCY MANAGEMENT
+  // ============================================================
+
+  async getBlockers(
+    taskId: string,
+    userId: string
+  ): Promise<{ blockedBy: TaskDependency[]; blocking: TaskDependency[] }> {
+    const task = await this.findById(taskId);
+    await this.projectsService.findById(task.projectId, userId);
+    return {
+      blockedBy: (task as any).blockedBy || [],
+      blocking: (task as any).blocking || [],
+    };
+  }
+
+  async addBlocker(
+    taskId: string,
+    blockerId: string,
+    userId: string,
+    note?: string
+  ): Promise<TaskDependency> {
+    // Verify user has access to the task
+    const dependent = await this.findById(taskId);
+    await this.projectsService.findById(dependent.projectId, userId);
+
+    // Verify user has access to the blocker task
+    const blocker = await this.findById(blockerId);
+    await this.projectsService.findById(blocker.projectId, userId);
+
+    // Prevent self-blocking
+    if (taskId === blockerId) {
+      throw new BadRequestException('A task cannot block itself');
+    }
+
+    // Check for circular dependency
+    const wouldCreateCycle = await this.wouldCreateCircularDependency(taskId, blockerId);
+    if (wouldCreateCycle) {
+      throw new BadRequestException('This would create a circular dependency');
+    }
+
+    // Check if dependency already exists
+    const existing = await this.prisma.taskDependency.findUnique({
+      where: {
+        dependentId_blockerId: { dependentId: taskId, blockerId },
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException('This blocker relationship already exists');
+    }
+
+    return this.prisma.taskDependency.create({
+      data: {
+        dependentId: taskId,
+        blockerId,
+        note,
+      },
+      include: {
+        blocker: { select: { id: true, title: true, statusId: true } },
+        dependent: { select: { id: true, title: true, statusId: true } },
+      },
+    });
+  }
+
+  async removeBlocker(taskId: string, blockerId: string, userId: string): Promise<void> {
+    // Verify user has access
+    const task = await this.findById(taskId);
+    await this.projectsService.findById(task.projectId, userId);
+
+    const dependency = await this.prisma.taskDependency.findUnique({
+      where: {
+        dependentId_blockerId: { dependentId: taskId, blockerId },
+      },
+    });
+
+    if (!dependency) {
+      throw new NotFoundException('Blocker relationship not found');
+    }
+
+    await this.prisma.taskDependency.delete({
+      where: { id: dependency.id },
+    });
+  }
+
+  private async wouldCreateCircularDependency(
+    dependentId: string,
+    newBlockerId: string
+  ): Promise<boolean> {
+    // Check if dependentId is in the blocker chain of newBlockerId
+    const visited = new Set<string>();
+    const queue = [newBlockerId];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (current === dependentId) {
+        return true; // Circular dependency detected
+      }
+      if (visited.has(current)) continue;
+      visited.add(current);
+
+      // Get all tasks that block the current task
+      const blockers = await this.prisma.taskDependency.findMany({
+        where: { dependentId: current },
+        select: { blockerId: true },
+      });
+
+      for (const b of blockers) {
+        if (!visited.has(b.blockerId)) {
+          queue.push(b.blockerId);
+        }
+      }
+    }
+
+    return false;
+  }
+
+  async getUnblockedDependents(blockerId: string): Promise<string[]> {
+    // Find all tasks that were blocked only by this task
+    const dependents = await this.prisma.taskDependency.findMany({
+      where: { blockerId },
+      select: { dependentId: true },
+    });
+
+    const unblockedIds: string[] = [];
+
+    for (const dep of dependents) {
+      // Check if this dependent has any other incomplete blockers
+      const otherBlockers = await this.prisma.taskDependency.count({
+        where: {
+          dependentId: dep.dependentId,
+          blockerId: { not: blockerId },
+          blocker: {
+            statusId: { notIn: ['task-done', 'task-completed'] },
+          },
+        },
+      });
+
+      if (otherBlockers === 0) {
+        unblockedIds.push(dep.dependentId);
+      }
+    }
+
+    return unblockedIds;
   }
 }

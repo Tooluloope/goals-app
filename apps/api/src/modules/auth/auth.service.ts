@@ -131,8 +131,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Delete old token
-    await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
+    // Delete old token (use deleteMany to avoid error if already deleted)
+    await this.prisma.refreshToken.deleteMany({ where: { id: storedToken.id } });
 
     // Generate new tokens
     const tokens = await this.generateTokens(storedToken.userId, storedToken.user.email);
@@ -164,8 +164,11 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await this.prisma.refreshToken.create({
-      data: { token, userId, expiresAt },
+    // Use upsert to handle race conditions where the same token might be generated
+    await this.prisma.refreshToken.upsert({
+      where: { token },
+      update: { expiresAt },
+      create: { token, userId, expiresAt },
     });
   }
 }

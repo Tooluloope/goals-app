@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { TagSelect } from '@/components/ui/tag-select';
 import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
@@ -55,6 +56,7 @@ export function AddProjectModal() {
     getPrioritiesForWorkspace,
     getCadencesForWorkspace,
     getConfidencesForWorkspace,
+    getActiveTags,
   } = useConfigStore();
   const createProject = useCreateProject();
   const { toast } = useToast();
@@ -64,6 +66,9 @@ export function AddProjectModal() {
   const priorities = currentWorkspace ? getPrioritiesForWorkspace(currentWorkspace.id) : [];
   const cadences = currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : [];
   const confidences = currentWorkspace ? getConfidencesForWorkspace(currentWorkspace.id) : [];
+  const tags = currentWorkspace ? getActiveTags(currentWorkspace.id) : [];
+
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const today = new Date().toISOString().split('T')[0];
   const endOfYear = `${new Date().getFullYear()}-12-31`;
@@ -137,6 +142,7 @@ export function AddProjectModal() {
         startDate: data.startDate,
         targetDate: data.targetDate,
         successMetric: data.successMetric,
+        tagIds: selectedTagIds,
       });
 
       toast({
@@ -146,6 +152,7 @@ export function AddProjectModal() {
       });
 
       reset();
+      setSelectedTagIds([]);
       setAddProjectModalOpen(false);
     } catch (error) {
       toast({
@@ -158,6 +165,7 @@ export function AddProjectModal() {
 
   const handleClose = () => {
     reset();
+    setSelectedTagIds([]);
     setAddProjectModalOpen(false);
   };
 
@@ -310,6 +318,16 @@ export function AddProjectModal() {
                   })}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tags</Label>
+              <TagSelect
+                tags={tags}
+                selectedTagIds={selectedTagIds}
+                onSelectionChange={setSelectedTagIds}
+                placeholder="Select tags..."
+              />
             </div>
 
             <div className="space-y-2">

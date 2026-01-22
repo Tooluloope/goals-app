@@ -280,8 +280,8 @@ export function DailyJournal() {
         </CardContent>
       </Card>
 
-      {/* Save Button */}
-      <div className="sticky bottom-4 z-20">
+      {/* Save Button - bottom-20 on mobile to clear bottom nav, bottom-4 on desktop */}
+      <div className="sticky bottom-20 z-20 md:bottom-4">
         <Button
           size="lg"
           className="w-full shadow-lg"

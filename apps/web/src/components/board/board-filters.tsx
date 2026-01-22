@@ -17,15 +17,17 @@ import { cn } from '@/lib/utils';
 export function BoardFilters() {
   const { boardFilters, setBoardFilters, resetBoardFilters } = useUIStore();
   const { currentWorkspace } = useAuthStore();
-  const { getAreasForWorkspace, getPrioritiesForWorkspace } = useConfigStore();
+  const { getAreasForWorkspace, getPrioritiesForWorkspace, getActiveTags } = useConfigStore();
   const [isOpen, setIsOpen] = useState(false);
 
   const areas = currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : [];
   const priorities = currentWorkspace ? getPrioritiesForWorkspace(currentWorkspace.id) : [];
+  const tags = currentWorkspace ? getActiveTags(currentWorkspace.id) : [];
 
   const activeFilterCount =
     boardFilters.areaIds.length +
     boardFilters.priorityIds.length +
+    boardFilters.tagIds.length +
     (boardFilters.dueSoon ? 1 : 0) +
     (boardFilters.reviewDue ? 1 : 0);
 
@@ -41,6 +43,13 @@ export function BoardFilters() {
       ? boardFilters.priorityIds.filter((p) => p !== priorityId)
       : [...boardFilters.priorityIds, priorityId];
     setBoardFilters({ priorityIds: newPriorityIds });
+  };
+
+  const toggleTag = (tagId: string) => {
+    const newTagIds = boardFilters.tagIds.includes(tagId)
+      ? boardFilters.tagIds.filter((t) => t !== tagId)
+      : [...boardFilters.tagIds, tagId];
+    setBoardFilters({ tagIds: newTagIds });
   };
 
   return (
@@ -125,6 +134,37 @@ export function BoardFilters() {
               })}
             </div>
           </div>
+
+          {tags.length > 0 && (
+            <>
+              <Separator />
+
+              {/* Tags */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Tags</Label>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => {
+                    const colors = getColorClasses(tag.color);
+                    const isSelected = boardFilters.tagIds.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        onClick={() => toggleTag(tag.id)}
+                        className={cn(
+                          'rounded-full px-2.5 py-1 text-xs font-medium transition-all',
+                          isSelected
+                            ? cn(colors.bg, colors.text, 'ring-2 ring-offset-1 ring-primary')
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        )}
+                      >
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
 
           <Separator />
 

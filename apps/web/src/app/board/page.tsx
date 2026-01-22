@@ -80,6 +80,14 @@ export default function BoardPage() {
         return false;
       }
 
+      // Tag filter
+      if (
+        boardFilters.tagIds.length > 0 &&
+        !boardFilters.tagIds.some((tagId) => project.tagIds?.includes(tagId))
+      ) {
+        return false;
+      }
+
       // Due soon filter
       if (boardFilters.dueSoon && !isDeadlineApproaching(project.targetDate, 14)) {
         return false;

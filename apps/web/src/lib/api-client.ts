@@ -27,9 +27,23 @@ import type {
   UpdateWeeklyReviewDto,
   CreateMonthlyReviewDto,
   UpdateMonthlyReviewDto,
+  ProjectDependency,
+  TaskDependency,
 } from '@goals/shared';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Dynamically determine API URL based on current hostname
+function getApiBaseUrl(): string {
+  // Server-side: use environment variable
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  }
+
+  // Client-side: use the same hostname but with API port
+  const hostname = window.location.hostname;
+  const apiPort = process.env.NEXT_PUBLIC_API_PORT || '3001';
+
+  return `http://${hostname}:${apiPort}`;
+}
 
 interface FetchOptions extends RequestInit {
   requiresAuth?: boolean;
@@ -73,7 +87,7 @@ class ApiClient {
     if (!this.refreshToken) return false;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: this.refreshToken }),
@@ -105,7 +119,7 @@ class ApiClient {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${this.accessToken}`;
     }
 
-    let response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
+    let response = await fetch(`${getApiBaseUrl()}/api${endpoint}`, {
       ...fetchOptions,
       headers,
     });
@@ -115,7 +129,7 @@ class ApiClient {
       const refreshed = await this.refreshAccessToken();
       if (refreshed) {
         (headers as Record<string, string>)['Authorization'] = `Bearer ${this.accessToken}`;
-        response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
+        response = await fetch(`${getApiBaseUrl()}/api${endpoint}`, {
           ...fetchOptions,
           headers,
         });
@@ -333,6 +347,60 @@ class ApiClient {
   }
 
   // ============================================================
+  // PROJECT DEPENDENCIES
+  // ============================================================
+
+  getProjectBlockers(
+    projectId: string
+  ): Promise<{ blockedBy: ProjectDependency[]; blocking: ProjectDependency[] }> {
+    return this.fetch<{ blockedBy: ProjectDependency[]; blocking: ProjectDependency[] }>(
+      `/projects/${projectId}/blockers`
+    );
+  }
+
+  addProjectBlocker(
+    projectId: string,
+    blockerId: string,
+    note?: string
+  ): Promise<ProjectDependency> {
+    return this.fetch<ProjectDependency>(`/projects/${projectId}/blockers`, {
+      method: 'POST',
+      body: JSON.stringify({ blockerId, note }),
+    });
+  }
+
+  removeProjectBlocker(projectId: string, blockerId: string): Promise<void> {
+    return this.fetch<void>(`/projects/${projectId}/blockers/${blockerId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============================================================
+  // TASK DEPENDENCIES
+  // ============================================================
+
+  getTaskBlockers(
+    taskId: string
+  ): Promise<{ blockedBy: TaskDependency[]; blocking: TaskDependency[] }> {
+    return this.fetch<{ blockedBy: TaskDependency[]; blocking: TaskDependency[] }>(
+      `/tasks/${taskId}/blockers`
+    );
+  }
+
+  addTaskBlocker(taskId: string, blockerId: string, note?: string): Promise<TaskDependency> {
+    return this.fetch<TaskDependency>(`/tasks/${taskId}/blockers`, {
+      method: 'POST',
+      body: JSON.stringify({ blockerId, note }),
+    });
+  }
+
+  removeTaskBlocker(taskId: string, blockerId: string): Promise<void> {
+    return this.fetch<void>(`/tasks/${taskId}/blockers/${blockerId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============================================================
   // NOTIFICATIONS
   // ============================================================
 
@@ -445,8 +513,13 @@ class ApiClient {
     return this.fetch<HabitWithStats>(`/habits/${id}`);
   }
 
-  getTodayHabits(): Promise<HabitWithStats[]> {
-    return this.fetch<HabitWithStats[]>('/habits/today');
+  async getTodayHabits(): Promise<HabitWithStats[]> {
+    const response = await this.fetch<{
+      habits: HabitWithStats[];
+      completedCount: number;
+      totalCount: number;
+    }>('/habits/today');
+    return response.habits;
   }
 
   createHabit(data: CreateHabitDto): Promise<Habit> {

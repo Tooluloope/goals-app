@@ -16,6 +16,7 @@ import {
   CheckSquare,
   FileText,
   LogOut,
+  X,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/use-projects';
 import { useAuthStore } from '@/store/auth-store';
@@ -158,6 +159,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               'disabled:cursor-not-allowed disabled:opacity-50'
             )}
           />
+          {/* Close button for mobile, ESC hint for desktop */}
+          <button
+            onClick={() => onOpenChange(false)}
+            className="ml-2 flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted sm:hidden"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
           <kbd className="pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
             ESC
           </kbd>
@@ -269,8 +278,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </Command.Group>
         </Command.List>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground">
+        {/* Footer - hidden on mobile since we have the X button */}
+        <div className="hidden items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground sm:flex">
           <div className="flex items-center gap-2">
             <span>Navigate</span>
             <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono">↑↓</kbd>

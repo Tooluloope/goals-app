@@ -3,7 +3,7 @@ import { ProjectsService } from './projects.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CreateProjectDto, UpdateProjectDto, AddReviewDto } from '@goals/shared';
-import { User, Project } from '@goals/database';
+import { User, Project, ProjectDependency } from '@goals/database';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
@@ -103,5 +103,36 @@ export class ProjectsController {
     @CurrentUser() user: UserWithoutPassword
   ): Promise<Project> {
     return this.projectsService.addReview(data, user.id);
+  }
+
+  // ============================================================
+  // BLOCKER MANAGEMENT
+  // ============================================================
+
+  @Get(':id/blockers')
+  getBlockers(
+    @Param('id') id: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<{ blockedBy: ProjectDependency[]; blocking: ProjectDependency[] }> {
+    return this.projectsService.getBlockers(id, user.id);
+  }
+
+  @Post(':id/blockers')
+  addBlocker(
+    @Param('id') id: string,
+    @Body('blockerId') blockerId: string,
+    @Body('note') note: string | undefined,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<ProjectDependency> {
+    return this.projectsService.addBlocker(id, blockerId, user.id, note);
+  }
+
+  @Delete(':id/blockers/:blockerId')
+  removeBlocker(
+    @Param('id') id: string,
+    @Param('blockerId') blockerId: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<void> {
+    return this.projectsService.removeBlocker(id, blockerId, user.id);
   }
 }

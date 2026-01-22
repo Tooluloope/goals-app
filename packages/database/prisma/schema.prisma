@@ -115,6 +115,7 @@ model Project {
   confidenceId    String
   objective       String    @db.Text
   failureCriteria String?   @db.Text
+  tagIds          String[]  @default([])
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -127,6 +128,9 @@ model Project {
   reviewNotes    ReviewNote[]
   images         ImageAttachment[] @relation("ProjectImages")
   notifications  Notification[]
+  // Dependency relations
+  blockedBy      ProjectDependency[] @relation("DependentProjects")
+  blocking       ProjectDependency[] @relation("BlockingProjects")
 
   @@index([workspaceId])
   @@index([statusId])
@@ -225,12 +229,53 @@ model Task {
   notifications Notification[]
   parentTask    Task?             @relation("RecurringTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
   childTasks    Task[]            @relation("RecurringTasks")
+  // Dependency relations
+  blockedBy     TaskDependency[]  @relation("DependentTasks")
+  blocking      TaskDependency[]  @relation("BlockingTasks")
 
   @@index([projectId])
   @@index([statusId])
   @@index([assignedToId])
   @@index([parentTaskId])
   @@index([isRecurring])
+}
+
+// ============================================================
+// PROJECT DEPENDENCIES
+// ============================================================
+
+model ProjectDependency {
+  id          String   @id @default(uuid())
+  dependentId String   // Project that is blocked
+  blockerId   String   // Project that is blocking
+  note        String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  dependent Project @relation("DependentProjects", fields: [dependentId], references: [id], onDelete: Cascade)
+  blocker   Project @relation("BlockingProjects", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentId, blockerId])
+  @@index([dependentId])
+  @@index([blockerId])
+}
+
+// ============================================================
+// TASK DEPENDENCIES
+// ============================================================
+
+model TaskDependency {
+  id          String   @id @default(uuid())
+  dependentId String   // Task that is blocked
+  blockerId   String   // Task that is blocking
+  note        String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  dependent Task @relation("DependentTasks", fields: [dependentId], references: [id], onDelete: Cascade)
+  blocker   Task @relation("BlockingTasks", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentId, blockerId])
+  @@index([dependentId])
+  @@index([blockerId])
 }
 
 enum RecurrenceType {
@@ -298,6 +343,7 @@ enum NotificationType {
   ReviewDue
   StaleProject
   DailyFocus
+  BlockerResolved
 }
 
 // ============================================================
@@ -352,21 +398,35 @@ enum Mood {
 // ============================================================
 
 model Habit {
-  id          String   @id @default(uuid())
-  userId      String
-  name        String
-  icon        String   // Lucide icon name or emoji
-  color       String   @default("primary") // Tailwind color name
-  order       Int      @default(0)
-  isArchived  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String         @id @default(uuid())
+  userId          String
+  name            String
+  icon            String         // Lucide icon name or emoji
+  color           String         @default("primary") // Tailwind color name
+  order           Int            @default(0)
+  isArchived      Boolean        @default(false)
+  // Frequency settings
+  frequency       HabitFrequency @default(daily)
+  frequencyDays   Int[]          @default([]) // 0=Sun, 1=Mon, ..., 6=Sat for specific days
+  // Reminder settings
+  reminderEnabled Boolean        @default(false)
+  reminderTime    String?        // HH:MM format
+  // Goal area (optional categorization)
+  goalArea        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   logs HabitLog[]
 
   @@index([userId])
   @@index([userId, isArchived])
+}
+
+enum HabitFrequency {
+  daily
+  weekly
+  specific_days
 }
 
 model HabitLog {

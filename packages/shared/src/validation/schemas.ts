@@ -51,6 +51,7 @@ export const createProjectSchema = z.object({
   successMetric: z.string().min(1, 'Success metric is required'),
   confidenceId: z.string().min(1, 'Confidence level is required'),
   failureCriteria: z.string().optional(),
+  tagIds: z.array(z.string()).optional().default([]),
 });
 
 export const updateProjectSchema = createProjectSchema.partial().omit({ workspaceId: true });
@@ -168,11 +169,25 @@ export const updateJournalEntrySchema = createJournalEntrySchema.partial().omit(
 // HABIT SCHEMAS
 // ============================================================
 
+export const habitFrequencySchema = z.enum(['daily', 'weekly', 'specific_days']);
+
 export const createHabitSchema = z.object({
   name: z.string().min(1, 'Name is required').max(50, 'Name must be 50 characters or less'),
   icon: z.string().min(1, 'Icon is required'),
   color: z.string().default('primary'),
   order: z.number().int().min(0).optional(),
+  // Frequency settings
+  frequency: habitFrequencySchema.optional().default('daily'),
+  frequencyDays: z.array(z.number().int().min(0).max(6)).optional().default([]),
+  // Reminder settings
+  reminderEnabled: z.boolean().optional().default(false),
+  reminderTime: z
+    .string()
+    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Time must be in HH:MM format')
+    .optional()
+    .nullable(),
+  // Goal area
+  goalArea: z.string().max(50).optional().nullable(),
 });
 
 export const updateHabitSchema = z.object({
@@ -185,6 +200,18 @@ export const updateHabitSchema = z.object({
   color: z.string().optional(),
   order: z.number().int().min(0).optional(),
   isArchived: z.boolean().optional(),
+  // Frequency settings
+  frequency: habitFrequencySchema.optional(),
+  frequencyDays: z.array(z.number().int().min(0).max(6)).optional(),
+  // Reminder settings
+  reminderEnabled: z.boolean().optional(),
+  reminderTime: z
+    .string()
+    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Time must be in HH:MM format')
+    .optional()
+    .nullable(),
+  // Goal area
+  goalArea: z.string().max(50).optional().nullable(),
 });
 
 export const logHabitSchema = z.object({
@@ -316,6 +343,19 @@ export const updateWorkspaceConfigSchema = z.object({
         order: z.number(),
         type: z.enum(['pending', 'active', 'completed']),
         countAsProgress: z.boolean(),
+        isDefault: z.boolean().optional(),
+        isArchived: z.boolean().optional(),
+      })
+    )
+    .optional(),
+  tags: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        color: z.string(),
+        icon: z.string().optional(),
+        order: z.number(),
         isDefault: z.boolean().optional(),
         isArchived: z.boolean().optional(),
       })

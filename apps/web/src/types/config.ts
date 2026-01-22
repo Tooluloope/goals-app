@@ -52,6 +52,11 @@ export interface TaskStatusConfig extends ConfigurableItem {
   countAsProgress: boolean;
 }
 
+// Tag configuration
+export interface TagConfig extends ConfigurableItem {
+  // Inherits: id, name, color, icon, order, isDefault, isArchived
+}
+
 // ============================================================
 // WORKSPACE CONFIGURATION
 // ============================================================
@@ -67,6 +72,7 @@ export interface WorkspaceConfig {
   cadences: CadenceConfig[];
   confidences: ConfidenceConfig[];
   taskStatuses: TaskStatusConfig[];
+  tags: TagConfig[];
 
   // Default values for new projects
   defaults: {
@@ -269,6 +275,13 @@ export const DEFAULT_TASK_STATUSES: TaskStatusConfig[] = [
   },
 ];
 
+export const DEFAULT_TAGS: TagConfig[] = [
+  { id: 'tag-urgent', name: 'Urgent', color: 'red', order: 1 },
+  { id: 'tag-blocked', name: 'Blocked', color: 'orange', order: 2 },
+  { id: 'tag-research', name: 'Research', color: 'blue', order: 3 },
+  { id: 'tag-quick-win', name: 'Quick Win', color: 'green', order: 4 },
+];
+
 export const DEFAULT_WORKSPACE_CONFIG: Omit<
   WorkspaceConfig,
   'id' | 'workspaceId' | 'createdAt' | 'updatedAt'
@@ -279,6 +292,7 @@ export const DEFAULT_WORKSPACE_CONFIG: Omit<
   cadences: DEFAULT_CADENCES,
   confidences: DEFAULT_CONFIDENCES,
   taskStatuses: DEFAULT_TASK_STATUSES,
+  tags: DEFAULT_TAGS,
   defaults: {
     status: 'status-todo',
     priority: 'priority-medium',

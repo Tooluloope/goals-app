@@ -264,9 +264,9 @@ export default function CalendarPage() {
 
   return (
     <AppLayout title="Calendar">
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col min-h-full">
         {/* Gradient Header */}
-        <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white shrink-0">
+        <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -358,10 +358,10 @@ export default function CalendarPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full max-w-[1600px] mx-auto w-full flex flex-col lg:flex-row">
+        <div className="flex-1">
+          <div className="max-w-[1600px] mx-auto w-full flex flex-col lg:flex-row">
             {/* Calendar Grid */}
-            <div className="flex-1 overflow-y-auto p-4 lg:p-6 lg:pr-4">
+            <div className="flex-1 p-4 lg:p-6 lg:pr-4">
               <div className="bg-card rounded-2xl shadow-sm border overflow-hidden min-h-[500px] flex flex-col">
                 {/* Week Days Header */}
                 <div className="grid grid-cols-7 border-b bg-muted/50">
@@ -447,7 +447,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Sidebar */}
-            <div className="w-full lg:w-[400px] flex flex-col gap-4 p-4 lg:p-6 lg:pl-2 shrink-0 overflow-y-auto">
+            <div className="w-full lg:w-[400px] flex flex-col gap-4 p-4 lg:p-6 lg:pl-2 shrink-0">
               {/* Selected Date Events */}
               <Card>
                 <CardHeader className="pb-3">

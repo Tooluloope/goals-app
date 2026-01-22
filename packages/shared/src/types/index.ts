@@ -116,6 +116,7 @@ export interface Project {
   confidenceId: string;
   objective: string;
   failureCriteria?: string | null;
+  tagIds: string[];
   createdAt: Date;
   updatedAt: Date;
   // Relations (populated when fetched)
@@ -127,6 +128,9 @@ export interface Project {
   reviewNotes?: ReviewNote[];
   retrospective?: Retrospective;
   images?: ImageAttachment[];
+  // Dependency relations
+  blockedBy?: ProjectDependency[];
+  blocking?: ProjectDependency[];
 }
 
 // ============================================================
@@ -154,6 +158,35 @@ export interface Task {
   parentTaskId?: string | null;
   completedAt?: Date | null;
   streak: number;
+  // Dependency relations
+  blockedBy?: TaskDependency[];
+  blocking?: TaskDependency[];
+}
+
+// ============================================================
+// DEPENDENCY TYPES
+// ============================================================
+
+export interface ProjectDependency {
+  id: string;
+  dependentId: string;
+  blockerId: string;
+  note?: string | null;
+  createdAt: Date;
+  // Populated when fetched
+  blocker?: Project;
+  dependent?: Project;
+}
+
+export interface TaskDependency {
+  id: string;
+  dependentId: string;
+  blockerId: string;
+  note?: string | null;
+  createdAt: Date;
+  // Populated when fetched
+  blocker?: Task;
+  dependent?: Task;
 }
 
 // ============================================================
@@ -178,7 +211,13 @@ export interface ImageAttachment {
 // NOTIFICATION TYPES
 // ============================================================
 
-export type NotificationType = 'DueSoon' | 'Overdue' | 'ReviewDue' | 'StaleProject' | 'DailyFocus';
+export type NotificationType =
+  | 'DueSoon'
+  | 'Overdue'
+  | 'ReviewDue'
+  | 'StaleProject'
+  | 'DailyFocus'
+  | 'BlockerResolved';
 
 export interface Notification {
   id: string;
@@ -227,6 +266,7 @@ export interface ApiResponse<T> {
 export interface FilterState {
   areaIds: string[];
   priorityIds: string[];
+  tagIds: string[];
   assignedTo: string[];
   dueSoon: boolean;
   reviewDue: boolean;
@@ -267,6 +307,8 @@ export interface JournalEntry {
 // HABIT TYPES
 // ============================================================
 
+export type HabitFrequency = 'daily' | 'weekly' | 'specific_days';
+
 export interface Habit {
   id: string;
   userId: string;
@@ -275,6 +317,14 @@ export interface Habit {
   color: string;
   order: number;
   isArchived: boolean;
+  // Frequency settings
+  frequency: HabitFrequency;
+  frequencyDays: number[]; // 0=Sun, 1=Mon, ..., 6=Sat for specific days
+  // Reminder settings
+  reminderEnabled: boolean;
+  reminderTime?: string | null; // HH:MM format
+  // Goal area
+  goalArea?: string | null;
   createdAt: Date;
   updatedAt: Date;
   // Populated when fetched

@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, Trash2, Edit, Lock, Unlock, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -22,10 +23,12 @@ import {
 import { Project } from '@/types';
 import { getColorClasses } from '@/types/config';
 import { calculateProjectProgress, formatDate, cn } from '@/lib/utils';
+import { triggerCelebration } from '@/lib/confetti';
 import { useUpdateProjectStatus, useDeleteProject } from '@/hooks/use-projects';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
+import { ManageBlockersModal } from '@/components/shared/manage-blockers-modal';
 
 interface ProjectHeaderProps {
   project: Project;
@@ -37,6 +40,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   const deleteProject = useDeleteProject();
   const { toast } = useToast();
   const { currentWorkspace } = useAuthStore();
+  const [blockersModalOpen, setBlockersModalOpen] = useState(false);
   const {
     getStatusesForWorkspace,
     getStatusById,
@@ -74,11 +78,22 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   const handleStatusChange = async (newStatusId: string) => {
     const newStatus = statuses.find((s) => s.id === newStatusId);
     await updateStatus.mutateAsync({ projectId: project.id, statusId: newStatusId });
-    toast({
-      title: 'Status updated',
-      description: `Goal moved to ${newStatus?.name || 'new status'}`,
-      variant: 'success',
-    });
+
+    // Trigger celebration if project is marked as completed
+    if (newStatus?.type === 'completed') {
+      triggerCelebration();
+      toast({
+        title: 'Goal Completed!',
+        description: `Congratulations! "${project.name}" has been achieved!`,
+        variant: 'success',
+      });
+    } else {
+      toast({
+        title: 'Status updated',
+        description: `Goal moved to ${newStatus?.name || 'new status'}`,
+        variant: 'success',
+      });
+    }
   };
 
   const handleDelete = async () => {
@@ -130,6 +145,10 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Details
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setBlockersModalOpen(true)}>
+                <GitBranch className="mr-2 h-4 w-4" />
+                Manage Blockers
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleDelete}
@@ -141,6 +160,63 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Blockers Section */}
+        {project.blockedBy && project.blockedBy.length > 0 && (
+          <div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-orange-700">
+              <Lock className="h-4 w-4" />
+              Blocked by {project.blockedBy.length}{' '}
+              {project.blockedBy.length === 1 ? 'project' : 'projects'}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {project.blockedBy.map((dep) => {
+                const blockerStatus =
+                  dep.blocker && currentWorkspace
+                    ? getStatusById(currentWorkspace.id, dep.blocker.statusId)
+                    : null;
+                const isResolved = blockerStatus?.type === 'completed';
+                return (
+                  <button
+                    key={dep.id}
+                    onClick={() => dep.blocker && router.push(`/project/${dep.blocker.id}`)}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium transition-colors hover:opacity-80',
+                      isResolved
+                        ? 'bg-green-100 text-green-700 line-through'
+                        : 'bg-orange-100 text-orange-700'
+                    )}
+                  >
+                    {isResolved ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                    {dep.blocker?.name || 'Unknown'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Blocking Other Projects */}
+        {project.blocking && project.blocking.length > 0 && (
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+              <Lock className="h-4 w-4" />
+              Blocking {project.blocking.length}{' '}
+              {project.blocking.length === 1 ? 'project' : 'projects'}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {project.blocking.map((dep) => (
+                <button
+                  key={dep.id}
+                  onClick={() => dep.dependent && router.push(`/project/${dep.dependent.id}`)}
+                  className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 transition-colors hover:opacity-80"
+                >
+                  {dep.dependent?.name || 'Unknown'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Status Selector */}
         <div className="mt-4 flex items-center gap-4">
@@ -193,6 +269,13 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
           )}
         </div>
       </div>
+
+      {/* Manage Blockers Modal */}
+      <ManageBlockersModal
+        project={project}
+        open={blockersModalOpen}
+        onOpenChange={setBlockersModalOpen}
+      />
     </div>
   );
 }

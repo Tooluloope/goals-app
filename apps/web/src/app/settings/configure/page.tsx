@@ -38,14 +38,22 @@ import {
   PriorityConfig,
   CadenceConfig,
   TaskStatusConfig,
+  TagConfig,
 } from '@/types/config';
 import { cn } from '@/lib/utils';
 
-type ConfigItemType = 'status' | 'area' | 'priority' | 'cadence' | 'taskStatus';
+type ConfigItemType = 'status' | 'area' | 'priority' | 'cadence' | 'taskStatus' | 'tag';
 
 interface EditingItem {
   type: ConfigItemType;
-  item: StatusConfig | AreaConfig | PriorityConfig | CadenceConfig | TaskStatusConfig | null;
+  item:
+    | StatusConfig
+    | AreaConfig
+    | PriorityConfig
+    | CadenceConfig
+    | TaskStatusConfig
+    | TagConfig
+    | null;
   isNew: boolean;
 }
 
@@ -198,6 +206,20 @@ export default function ConfigurePage() {
           });
         }
         break;
+
+      case 'tag':
+        if (editingItem.isNew) {
+          configStore.addTag(workspaceId, {
+            name: formData.name,
+            color: formData.color,
+          });
+        } else if (editingItem.item) {
+          configStore.updateTag(workspaceId, editingItem.item.id, {
+            name: formData.name,
+            color: formData.color,
+          });
+        }
+        break;
     }
 
     toast({
@@ -225,6 +247,9 @@ export default function ConfigurePage() {
         break;
       case 'taskStatus':
         configStore.deleteTaskStatus(workspaceId, id);
+        break;
+      case 'tag':
+        configStore.deleteTag(workspaceId, id);
         break;
     }
 
@@ -262,7 +287,7 @@ export default function ConfigurePage() {
     type,
     extra,
   }: {
-    item: StatusConfig | AreaConfig | PriorityConfig | CadenceConfig | TaskStatusConfig;
+    item: StatusConfig | AreaConfig | PriorityConfig | CadenceConfig | TaskStatusConfig | TagConfig;
     type: ConfigItemType;
     extra?: React.ReactNode;
   }) => {
@@ -314,12 +339,13 @@ export default function ConfigurePage() {
         </div>
 
         <Tabs defaultValue="statuses" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="statuses">Statuses</TabsTrigger>
             <TabsTrigger value="areas">Areas</TabsTrigger>
             <TabsTrigger value="priorities">Priorities</TabsTrigger>
             <TabsTrigger value="cadences">Cadences</TabsTrigger>
             <TabsTrigger value="taskStatuses">Tasks</TabsTrigger>
+            <TabsTrigger value="tags">Tags</TabsTrigger>
           </TabsList>
 
           {/* Statuses Tab */}
@@ -510,6 +536,36 @@ export default function ConfigurePage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Tags Tab */}
+          <TabsContent value="tags">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Tags</CardTitle>
+                    <CardDescription>Create tags to label and filter your goals</CardDescription>
+                  </div>
+                  <Button onClick={() => handleAdd('tag')}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Tag
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(config.tags || [])
+                  .sort((a, b) => a.order - b.order)
+                  .map((tag) => (
+                    <ConfigItemCard key={tag.id} item={tag} type="tag" />
+                  ))}
+                {(!config.tags || config.tags.length === 0) && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No tags yet. Create your first tag to get started.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Edit/Add Dialog */}
@@ -526,7 +582,9 @@ export default function ConfigurePage() {
                       ? 'Priority'
                       : editingItem?.type === 'cadence'
                         ? 'Cadence'
-                        : 'Task Status'}
+                        : editingItem?.type === 'tag'
+                          ? 'Tag'
+                          : 'Task Status'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">

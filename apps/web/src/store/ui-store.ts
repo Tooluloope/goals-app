@@ -50,6 +50,7 @@ interface UIState {
 const defaultFilters: FilterState = {
   areaIds: [],
   priorityIds: [],
+  tagIds: [],
   assignedTo: [],
   dueSoon: false,
   reviewDue: false,

@@ -4,6 +4,16 @@ import { CreateHabitDto, UpdateHabitDto, ToggleHabitLogDto, HabitWithStats } fro
 import { Habit, HabitLog } from '@goals/database';
 import { startOfDay, parseISO, subDays, differenceInDays } from 'date-fns';
 
+// Helper to get local date as YYYY-MM-DD string
+function getLocalDateStr(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// Helper to get date string from a DB date (stored as UTC midnight)
+function getDbDateStr(date: Date): string {
+  return date.toISOString().substring(0, 10);
+}
+
 @Injectable()
 export class HabitsService {
   constructor(private prisma: PrismaService) {}
@@ -22,6 +32,11 @@ export class HabitsService {
         icon: data.icon,
         color: data.color || 'primary',
         order: data.order ?? (maxOrder._max.order ?? -1) + 1,
+        frequency: data.frequency || 'daily',
+        frequencyDays: data.frequencyDays || [],
+        reminderEnabled: data.reminderEnabled || false,
+        reminderTime: data.reminderTime,
+        goalArea: data.goalArea,
       },
     });
   }
@@ -41,6 +56,11 @@ export class HabitsService {
         color: data.color,
         order: data.order,
         isArchived: data.isArchived,
+        frequency: data.frequency,
+        frequencyDays: data.frequencyDays,
+        reminderEnabled: data.reminderEnabled,
+        reminderTime: data.reminderTime,
+        goalArea: data.goalArea,
       },
     });
   }
@@ -86,11 +106,13 @@ export class HabitsService {
       },
     });
 
-    const today = startOfDay(new Date());
+    // Use UTC date string for comparison to match how dates are stored in DB
+    // DB stores dates as UTC midnight, so we use UTC for today as well
+    const todayStr = getDbDateStr(new Date());
 
     return habits.map((habit) => {
       const completedToday = habit.logs.some(
-        (log) => startOfDay(log.date).getTime() === today.getTime() && log.completed
+        (log) => getDbDateStr(log.date) === todayStr && log.completed
       );
 
       const { currentStreak, longestStreak } = this.calculateStreaks(habit.logs);
@@ -113,7 +135,9 @@ export class HabitsService {
       throw new NotFoundException('Habit not found');
     }
 
-    const date = startOfDay(parseISO(data.date));
+    // Parse date as UTC midnight to avoid server timezone issues
+    // Frontend sends date as "YYYY-MM-DD", we store it as UTC midnight
+    const date = new Date(data.date + 'T00:00:00.000Z');
 
     // Check if log exists for this date
     const existingLog = await this.prisma.habitLog.findUnique({
@@ -159,8 +183,8 @@ export class HabitsService {
       where: {
         habitId,
         date: {
-          gte: startOfDay(parseISO(startDate)),
-          lte: startOfDay(parseISO(endDate)),
+          gte: new Date(startDate + 'T00:00:00.000Z'),
+          lte: new Date(endDate + 'T00:00:00.000Z'),
         },
       },
       orderBy: { date: 'desc' },
@@ -168,7 +192,7 @@ export class HabitsService {
   }
 
   async getAllLogsForDate(userId: string, date: string): Promise<HabitLog[]> {
-    const parsedDate = startOfDay(parseISO(date));
+    const parsedDate = new Date(date + 'T00:00:00.000Z');
 
     return this.prisma.habitLog.findMany({
       where: {
@@ -206,47 +230,55 @@ export class HabitsService {
     const completedLogs = logs.filter((log) => log.completed);
     if (completedLogs.length === 0) return { currentStreak: 0, longestStreak: 0 };
 
-    // Sort by date descending
-    const sortedLogs = [...completedLogs].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    // Get unique completed dates as YYYY-MM-DD strings, sorted descending
+    const completedDates = [...new Set(completedLogs.map((log) => getDbDateStr(log.date)))].sort(
+      (a, b) => b.localeCompare(a)
     );
 
-    const today = startOfDay(new Date());
+    // Use UTC dates to match how dates are stored in DB (as UTC midnight)
+    const now = new Date();
+    const todayStr = getDbDateStr(now);
+    const yesterdayDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayStr = getDbDateStr(yesterdayDate);
+
     let currentStreak = 0;
     let longestStreak = 0;
     let tempStreak = 0;
-    let previousDate: Date | null = null;
+    let previousDateStr: string | null = null;
+    let currentStreakFinalized = false; // Once we hit a gap, stop counting current streak
 
-    for (const log of sortedLogs) {
-      const logDate = startOfDay(log.date);
-
-      if (previousDate === null) {
-        // First log
-        const daysFromToday = differenceInDays(today, logDate);
-        if (daysFromToday <= 1) {
+    for (const dateStr of completedDates) {
+      if (previousDateStr === null) {
+        // First log - check if it's today or yesterday to start current streak
+        if (dateStr === todayStr || dateStr === yesterdayStr) {
           currentStreak = 1;
           tempStreak = 1;
         } else {
           tempStreak = 1;
+          currentStreakFinalized = true; // Can't have current streak if first date isn't recent
         }
       } else {
-        const daysDiff = differenceInDays(previousDate, logDate);
+        // Check if dates are consecutive (1 day apart)
+        const prevDate = new Date(previousDateStr + 'T00:00:00.000Z');
+        const currDate = new Date(dateStr + 'T00:00:00.000Z');
+        const daysDiff = Math.round(
+          (prevDate.getTime() - currDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
         if (daysDiff === 1) {
           tempStreak++;
-          if (currentStreak > 0) {
+          if (!currentStreakFinalized && currentStreak > 0) {
             currentStreak++;
           }
         } else {
+          // Gap found - finalize current streak (keep the value, just stop counting)
           longestStreak = Math.max(longestStreak, tempStreak);
           tempStreak = 1;
-          if (currentStreak > 0) {
-            // Break in current streak
-            currentStreak = 0;
-          }
+          currentStreakFinalized = true;
         }
       }
 
-      previousDate = logDate;
+      previousDateStr = dateStr;
     }
 
     longestStreak = Math.max(longestStreak, tempStreak, currentStreak);

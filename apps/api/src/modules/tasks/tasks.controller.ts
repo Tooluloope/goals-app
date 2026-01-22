@@ -3,7 +3,7 @@ import { TasksService } from './tasks.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CreateTaskDto, UpdateTaskDto, CompleteRecurringTaskDto } from '@goals/shared';
-import { User, Task } from '@goals/database';
+import { User, Task, TaskDependency } from '@goals/database';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
@@ -52,5 +52,36 @@ export class TasksController {
   @Delete(':id')
   delete(@Param('id') id: string, @CurrentUser() user: UserWithoutPassword): Promise<void> {
     return this.tasksService.delete(id, user.id);
+  }
+
+  // ============================================================
+  // BLOCKER MANAGEMENT
+  // ============================================================
+
+  @Get(':id/blockers')
+  getBlockers(
+    @Param('id') id: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<{ blockedBy: TaskDependency[]; blocking: TaskDependency[] }> {
+    return this.tasksService.getBlockers(id, user.id);
+  }
+
+  @Post(':id/blockers')
+  addBlocker(
+    @Param('id') id: string,
+    @Body('blockerId') blockerId: string,
+    @Body('note') note: string | undefined,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<TaskDependency> {
+    return this.tasksService.addBlocker(id, blockerId, user.id, note);
+  }
+
+  @Delete(':id/blockers/:blockerId')
+  removeBlocker(
+    @Param('id') id: string,
+    @Param('blockerId') blockerId: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<void> {
+    return this.tasksService.removeBlocker(id, blockerId, user.id);
   }
 }

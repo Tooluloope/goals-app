@@ -1,7 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Bell, Clock, AlertTriangle, Calendar, Target, CheckCircle, Check } from 'lucide-react';
+import {
+  Bell,
+  Clock,
+  AlertTriangle,
+  Calendar,
+  Target,
+  CheckCircle,
+  Check,
+  Unlock,
+} from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +53,11 @@ const notificationConfig: Record<
     icon: CheckCircle,
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-100',
+  },
+  BlockerResolved: {
+    icon: Unlock,
+    color: 'text-green-600',
+    bgColor: 'bg-green-100',
   },
 };
 

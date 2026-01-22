@@ -8,6 +8,7 @@ import {
   CadenceConfig,
   ConfidenceConfig,
   TaskStatusConfig,
+  TagConfig,
   DEFAULT_WORKSPACE_CONFIG,
   DEFAULT_STATUSES,
   DEFAULT_AREAS,
@@ -15,6 +16,7 @@ import {
   DEFAULT_CADENCES,
   DEFAULT_CONFIDENCES,
   DEFAULT_TASK_STATUSES,
+  DEFAULT_TAGS,
 } from '@/types/config';
 import { generateId } from '@/lib/utils';
 
@@ -65,6 +67,12 @@ interface ConfigState {
   ) => void;
   deleteTaskStatus: (workspaceId: string, statusId: string) => void;
 
+  // Tag CRUD
+  addTag: (workspaceId: string, tag: Omit<TagConfig, 'id' | 'order'>) => void;
+  updateTag: (workspaceId: string, tagId: string, updates: Partial<TagConfig>) => void;
+  deleteTag: (workspaceId: string, tagId: string) => void;
+  reorderTags: (workspaceId: string, tagIds: string[]) => void;
+
   // Settings updates
   updateDefaults: (workspaceId: string, defaults: Partial<WorkspaceConfig['defaults']>) => void;
   updateBoardSettings: (workspaceId: string, board: Partial<WorkspaceConfig['board']>) => void;
@@ -84,6 +92,7 @@ interface ConfigState {
   getCadenceById: (workspaceId: string, cadenceId: string) => CadenceConfig | undefined;
   getConfidenceById: (workspaceId: string, confidenceId: string) => ConfidenceConfig | undefined;
   getTaskStatusById: (workspaceId: string, statusId: string) => TaskStatusConfig | undefined;
+  getTagById: (workspaceId: string, tagId: string) => TagConfig | undefined;
 
   // Get all items for workspace
   getStatusesForWorkspace: (workspaceId: string) => StatusConfig[];
@@ -92,11 +101,13 @@ interface ConfigState {
   getCadencesForWorkspace: (workspaceId: string) => CadenceConfig[];
   getConfidencesForWorkspace: (workspaceId: string) => ConfidenceConfig[];
   getTaskStatusesForWorkspace: (workspaceId: string) => TaskStatusConfig[];
+  getTagsForWorkspace: (workspaceId: string) => TagConfig[];
 
   // Get active (non-archived) items
   getActiveStatuses: (workspaceId: string) => StatusConfig[];
   getActiveAreas: (workspaceId: string) => AreaConfig[];
   getBoardStatuses: (workspaceId: string) => StatusConfig[];
+  getActiveTags: (workspaceId: string) => TagConfig[];
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -425,6 +436,79 @@ export const useConfigStore = create<ConfigState>()(
         }));
       },
 
+      // Tag CRUD
+      addTag: (workspaceId, tag) => {
+        const config = get().getConfig(workspaceId);
+        const currentTags = config.tags || [];
+        const newTag: TagConfig = {
+          ...tag,
+          id: generateId(),
+          order: currentTags.length + 1,
+        };
+        set((state) => ({
+          configs: {
+            ...state.configs,
+            [workspaceId]: {
+              ...config,
+              tags: [...currentTags, newTag],
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }));
+      },
+
+      updateTag: (workspaceId, tagId, updates) => {
+        const config = get().getConfig(workspaceId);
+        const currentTags = config.tags || [];
+        set((state) => ({
+          configs: {
+            ...state.configs,
+            [workspaceId]: {
+              ...config,
+              tags: currentTags.map((t) => (t.id === tagId ? { ...t, ...updates } : t)),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }));
+      },
+
+      deleteTag: (workspaceId, tagId) => {
+        const config = get().getConfig(workspaceId);
+        const currentTags = config.tags || [];
+        set((state) => ({
+          configs: {
+            ...state.configs,
+            [workspaceId]: {
+              ...config,
+              tags: currentTags.filter((t) => t.id !== tagId),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }));
+      },
+
+      reorderTags: (workspaceId, tagIds) => {
+        const config = get().getConfig(workspaceId);
+        const currentTags = config.tags || [];
+        const reordered = tagIds
+          .map((id, index) => {
+            const tag = currentTags.find((t) => t.id === id);
+            return tag ? { ...tag, order: index + 1 } : null;
+          })
+          .filter(Boolean) as TagConfig[];
+
+        set((state) => ({
+          configs: {
+            ...state.configs,
+            [workspaceId]: {
+              ...config,
+              tags: reordered,
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }));
+      },
+
       // Settings updates
       updateDefaults: (workspaceId, defaults) => {
         const config = get().getConfig(workspaceId);
@@ -513,6 +597,11 @@ export const useConfigStore = create<ConfigState>()(
         return config.taskStatuses.find((s) => s.id === statusId);
       },
 
+      getTagById: (workspaceId, tagId) => {
+        const config = get().getConfig(workspaceId);
+        return (config.tags || []).find((t) => t.id === tagId);
+      },
+
       // Get all items for workspace
       getStatusesForWorkspace: (workspaceId) => {
         const config = get().getConfig(workspaceId);
@@ -544,6 +633,11 @@ export const useConfigStore = create<ConfigState>()(
         return config.taskStatuses.sort((a, b) => a.order - b.order);
       },
 
+      getTagsForWorkspace: (workspaceId) => {
+        const config = get().getConfig(workspaceId);
+        return (config.tags || []).sort((a, b) => a.order - b.order);
+      },
+
       getActiveStatuses: (workspaceId) => {
         const config = get().getConfig(workspaceId);
         return config.statuses.filter((s) => !s.isArchived).sort((a, b) => a.order - b.order);
@@ -559,6 +653,11 @@ export const useConfigStore = create<ConfigState>()(
         return config.statuses
           .filter((s) => s.showInBoard && !s.isArchived)
           .sort((a, b) => a.order - b.order);
+      },
+
+      getActiveTags: (workspaceId) => {
+        const config = get().getConfig(workspaceId);
+        return (config.tags || []).filter((t) => !t.isArchived).sort((a, b) => a.order - b.order);
       },
     }),
     {

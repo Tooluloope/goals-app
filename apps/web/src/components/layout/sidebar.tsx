@@ -19,6 +19,9 @@ import {
   BookOpen,
   CalendarCheck,
   CalendarDays,
+  BarChart3,
+  Map,
+  GitBranch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -41,8 +44,11 @@ import { getModifierKey } from '@/hooks/use-keyboard-shortcuts';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Daily Rhythm', href: '/rhythm', icon: BookOpen },
+  { name: 'Habit Manager', href: '/habits', icon: BarChart3 },
   { name: 'Projects', href: '/projects', icon: Folder },
   { name: 'Board', href: '/board', icon: Kanban },
+  { name: 'Roadmap', href: '/roadmap', icon: Map },
+  { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Weekly Review', href: '/reviews/weekly', icon: CalendarCheck },
   { name: 'Monthly Review', href: '/reviews/monthly', icon: CalendarDays },

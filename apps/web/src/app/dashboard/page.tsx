@@ -7,6 +7,7 @@ import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
 import { ReviewsDue } from '@/components/dashboard/reviews-due';
 import { StaleProjects } from '@/components/dashboard/stale-projects';
 import { QuickActions } from '@/components/dashboard/quick-actions';
+import { ProgressStats } from '@/components/dashboard/progress-stats';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function DashboardPage() {
@@ -35,6 +36,11 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div className="mb-6">
           <QuickActions />
+        </div>
+
+        {/* Progress Stats */}
+        <div className="mb-6">
+          <ProgressStats />
         </div>
 
         {/* Dashboard Grid */}

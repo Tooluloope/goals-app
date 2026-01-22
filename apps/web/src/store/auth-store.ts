@@ -81,6 +81,7 @@ export const useAuthStore = create<AuthState>()(
 
       signup: async (name: string, email: string, password: string) => {
         set({ isLoading: true });
+        console.log('Signing up user:', { name, email });
         try {
           const apiUser = await apiClient.signup(name, email, password);
           const user = transformUser(apiUser);
@@ -98,6 +99,7 @@ export const useAuthStore = create<AuthState>()(
           });
           return true;
         } catch (error) {
+          console.error('Signup error:', error);
           set({ isLoading: false });
           return false;
         }

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Calendar, ChevronRight } from 'lucide-react';
+import { GripVertical, Calendar, ChevronRight, Lock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -30,7 +30,7 @@ interface ProjectCardProps {
 export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps) {
   const router = useRouter();
   const { currentWorkspace } = useAuthStore();
-  const { getAreaById, getPriorityById, getConfig } = useConfigStore();
+  const { getAreaById, getPriorityById, getConfig, getTagById } = useConfigStore();
 
   const config = currentWorkspace ? getConfig(currentWorkspace.id) : null;
 
@@ -47,6 +47,12 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
   const priority = currentWorkspace
     ? getPriorityById(currentWorkspace.id, project.priorityId)
     : null;
+
+  // Get tags for project
+  const projectTags =
+    currentWorkspace && project.tagIds
+      ? project.tagIds.map((tagId) => getTagById(currentWorkspace.id, tagId)).filter(Boolean)
+      : [];
 
   // Get colors from config or fallback to legacy colors
   const colors = area
@@ -117,6 +123,39 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
                 {priority?.name || project.priorityId}
               </Badge>
             </div>
+
+            {/* Tags */}
+            {projectTags.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                {projectTags.map((tag) => {
+                  if (!tag) return null;
+                  const tagColors = getColorClasses(tag.color);
+                  return (
+                    <span
+                      key={tag.id}
+                      className={cn(
+                        'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
+                        tagColors.bg,
+                        tagColors.text
+                      )}
+                    >
+                      {tag.name}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Blocked Indicator */}
+            {project.blockedBy && project.blockedBy.length > 0 && (
+              <div className="mt-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                  <Lock className="h-3 w-3" />
+                  Blocked by {project.blockedBy.length}{' '}
+                  {project.blockedBy.length === 1 ? 'project' : 'projects'}
+                </span>
+              </div>
+            )}
 
             {/* Progress */}
             {progress.total > 0 && (
