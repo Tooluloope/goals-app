@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -31,20 +31,19 @@ import {
   Trash2,
   Edit,
   Lock,
-  Unlock,
   Key,
   Calendar,
-  User,
   Folder,
-  Tag,
   ChevronRight,
   Search,
   ExternalLink,
-  AlertTriangle,
   CheckCircle2,
   Clock,
-  Loader2,
   X,
+  AlertTriangle,
+  Tag,
+  Plus,
+  Flame,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -180,8 +179,8 @@ export default function TaskDetailPage() {
     return (
       <AppLayout title="Task">
         <div className="container max-w-6xl px-4 py-6">
-          <Skeleton className="h-8 w-32 mb-4" />
-          <Skeleton className="h-12 w-3/4 mb-6" />
+          <Skeleton className="mb-4 h-8 w-32" />
+          <Skeleton className="mb-6 h-12 w-3/4" />
           <Skeleton className="h-48 w-full" />
         </div>
       </AppLayout>
@@ -203,110 +202,112 @@ export default function TaskDetailPage() {
 
   return (
     <AppLayout title={task.title}>
-      <div className="flex h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)]">
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-auto">
-          {/* Header */}
-          <div className="border-b px-4 py-4 bg-card">
-            <div className="container max-w-4xl">
-              {/* Back Button & Breadcrumbs */}
-              <div className="flex items-center gap-2 mb-4">
-                <Button variant="ghost" size="sm" className="-ml-2" onClick={() => router.back()}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Separator orientation="vertical" className="h-4" />
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{project.name}</span>
-                  <ChevronRight className="h-4 w-4" />
-                  <span className="text-foreground font-medium">Task</span>
-                </div>
-              </div>
+      <div className="relative min-h-[calc(100vh-8rem)] bg-background md:min-h-[calc(100vh-4rem)]">
+        <div className="border-b bg-card/80 backdrop-blur">
+          <div className="container max-w-6xl px-4 py-6">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Button variant="ghost" size="sm" className="-ml-2" onClick={() => router.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+              <Separator orientation="vertical" className="h-4" />
+              <span>{project.name}</span>
+              <ChevronRight className="h-4 w-4" />
+              <span className="font-medium text-foreground">Task Detail</span>
+            </div>
 
-              {/* Title Row */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className="font-mono text-xs">
-                      #{task.id.slice(-8)}
+            <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="font-mono text-xs">
+                    #{task.id.slice(-8)}
+                  </Badge>
+                  {currentStatus && (
+                    <Badge variant="secondary" className="text-xs">
+                      {currentStatus.name}
                     </Badge>
-                    {task.isRecurring && (
-                      <Badge variant="secondary" className="text-xs">
-                        Recurring
-                      </Badge>
-                    )}
-                  </div>
-                  <h1 className="text-2xl font-bold leading-tight md:text-3xl">{task.title}</h1>
+                  )}
+                  {task.isRecurring && (
+                    <Badge variant="secondary" className="text-xs">
+                      Recurring
+                    </Badge>
+                  )}
                 </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {}}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit Task
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleDelete}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Task
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <h1 className="mt-3 text-2xl font-semibold leading-tight md:text-3xl">
+                  {task.title}
+                </h1>
               </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => {}}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Task
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Task
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
+        </div>
 
-          {/* Blocked Banner */}
-          {isBlocked && (
-            <div className="border-b bg-gradient-to-r from-destructive/10 to-background px-4 py-4">
-              <div className="container max-w-4xl">
+        {isBlocked && (
+          <div className="border-b bg-gradient-to-r from-destructive/15 via-background to-background">
+            <div className="container max-w-6xl px-4 py-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-full bg-destructive/20 text-destructive shrink-0">
-                    <Lock className="h-6 w-6" />
+                  <div className="rounded-full bg-destructive/20 p-3 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-destructive">Status: Blocked</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
+                  <div>
+                    <h3 className="text-lg font-semibold text-destructive">Status: Blocked</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
                       This task is waiting on upstream dependencies. Resolve the blockers below to
                       unlock progress.
                     </p>
                   </div>
-                  {task.blockedBy && task.blockedBy.length > 0 && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        const firstBlocker = task.blockedBy?.find((d) => d.blocker);
-                        if (firstBlocker?.blocker) {
-                          router.push(
-                            `/project/${firstBlocker.blocker.projectId}/task/${firstBlocker.blocker.id}`
-                          );
-                        }
-                      }}
-                    >
-                      View Blocker
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
+                {task.blockedBy && task.blockedBy.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      const firstBlocker = task.blockedBy?.find((d) => d.blocker);
+                      if (firstBlocker?.blocker) {
+                        router.push(
+                          `/project/${firstBlocker.blocker.projectId}/task/${firstBlocker.blocker.id}`
+                        );
+                      }
+                    }}
+                  >
+                    View Blocker
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Content */}
-          <div className="flex-1 px-4 py-6">
-            <div className="container max-w-4xl space-y-8">
-              {/* Blocked By (Upstream) Section */}
-              <section>
-                <div className="flex items-center justify-between mb-4">
+        <div className="container max-w-6xl px-4 py-8">
+          <div className="grid gap-8 lg:grid-cols-12">
+            {/* Main Column */}
+            <div className="lg:col-span-8 space-y-8">
+              {/* Blocked By */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Lock className="h-5 w-5 text-muted-foreground" />
                     Blocked By (Upstream)
@@ -327,8 +328,7 @@ export default function TaskDetailPage() {
                   )}
                 </div>
 
-                {/* Search/Add Input */}
-                <div className="relative mb-4">
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search tasks to link as a blocker..."
@@ -337,7 +337,7 @@ export default function TaskDetailPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                   {searchQuery && filteredBlockers.length > 0 && (
-                    <Card className="absolute top-full left-0 right-0 mt-1 z-10">
+                    <Card className="absolute top-full left-0 right-0 mt-1 z-20">
                       <ScrollArea className="max-h-60">
                         {filteredBlockers.map((t) => {
                           const status = currentWorkspace
@@ -375,13 +375,12 @@ export default function TaskDetailPage() {
                   )}
                 </div>
 
-                {/* Blocker List */}
                 <div className="space-y-3">
                   {!task.blockedBy || task.blockedBy.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
-                      <Lock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+                      <Lock className="mx-auto mb-2 h-8 w-8 opacity-50" />
                       <p className="text-sm">No blockers</p>
-                      <p className="text-xs mt-1">Search above to add tasks that block this one</p>
+                      <p className="mt-1 text-xs">Search above to add tasks that block this one</p>
                     </div>
                   ) : (
                     task.blockedBy.map((dep) => {
@@ -397,12 +396,12 @@ export default function TaskDetailPage() {
                           className={cn(
                             'transition-colors',
                             isResolved
-                              ? 'border-green-500/30 hover:border-green-500/50'
-                              : 'border-destructive/30 hover:border-destructive/50'
+                              ? 'border-green-500/30 hover:border-green-500/60'
+                              : 'border-destructive/30 hover:border-destructive/60'
                           )}
                         >
                           <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div className="flex items-center gap-4">
                                 <div
                                   className={cn(
@@ -477,9 +476,9 @@ export default function TaskDetailPage() {
 
               <Separator />
 
-              {/* Downstream Impact Section */}
-              <section>
-                <div className="flex items-center justify-between mb-4">
+              {/* Downstream Impact */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Key className="h-5 w-5 text-muted-foreground" />
                     Downstream Impact
@@ -491,16 +490,16 @@ export default function TaskDetailPage() {
                   )}
                 </div>
 
-                <div className="relative pl-4 border-l-2 border-border space-y-3">
+                <div className="relative space-y-3 border-l-2 border-border pl-4">
                   {!task.blocking || task.blocking.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground">
+                    <div className="py-6 text-center text-muted-foreground">
                       <p className="text-sm">No tasks depend on this one</p>
                     </div>
                   ) : (
                     task.blocking.map((dep) => (
                       <Card
                         key={dep.id}
-                        className="cursor-pointer hover:border-primary/50 transition-colors opacity-75 hover:opacity-100"
+                        className="cursor-pointer border-border/70 transition-colors hover:border-primary/50"
                         onClick={() => {
                           if (dep.dependent) {
                             router.push(
@@ -531,105 +530,101 @@ export default function TaskDetailPage() {
                 </div>
               </section>
             </div>
+
+            {/* Sidebar */}
+            <aside className="lg:col-span-4 space-y-6">
+              <Card className="overflow-hidden">
+                <div className="border-b px-5 py-4 flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Details
+                  </h4>
+                  <Button variant="link" size="sm" className="h-auto p-0 text-primary">
+                    Edit
+                  </Button>
+                </div>
+                <CardContent className="p-5 space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Status</label>
+                    <Select value={task.statusId} onValueChange={handleStatusChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taskStatuses.map((status) => {
+                          const colors = getColorClasses(status.color);
+                          return (
+                            <SelectItem key={status.id} value={status.id}>
+                              <span className={colors.text}>{status.name}</span>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Due Date</label>
+                    <div className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted">
+                      <div className="flex h-8 w-8 items-center justify-center rounded bg-muted">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm font-medium">
+                        {task.dueDate ? formatDate(task.dueDate, 'MMM d, yyyy') : 'No due date'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Project</label>
+                    <div
+                      className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                      onClick={() => router.push(`/project/${projectId}`)}
+                    >
+                      <Folder className="h-4 w-4" />
+                      <span className="text-sm font-medium">{project.name}</span>
+                    </div>
+                  </div>
+
+                  {task.isRecurring && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        Recurrence
+                      </label>
+                      <div className="text-sm">
+                        <Badge variant="secondary">
+                          {task.recurrenceType === 'daily' && 'Daily'}
+                          {task.recurrenceType === 'weekly' && 'Weekly'}
+                          {task.recurrenceType === 'monthly' && 'Monthly'}
+                          {task.recurrenceType === 'yearly' && 'Yearly'}
+                        </Badge>
+                        {task.streak > 0 && (
+                          <span className="ml-2 text-muted-foreground">{task.streak} streak</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-5">
+                  <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Activity
+                  </h4>
+                  <div className="relative space-y-4 border-l border-border pl-4">
+                    <div className="relative">
+                      <div className="absolute -left-[17px] top-1 h-2 w-2 rounded-full bg-muted-foreground ring-4 ring-card" />
+                      <p className="text-xs text-muted-foreground">Task created</p>
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatDate(task.createdAt, 'MMM d, yyyy')}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </aside>
           </div>
         </div>
-
-        {/* Right Sidebar */}
-        <aside className="hidden lg:flex w-80 border-l flex-col bg-card">
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
-                Details
-              </h4>
-              <Button variant="link" size="sm" className="h-auto p-0 text-primary">
-                Edit
-              </Button>
-            </div>
-          </div>
-
-          <ScrollArea className="flex-1">
-            <div className="p-4 space-y-6">
-              {/* Status */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground">Status</label>
-                <Select value={task.statusId} onValueChange={handleStatusChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {taskStatuses.map((status) => {
-                      const colors = getColorClasses(status.color);
-                      return (
-                        <SelectItem key={status.id} value={status.id}>
-                          <span className={colors.text}>{status.name}</span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Due Date */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground">Due Date</label>
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-                  <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <span className="text-sm font-medium">
-                    {task.dueDate ? formatDate(task.dueDate, 'MMM d, yyyy') : 'No due date'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Project */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground">Project</label>
-                <div
-                  className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => router.push(`/project/${projectId}`)}
-                >
-                  <Folder className="h-4 w-4" />
-                  <span className="text-sm font-medium">{project.name}</span>
-                </div>
-              </div>
-
-              {/* Recurrence */}
-              {task.isRecurring && (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground">Recurrence</label>
-                  <div className="text-sm">
-                    <Badge variant="secondary">
-                      {task.recurrenceType === 'daily' && 'Daily'}
-                      {task.recurrenceType === 'weekly' && 'Weekly'}
-                      {task.recurrenceType === 'monthly' && 'Monthly'}
-                      {task.recurrenceType === 'yearly' && 'Yearly'}
-                    </Badge>
-                    {task.streak > 0 && (
-                      <span className="ml-2 text-muted-foreground">{task.streak} streak</span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-
-          {/* Activity Section */}
-          <div className="border-t p-4">
-            <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">
-              Activity
-            </h4>
-            <div className="relative border-l border-border pl-4 space-y-4">
-              <div className="relative">
-                <div className="absolute -left-[17px] top-1 w-2 h-2 rounded-full bg-muted-foreground ring-4 ring-card" />
-                <p className="text-xs text-muted-foreground">Task created</p>
-                <span className="text-[10px] text-muted-foreground">
-                  {formatDate(task.createdAt, 'MMM d, yyyy')}
-                </span>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
     </AppLayout>
   );

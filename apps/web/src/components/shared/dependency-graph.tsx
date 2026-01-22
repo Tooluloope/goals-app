@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   Node,
@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 interface DependencyGraphProps {
   projects: Project[];
   className?: string;
+  debug?: boolean;
 }
 
 // Custom node component
@@ -68,7 +69,7 @@ const nodeTypes = {
   projectNode: ProjectNode,
 };
 
-export function DependencyGraph({ projects, className }: DependencyGraphProps) {
+export function DependencyGraph({ projects, className, debug = false }: DependencyGraphProps) {
   const { currentWorkspace } = useAuthStore();
   const { getStatusById, getAreaById } = useConfigStore();
 
@@ -83,13 +84,15 @@ export function DependencyGraph({ projects, className }: DependencyGraphProps) {
       if (project.blockedBy && project.blockedBy.length > 0) {
         nodesWithDeps.add(project.id);
         project.blockedBy.forEach((dep) => {
-          if (dep.blockerId) nodesWithDeps.add(dep.blockerId);
+          const blockerId = dep.blockerId || dep.blocker?.id;
+          if (blockerId) nodesWithDeps.add(blockerId);
         });
       }
       if (project.blocking && project.blocking.length > 0) {
         nodesWithDeps.add(project.id);
         project.blocking.forEach((dep) => {
-          if (dep.dependentId) nodesWithDeps.add(dep.dependentId);
+          const dependentId = dep.dependentId || dep.dependent?.id;
+          if (dependentId) nodesWithDeps.add(dependentId);
         });
       }
     });
@@ -128,7 +131,8 @@ export function DependencyGraph({ projects, className }: DependencyGraphProps) {
       // Create edges for blockedBy relationships
       if (project.blockedBy) {
         project.blockedBy.forEach((dep) => {
-          if (dep.blockerId && nodesWithDeps.has(dep.blockerId)) {
+          const blockerId = dep.blockerId || dep.blocker?.id;
+          if (blockerId && nodesWithDeps.has(blockerId)) {
             const blockerStatus =
               dep.blocker && currentWorkspace
                 ? getStatusById(currentWorkspace.id, dep.blocker.statusId)
@@ -136,8 +140,8 @@ export function DependencyGraph({ projects, className }: DependencyGraphProps) {
             const isResolved = blockerStatus?.type === 'completed';
 
             edges.push({
-              id: `${dep.blockerId}-${project.id}`,
-              source: dep.blockerId,
+              id: `${blockerId}-${project.id}`,
+              source: blockerId,
               target: project.id,
               markerEnd: {
                 type: MarkerType.ArrowClosed,
@@ -160,6 +164,36 @@ export function DependencyGraph({ projects, className }: DependencyGraphProps) {
           }
         });
       }
+
+      // Create edges for blocking relationships (fallback if blockedBy is empty)
+      if (project.blocking) {
+        project.blocking.forEach((dep) => {
+          const dependentId = dep.dependentId || dep.dependent?.id;
+          if (dependentId && nodesWithDeps.has(dependentId)) {
+            edges.push({
+              id: `${project.id}-${dependentId}`,
+              source: project.id,
+              target: dependentId,
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: '#f97316',
+              },
+              style: {
+                stroke: '#f97316',
+                strokeWidth: 2,
+              },
+              label: 'blocks',
+              labelStyle: {
+                fontSize: 10,
+                fill: '#f97316',
+              },
+              labelBgStyle: {
+                fill: '#fff',
+              },
+            });
+          }
+        });
+      }
     });
 
     return { initialNodes: nodes, initialEdges: edges };
@@ -167,6 +201,11 @@ export function DependencyGraph({ projects, className }: DependencyGraphProps) {
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   if (initialNodes.length === 0) {
     return (
@@ -185,6 +224,13 @@ export function DependencyGraph({ projects, className }: DependencyGraphProps) {
 
   return (
     <div className={cn('h-full w-full', className)}>
+      {debug && (
+        <div className="absolute left-4 top-4 z-20 rounded-lg border bg-card/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
+          <div className="font-semibold text-foreground">Graph Debug</div>
+          <div className="text-muted-foreground">Nodes: {nodes.length}</div>
+          <div className="text-muted-foreground">Edges: {edges.length}</div>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
