@@ -311,6 +311,14 @@ class ApiClient {
     return this.fetch<Task[]>('/tasks');
   }
 
+  getTask(
+    id: string
+  ): Promise<Task & { project?: { id: string; name: string; workspaceId: string } }> {
+    return this.fetch<Task & { project?: { id: string; name: string; workspaceId: string } }>(
+      `/tasks/${id}`
+    );
+  }
+
   createTask(data: CreateTaskDto): Promise<Task> {
     return this.fetch<Task>('/tasks', {
       method: 'POST',

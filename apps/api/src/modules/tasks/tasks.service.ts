@@ -234,6 +234,32 @@ export class TasksService {
     return task;
   }
 
+  async findOne(id: string, userId: string): Promise<Task> {
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: {
+        project: { select: { id: true, name: true, workspaceId: true } },
+        blockedBy: {
+          include: {
+            blocker: { select: { id: true, title: true, statusId: true, projectId: true } },
+          },
+        },
+        blocking: {
+          include: {
+            dependent: { select: { id: true, title: true, statusId: true, projectId: true } },
+          },
+        },
+        images: true,
+      },
+    });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    // Verify user has access to the project
+    await this.projectsService.findById(task.projectId, userId);
+    return task;
+  }
+
   async findAllForUser(userId: string): Promise<Task[]> {
     const projects = await this.projectsService.findAllForUser(userId);
     const projectIds = projects.map((p) => p.id);

@@ -17,6 +17,11 @@ export class TasksController {
     return this.tasksService.findAllForUser(user.id);
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string, @CurrentUser() user: UserWithoutPassword): Promise<Task> {
+    return this.tasksService.findOne(id, user.id);
+  }
+
   @Post()
   create(@Body() data: CreateTaskDto, @CurrentUser() user: UserWithoutPassword): Promise<Task> {
     return this.tasksService.create(data, user.id);
