@@ -4,6 +4,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { LoginDto, SignupDto, AuthTokens } from '@goals/shared';
 import { User } from '@goals/database';
+import { ChangeEmailDto } from './dto/change-email.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
@@ -43,5 +45,38 @@ export class AuthController {
   ): Promise<{ message: string }> {
     await this.authService.logout(user.id, refreshToken);
     return { message: 'Logged out successfully' };
+  }
+
+  @Post('change-email')
+  @UseGuards(JwtAuthGuard)
+  async changeEmail(
+    @CurrentUser() user: UserWithoutPassword,
+    @Body() body: ChangeEmailDto
+  ): Promise<{ message: string; email: string }> {
+    return this.authService.changeEmail(user.id, body);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @CurrentUser() user: UserWithoutPassword,
+    @Body() body: ChangePasswordDto
+  ): Promise<{ message: string }> {
+    return this.authService.changePassword(user.id, body);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body('email') email: string): Promise<{ message: string }> {
+    return this.authService.forgotPassword(email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Body('token') token: string,
+    @Body('password') password: string
+  ): Promise<{ message: string }> {
+    return this.authService.resetPassword(token, password);
   }
 }

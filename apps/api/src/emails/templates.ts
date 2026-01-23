@@ -100,7 +100,8 @@ function renderLayout(
   options: { icon?: string; theme?: keyof typeof themes; headerBg?: boolean } = {}
 ): string {
   const appName = data.appName || defaultApp;
-  const logoUrl = data.logoUrl || defaultLogoUrl;
+  // logoUrl available for future use in email templates
+  const _logoUrl = data.logoUrl || defaultLogoUrl;
   const theme = themes[options.theme || 'primary'];
 
   return `<!doctype html>
@@ -219,7 +220,8 @@ const actionButton = (data: BaseEmailData, label = 'Open', secondary = false) =>
     ? `<div style="text-align: center; margin-top: 24px;"><a class="btn${secondary ? ' btn-secondary' : ''}" href="${data.actionUrl}">${label}</a></div>`
     : '';
 
-function progressBar(percent: number): string {
+// Progress bar helper for future summary emails
+function _progressBar(percent: number): string {
   return `<div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(100, percent)}%;"></div></div>`;
 }
 

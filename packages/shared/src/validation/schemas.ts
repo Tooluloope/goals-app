@@ -16,6 +16,32 @@ export const signupSchema = z.object({
   timezone: z.string().optional(), // IANA timezone string, defaults to UTC if not provided
 });
 
+export const updateProfileSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  avatar: z
+    .string()
+    // Allow http(s) URLs or data URLs (for base64 inline uploads)
+    .regex(/^(https?:\/\/|data:image\/[a-zA-Z]+;base64,).*/, 'Avatar must be a URL or data URI')
+    .max(2_000_000, 'Avatar data is too large')
+    .optional(),
+  email: z.string().email('Invalid email address').optional(),
+});
+
+export const changeEmailSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(6, 'Current password is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    path: ['newPassword'],
+    message: 'New password must be different from current password',
+  });
+
 export const updateUserSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   compactMode: z.boolean().optional(),

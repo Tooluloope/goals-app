@@ -82,10 +82,22 @@ export default function AreaProjectsPage() {
   const { setAddProjectModalOpen, openAddTaskModal } = useUIStore();
 
   const area = currentWorkspace ? getAreaById(currentWorkspace.id, areaId) : null;
-  const cadences = currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : [];
-  const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
-  const doneTaskStatusIds = taskStatuses.filter((s) => s.name === 'Done').map((s) => s.id);
-  const nextActionStatusId = taskStatuses.find((s) => s.name === 'Next Action')?.id || 'task-next';
+  const cadences = useMemo(
+    () => (currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getCadencesForWorkspace]
+  );
+  const taskStatuses = useMemo(
+    () => (currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getTaskStatusesForWorkspace]
+  );
+  const doneTaskStatusIds = useMemo(
+    () => taskStatuses.filter((s) => s.name === 'Done').map((s) => s.id),
+    [taskStatuses]
+  );
+  const nextActionStatusId = useMemo(
+    () => taskStatuses.find((s) => s.name === 'Next Action')?.id || 'task-next',
+    [taskStatuses]
+  );
 
   // Filter projects for this area
   const areaProjects = useMemo(() => {

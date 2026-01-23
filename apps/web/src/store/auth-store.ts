@@ -39,6 +39,9 @@ interface AuthState {
   setCurrentWorkspace: (workspace: Workspace) => void;
   loadWorkspaces: () => Promise<void>;
   updateSettings: (settings: Partial<User['settings']> & { timezone?: string }) => Promise<void>;
+  updateProfile: (data: { name?: string; avatar?: string }) => Promise<void>;
+  changeEmail: (email: string, password: string) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   refreshUser: () => Promise<void>;
   initializeAuth: () => Promise<void>;
 }
@@ -139,6 +142,45 @@ export const useAuthStore = create<AuthState>()(
 
         const apiUser = await apiClient.updateUserSettings(settings);
         set({ user: transformUser(apiUser) });
+      },
+
+      updateProfile: async (data: { name?: string; avatar?: string }) => {
+        const { user } = get();
+        if (!user) return;
+
+        const apiUser = await apiClient.updateProfile(data);
+        set({ user: transformUser(apiUser) });
+      },
+
+      changeEmail: async (email: string, password: string) => {
+        const { user } = get();
+        if (!user) return false;
+
+        await apiClient.changeEmail({ email, password });
+        // Force re-login by clearing tokens; API invalidates refresh tokens
+        apiClient.clearTokens();
+        set({
+          user: { ...user, email },
+          isAuthenticated: false,
+          currentWorkspace: null,
+          workspaces: [],
+        });
+        return true;
+      },
+
+      changePassword: async (currentPassword: string, newPassword: string) => {
+        const { user } = get();
+        if (!user) return false;
+
+        await apiClient.changePassword({ currentPassword, newPassword });
+        apiClient.clearTokens();
+        set({
+          user: null,
+          currentWorkspace: null,
+          workspaces: [],
+          isAuthenticated: false,
+        });
+        return true;
       },
 
       refreshUser: async () => {

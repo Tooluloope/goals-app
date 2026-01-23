@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { useJournalStreak } from '@/hooks/use-journal';
 import { useHabitsForDate, useTodayHabits } from '@/hooks/use-habits';
+import { useDailyText } from '@/hooks/use-ai';
 
 export default function Rhythm2Page() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -23,6 +24,7 @@ export default function Rhythm2Page() {
   const { data: habitsData } = useHabitsForDate(selectedDateStr);
   const { data: todayHabitsData } = useTodayHabits();
   const { data: streak } = useJournalStreak();
+  const { data: dailyText, isLoading: isDailyTextLoading } = useDailyText();
 
   const habits = Array.isArray(habitsData) ? habitsData : [];
   const todayHabits = Array.isArray(todayHabitsData) ? todayHabitsData : [];
@@ -76,12 +78,12 @@ export default function Rhythm2Page() {
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                  <div className="flex items-center gap-1 sm:gap-2">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={goToPreviousDay}
-                      className="h-10 w-10"
+                      className="h-9 w-9 sm:h-10 sm:w-10 shrink-0"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </Button>
@@ -91,7 +93,7 @@ export default function Rhythm2Page() {
                         <Button
                           variant="outline"
                           className={cn(
-                            'w-full min-w-[132px] justify-center gap-2 border-border bg-background/80 font-medium sm:w-auto',
+                            'min-w-[100px] sm:min-w-[132px] justify-center gap-2 border-border bg-background/80 font-medium',
                             isViewingToday &&
                               'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15'
                           )}
@@ -198,7 +200,7 @@ export default function Rhythm2Page() {
                       size="icon"
                       onClick={goToNextDay}
                       disabled={isViewingToday}
-                      className="h-10 w-10"
+                      className="h-9 w-9 sm:h-10 sm:w-10 shrink-0"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </Button>
@@ -315,14 +317,25 @@ export default function Rhythm2Page() {
               </div>
 
               <div className="rounded-3xl border bg-gradient-to-br from-primary/10 via-background to-background p-4 shadow-sm sm:p-6 animate-slide-up">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Intentional focus
-                </p>
-                <div className="mt-4 space-y-2">
-                  <h3 className="text-lg font-semibold">Small wins compound</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Lock in a few habits, then reflect. Consistency turns into momentum.
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Daily Inspiration
                   </p>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {isDailyTextLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {dailyText?.text ||
+                        'Every day is a fresh start. Make today count with small, consistent actions toward your goals.'}
+                    </p>
+                  )}
                 </div>
               </div>
             </aside>

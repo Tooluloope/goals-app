@@ -96,7 +96,7 @@ export default function DependenciesPage() {
 
   return (
     <AppLayout title="Dependencies">
-      <div className="flex h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)] bg-background">
+      <div className="flex h-[calc(100vh-7.5rem)] md:h-[calc(100vh-4rem)] bg-background">
         {/* Main Graph Area */}
         <div className="relative flex-1 overflow-hidden">
           {/* Atmospheric background */}
@@ -174,7 +174,7 @@ export default function DependenciesPage() {
                           )}
                         </SheetTitle>
                       </SheetHeader>
-                      <ScrollArea className="h-[calc(100vh-140px)]">
+                      <ScrollArea className="h-[calc(100vh-5rem)]">
                         <div className="space-y-3 p-4">
                           {/* Auto-surface Toggle */}
                           <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
@@ -266,8 +266,8 @@ export default function DependenciesPage() {
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="pointer-events-auto grid grid-cols-2 gap-3 md:grid-cols-4">
+              {/* Stats - hidden on mobile to save space */}
+              <div className="pointer-events-auto hidden gap-3 md:grid md:grid-cols-4">
                 <Card className="border-border/60 bg-card/90 shadow-lg">
                   <CardContent className="flex items-center gap-3 p-3">
                     <GitBranch className="h-4 w-4 text-blue-500" />

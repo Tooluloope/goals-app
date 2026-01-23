@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UpdateUserSettingsDto } from '@goals/shared';
 import { User } from '@goals/database';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
@@ -28,7 +29,7 @@ export class UsersController {
   @Patch('me')
   async updateProfile(
     @CurrentUser() user: UserWithoutPassword,
-    @Body() data: { name?: string; avatar?: string }
+    @Body() data: UpdateProfileDto
   ): Promise<UserWithoutPassword> {
     return this.usersService.updateProfile(user.id, data);
   }

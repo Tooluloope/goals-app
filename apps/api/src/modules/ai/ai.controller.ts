@@ -52,6 +52,17 @@ export class AiController {
   constructor(private aiService: AiService) {}
 
   // ============================================================
+  // DAILY TEXT
+  // ============================================================
+
+  @Get('daily-text')
+  getDailyText(
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<{ text: string; generatedAt: string; cached: boolean }> {
+    return this.aiService.getDailyText(user.id);
+  }
+
+  // ============================================================
   // CONVERSATIONS
   // ============================================================
 

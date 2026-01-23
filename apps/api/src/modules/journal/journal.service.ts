@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateJournalEntryDto, UpdateJournalEntryDto } from '@goals/shared';
 import { JournalEntry, Mood } from '@goals/database';
 import { startOfDay, parseISO } from 'date-fns';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 
 @Injectable()
 export class JournalService {

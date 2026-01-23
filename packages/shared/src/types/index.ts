@@ -45,6 +45,32 @@ export interface WorkspaceMember {
   userId: string;
   role: MemberRole;
   joinedAt: Date;
+  // Populated when fetched
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string | null;
+  };
+}
+
+export type InviteStatus = 'pending' | 'accepted' | 'expired' | 'cancelled';
+
+export interface WorkspaceInvite {
+  id: string;
+  workspaceId: string;
+  email: string;
+  token: string;
+  invitedById: string;
+  role: MemberRole;
+  status: InviteStatus;
+  expiresAt: Date;
+  createdAt: Date;
+  acceptedAt?: Date | null;
+}
+
+export interface WorkspaceWithMembers extends Workspace {
+  members: WorkspaceMember[];
 }
 
 // ============================================================

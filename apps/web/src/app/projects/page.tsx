@@ -43,12 +43,27 @@ export default function ProjectsPage() {
     getTaskStatusesForWorkspace,
   } = useConfigStore();
 
-  const areas = currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : [];
-  const statuses = currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : [];
-  const cadences = currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : [];
-  const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
+  const areas = useMemo(
+    () => (currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getAreasForWorkspace]
+  );
+  const statuses = useMemo(
+    () => (currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getStatusesForWorkspace]
+  );
+  const cadences = useMemo(
+    () => (currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getCadencesForWorkspace]
+  );
+  const taskStatuses = useMemo(
+    () => (currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getTaskStatusesForWorkspace]
+  );
 
-  const doneTaskStatusIds = taskStatuses.filter((s) => s.name === 'Done').map((s) => s.id);
+  const doneTaskStatusIds = useMemo(
+    () => taskStatuses.filter((s) => s.name === 'Done').map((s) => s.id),
+    [taskStatuses]
+  );
 
   const areaStats = useMemo(() => {
     if (!projects || !currentWorkspace) return [];

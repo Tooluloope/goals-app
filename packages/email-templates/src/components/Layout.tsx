@@ -28,8 +28,8 @@ const themes: Record<ThemeType, { bg: string; light: string; text: string }> = {
 export type LayoutProps = BaseProps & {
   preview: string;
   title: string;
-  intro?: React.ReactNode;
-  children: React.ReactNode;
+  intro?: string;
+  children?: React.ReactNode;
   action?: CTA;
   theme?: ThemeType;
   icon?: React.ReactNode;

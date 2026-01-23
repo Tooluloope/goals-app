@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/lib/api-client';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -42,15 +43,25 @@ export function ForgotPasswordForm() {
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsEmailSent(true);
-    setIsSubmitting(false);
-    toast({
-      title: 'Email sent',
-      description: 'Check your inbox for password reset instructions.',
-      variant: 'success',
-    });
+    try {
+      await apiClient.forgotPassword(data.email);
+      setIsEmailSent(true);
+      toast({
+        title: 'Email sent',
+        description: 'Check your inbox for password reset instructions.',
+        variant: 'success',
+      });
+    } catch (error) {
+      // Always show success message to prevent email enumeration
+      setIsEmailSent(true);
+      toast({
+        title: 'Email sent',
+        description: 'If an account exists, you will receive reset instructions.',
+        variant: 'success',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isEmailSent) {

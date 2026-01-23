@@ -8,7 +8,7 @@ import {
   YearlyData,
   UserContext,
 } from './services/data-aggregator.service';
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 import {
   SummaryType,
   MessageRole,
@@ -18,16 +18,7 @@ import {
   AiConversation,
   AiMessage,
 } from '@goals/database';
-import {
-  startOfWeek,
-  startOfMonth,
-  parseISO,
-  format,
-  endOfWeek,
-  endOfMonth,
-  startOfYear,
-  endOfYear,
-} from 'date-fns';
+import { startOfDay, parseISO, format, endOfWeek, endOfMonth, endOfYear } from 'date-fns';
 
 // Explicit return types for Prisma queries
 interface ConversationWithLastMessage extends AiConversation {
@@ -108,6 +99,99 @@ export class AiService {
     private anthropic: AnthropicProvider,
     private dataAggregator: DataAggregatorService
   ) {}
+
+  // ============================================================
+  // DAILY TEXT
+  // ============================================================
+
+  async getDailyText(
+    userId: string
+  ): Promise<{ text: string; generatedAt: string; cached: boolean }> {
+    const today = startOfDay(new Date());
+
+    // Check for cached daily text first
+    const cached = await this.prisma.aiDailyText.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date: today,
+        },
+      },
+    });
+
+    if (cached) {
+      return {
+        text: cached.content,
+        generatedAt: cached.createdAt.toISOString(),
+        cached: true,
+      };
+    }
+
+    // Generate new daily text
+    try {
+      // Get user context for personalization
+      const userContext = await this.dataAggregator.getUserContext(userId);
+
+      // Get user's name
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+      const firstName = user?.name?.split(' ')[0] || 'there';
+
+      // Build a personalized prompt based on user context
+      const contextParts: string[] = [];
+
+      if (userContext.habits.length > 0) {
+        const completedToday = userContext.habits.filter((h) => h.completedToday).length;
+        contextParts.push(`habits: ${completedToday}/${userContext.habits.length} completed today`);
+      }
+
+      // Get top streak from habits
+      const habitsWithStreaks = userContext.habits.filter((h) => h.currentStreak > 0);
+      if (habitsWithStreaks.length > 0) {
+        const topStreak = habitsWithStreaks.sort((a, b) => b.currentStreak - a.currentStreak)[0];
+        contextParts.push(`top streak: ${topStreak.currentStreak} days on "${topStreak.name}"`);
+      }
+
+      const contextStr =
+        contextParts.length > 0 ? `\nUser context: ${contextParts.join(', ')}` : '';
+
+      const prompt = `Generate a short (1-2 sentences) personalized daily motivational message for ${firstName}. ${contextStr}
+
+Be warm, encouraging, and specific if context is available. Keep it brief and uplifting. Don't use emojis. Focus on progress and potential.`;
+
+      const response = await this.anthropic.createMessage(
+        prompt,
+        'You are a supportive wellness coach. Generate brief, personalized daily messages that inspire action and celebrate progress. Keep messages under 30 words.'
+      );
+
+      const trimmedText = response.content.trim();
+
+      // Cache the generated text for the day
+      await this.prisma.aiDailyText.create({
+        data: {
+          userId,
+          date: today,
+          content: trimmedText,
+        },
+      });
+
+      return {
+        text: trimmedText,
+        generatedAt: new Date().toISOString(),
+        cached: false,
+      };
+    } catch (error) {
+      this.logger.error('Failed to generate daily text', error);
+      // Return a fallback message if AI fails
+      return {
+        text: 'Every day is a fresh start. Make today count with small, consistent actions toward your goals.',
+        generatedAt: new Date().toISOString(),
+        cached: false,
+      };
+    }
+  }
 
   // ============================================================
   // CONVERSATIONS

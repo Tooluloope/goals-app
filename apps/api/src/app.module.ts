@@ -12,6 +12,7 @@ import { JournalModule } from './modules/journal/journal.module';
 import { HabitsModule } from './modules/habits/habits.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { AiModule } from './modules/ai/ai.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AiModule } from './modules/ai/ai.module';
       envFilePath: ['.env.local', '.env', '../../.env'],
     }),
     PrismaModule,
+    EmailModule,
     AuthModule,
     UsersModule,
     WorkspacesModule,

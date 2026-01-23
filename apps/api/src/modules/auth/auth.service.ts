@@ -1,10 +1,21 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+  Logger,
+  ForbiddenException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
+import { EmailService } from '../email/email.service';
 import { LoginDto, SignupDto, AuthTokens, DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
+import { ChangeEmailDto } from './dto/change-email.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { User } from '@goals/database';
 
 // Response types for Auth
@@ -18,17 +29,20 @@ interface AuthResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private prisma: PrismaService
+    private prisma: PrismaService,
+    private emailService: EmailService
   ) {}
 
   async validateUser(email: string, password: string): Promise<UserWithoutPassword | null> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (user && (await bcrypt.compare(password, user.passwordHash))) {
-      const { passwordHash, ...result } = user;
+      const { passwordHash: _passwordHash, ...result } = user;
       return result;
     }
     return null;
@@ -112,9 +126,14 @@ export class AuthService {
       return updatedUser;
     });
 
-    const { passwordHash: _, ...userWithoutPassword } = result;
+    const { passwordHash: _hash, ...userWithoutPassword } = result;
     const tokens = await this.generateTokens(result.id, result.email);
     await this.saveRefreshToken(result.id, tokens.refreshToken);
+
+    // Send welcome email (non-blocking)
+    this.emailService.sendWelcomeEmail(result.email, result.name).catch((err) => {
+      this.logger.error(`Failed to send welcome email to ${result.email}:`, err);
+    });
 
     return {
       user: userWithoutPassword,
@@ -148,6 +167,86 @@ export class AuthService {
     });
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return {
+        message: 'If an account exists with this email, a password reset link will be sent.',
+      };
+    }
+
+    // Invalidate any existing reset tokens for this user
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, used: false },
+      data: { used: true },
+    });
+
+    // Generate a secure random token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30); // Token expires in 30 minutes
+
+    // Save the reset token
+    await this.prisma.passwordResetToken.create({
+      data: {
+        token,
+        userId: user.id,
+        expiresAt,
+      },
+    });
+
+    // Send password reset email (non-blocking)
+    this.emailService.sendPasswordResetEmail(user.email, user.name, token).catch((err) => {
+      this.logger.error(`Failed to send password reset email to ${user.email}:`, err);
+    });
+
+    return { message: 'If an account exists with this email, a password reset link will be sent.' };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Hash the new password
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update user password and mark token as used
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { used: true },
+      }),
+      // Invalidate all refresh tokens for security
+      this.prisma.refreshToken.deleteMany({
+        where: { userId: resetToken.userId },
+      }),
+    ]);
+
+    // Send password changed confirmation email (non-blocking)
+    this.emailService
+      .sendPasswordChangedEmail(resetToken.user.email, resetToken.user.name)
+      .catch((err) => {
+        this.logger.error(
+          `Failed to send password changed email to ${resetToken.user.email}:`,
+          err
+        );
+      });
+
+    return { message: 'Password has been reset successfully' };
+  }
+
   private async generateTokens(userId: string, email: string): Promise<AuthTokens> {
     const payload = { sub: userId, email };
 
@@ -171,5 +270,64 @@ export class AuthService {
       update: { expiresAt },
       create: { token, userId, expiresAt },
     });
+  }
+
+  async changeEmail(
+    userId: string,
+    data: ChangeEmailDto
+  ): Promise<{ message: string; email: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const passwordMatch = await bcrypt.compare(data.password, user.passwordHash);
+    if (!passwordMatch) {
+      throw new ForbiddenException('Incorrect password');
+    }
+
+    const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Email already in use');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { email: data.email },
+      select: { id: true, email: true },
+    });
+
+    // Invalidate refresh tokens so user reauthenticates
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+
+    return { message: 'Email updated successfully', email: updated.email };
+  }
+
+  async changePassword(userId: string, data: ChangePasswordDto): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const match = await bcrypt.compare(data.currentPassword, user.passwordHash);
+    if (!match) {
+      throw new ForbiddenException('Current password is incorrect');
+    }
+
+    if (data.currentPassword === data.newPassword) {
+      throw new BadRequestException('New password must differ from current');
+    }
+
+    const passwordHash = await bcrypt.hash(data.newPassword, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.refreshToken.deleteMany({ where: { userId } }),
+    ]);
+
+    // Send password changed confirmation email (non-blocking)
+    this.emailService
+      .sendPasswordChangedEmail(user.email, user.name)
+      .catch((err) =>
+        this.logger.error(`Failed to send password changed email to ${user.email}:`, err)
+      );
+
+    return { message: 'Password updated successfully. Please log in again.' };
   }
 }

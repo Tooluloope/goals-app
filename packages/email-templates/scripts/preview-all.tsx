@@ -168,8 +168,8 @@ const templates = {
 const outDir = join(process.cwd(), 'previews');
 mkdirSync(outDir, { recursive: true });
 
-Object.entries(templates).forEach(([name, factory]) => {
-  const html = render(factory(), { pretty: true });
+Object.entries(templates).forEach(async ([name, factory]) => {
+  const html = await render(factory(), { pretty: true });
   const file = join(outDir, `${name}.html`);
   writeFileSync(file, html);
   console.log('Generated', file);

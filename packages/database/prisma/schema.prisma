@@ -24,11 +24,13 @@ model User {
   updatedAt          DateTime  @updatedAt
 
   // Relations
-  ownedWorkspaces      Workspace[]         @relation("WorkspaceOwner")
+  ownedWorkspaces      Workspace[]           @relation("WorkspaceOwner")
   workspaceMemberships WorkspaceMember[]
+  sentInvites          WorkspaceInvite[]     @relation("SentInvites")
   notifications        Notification[]
-  assignedTasks        Task[]              @relation("AssignedTasks")
+  assignedTasks        Task[]                @relation("AssignedTasks")
   refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
   journalEntries       JournalEntry[]
   habits               Habit[]
   weeklyReviews        WeeklyReview[]
@@ -37,6 +39,7 @@ model User {
   aiSummaries          AiSummary[]
   aiConversations      AiConversation[]
   aiInsights           AiInsight[]
+  aiDailyTexts         AiDailyText[]
 
   @@index([email])
 }
@@ -46,6 +49,20 @@ model RefreshToken {
   token     String   @unique
   userId    String
   expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -67,8 +84,9 @@ model Workspace {
   updatedAt DateTime      @updatedAt
 
   // Relations
-  owner    User               @relation("WorkspaceOwner", fields: [ownerId], references: [id])
-  members  WorkspaceMember[]
+  owner   User               @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members WorkspaceMember[]
+  invites WorkspaceInvite[]
   projects Project[]
   config   WorkspaceConfig?
 
@@ -88,6 +106,35 @@ model WorkspaceMember {
   @@unique([workspaceId, userId])
   @@index([workspaceId])
   @@index([userId])
+}
+
+model WorkspaceInvite {
+  id          String       @id @default(uuid())
+  workspaceId String
+  email       String       // Email of the invited user
+  token       String       @unique
+  invitedById String       // User who sent the invite
+  role        MemberRole   @default(member)
+  status      InviteStatus @default(pending)
+  expiresAt   DateTime
+  createdAt   DateTime     @default(now())
+  acceptedAt  DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("SentInvites", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId])
+  @@index([email])
+  @@index([token])
+  @@index([status])
+}
+
+enum InviteStatus {
+  pending
+  accepted
+  expired
+  cancelled
 }
 
 enum WorkspaceType {
@@ -584,4 +631,19 @@ enum InsightType {
   celebration
   warning
   milestone
+}
+
+// Daily motivational text - cached per user per day
+model AiDailyText {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime @db.Date
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
 }

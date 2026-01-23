@@ -229,6 +229,7 @@ export function useKeyboardShortcuts() {
         }
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shortcuts contains inline functions that would cause infinite re-renders
     [
       isAuthenticated,
       commandPaletteOpen,

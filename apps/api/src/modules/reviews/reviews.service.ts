@@ -90,6 +90,9 @@ export class ReviewsService {
   async upsertWeeklyReview(data: CreateWeeklyReviewDto, userId: string): Promise<WeeklyReview> {
     const weekStart = startOfDay(parseISO(data.weekStart));
 
+    // Prepare submitted data - only set submittedAt when newly submitted
+    const submittedData = data.submitted ? { submitted: true, submittedAt: new Date() } : {};
+
     return this.prisma.weeklyReview.upsert({
       where: {
         userId_weekStart: {
@@ -104,6 +107,7 @@ export class ReviewsService {
         lessonsLearned: data.lessonsLearned,
         gratitude: data.gratitude,
         rating: data.rating,
+        ...submittedData,
       },
       create: {
         userId,
@@ -114,6 +118,7 @@ export class ReviewsService {
         lessonsLearned: data.lessonsLearned,
         gratitude: data.gratitude,
         rating: data.rating,
+        ...submittedData,
       },
     });
   }
@@ -245,6 +250,9 @@ export class ReviewsService {
   async upsertMonthlyReview(data: CreateMonthlyReviewDto, userId: string): Promise<MonthlyReview> {
     const month = startOfDay(parseISO(data.month));
 
+    // Prepare submitted data - only set submittedAt when newly submitted
+    const submittedData = data.submitted ? { submitted: true, submittedAt: new Date() } : {};
+
     return this.prisma.monthlyReview.upsert({
       where: {
         userId_month: {
@@ -260,6 +268,7 @@ export class ReviewsService {
         lessonsLearned: data.lessonsLearned,
         gratitude: data.gratitude,
         rating: data.rating,
+        ...submittedData,
       },
       create: {
         userId,
@@ -271,6 +280,7 @@ export class ReviewsService {
         lessonsLearned: data.lessonsLearned,
         gratitude: data.gratitude,
         rating: data.rating,
+        ...submittedData,
       },
     });
   }

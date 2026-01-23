@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,7 +30,14 @@ import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useCreateProject } from '@/hooks/use-projects';
 import { useToast } from '@/hooks/use-toast';
-import { getColorClasses } from '@/types/config';
+import {
+  getColorClasses,
+  PriorityConfig,
+  CadenceConfig,
+  ConfidenceConfig,
+  AreaConfig,
+  StatusConfig,
+} from '@/types/config';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -61,12 +68,30 @@ export function AddProjectModal() {
   const createProject = useCreateProject();
   const { toast } = useToast();
 
-  const areas = currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : [];
-  const statuses = currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : [];
-  const priorities = currentWorkspace ? getPrioritiesForWorkspace(currentWorkspace.id) : [];
-  const cadences = currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : [];
-  const confidences = currentWorkspace ? getConfidencesForWorkspace(currentWorkspace.id) : [];
-  const tags = currentWorkspace ? getActiveTags(currentWorkspace.id) : [];
+  const areas = useMemo(
+    () => (currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getAreasForWorkspace]
+  );
+  const statuses = useMemo(
+    () => (currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getStatusesForWorkspace]
+  );
+  const priorities = useMemo(
+    () => (currentWorkspace ? getPrioritiesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getPrioritiesForWorkspace]
+  );
+  const cadences = useMemo(
+    () => (currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getCadencesForWorkspace]
+  );
+  const confidences = useMemo(
+    () => (currentWorkspace ? getConfidencesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getConfidencesForWorkspace]
+  );
+  const tags = useMemo(
+    () => (currentWorkspace ? getActiveTags(currentWorkspace.id) : []),
+    [currentWorkspace, getActiveTags]
+  );
 
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
@@ -76,10 +101,11 @@ export function AddProjectModal() {
   const defaultAreaId = areas[0]?.id || '';
   const defaultStatusId = statuses[0]?.id || '';
   const defaultPriorityId =
-    priorities.find((p) => p.name === 'Medium')?.id || priorities[0]?.id || '';
-  const defaultCadenceId = cadences.find((c) => c.name === 'Monthly')?.id || cadences[0]?.id || '';
+    priorities.find((p: PriorityConfig) => p.name === 'Medium')?.id || priorities[0]?.id || '';
+  const defaultCadenceId =
+    cadences.find((c: CadenceConfig) => c.name === 'Monthly')?.id || cadences[0]?.id || '';
   const defaultConfidenceId =
-    confidences.find((c) => c.name === 'Medium')?.id || confidences[0]?.id || '';
+    confidences.find((c: ConfidenceConfig) => c.name === 'Medium')?.id || confidences[0]?.id || '';
 
   const {
     register,
@@ -113,15 +139,15 @@ export function AddProjectModal() {
       setValue('statusId', statuses[0].id);
     }
     if (priorities.length > 0 && !watch('priorityId')) {
-      const medium = priorities.find((p) => p.name === 'Medium');
+      const medium = priorities.find((p: PriorityConfig) => p.name === 'Medium');
       setValue('priorityId', medium?.id || priorities[0].id);
     }
     if (cadences.length > 0 && !watch('cadenceId')) {
-      const monthly = cadences.find((c) => c.name === 'Monthly');
+      const monthly = cadences.find((c: CadenceConfig) => c.name === 'Monthly');
       setValue('cadenceId', monthly?.id || cadences[0].id);
     }
     if (confidences.length > 0 && !watch('confidenceId')) {
-      const medium = confidences.find((c) => c.name === 'Medium');
+      const medium = confidences.find((c: ConfidenceConfig) => c.name === 'Medium');
       setValue('confidenceId', medium?.id || confidences[0].id);
     }
   }, [areas, statuses, priorities, cadences, confidences, setValue, watch]);
@@ -208,7 +234,7 @@ export function AddProjectModal() {
                     <SelectValue placeholder="Select area" />
                   </SelectTrigger>
                   <SelectContent>
-                    {areas.map((area) => {
+                    {areas.map((area: AreaConfig) => {
                       const colors = getColorClasses(area.color);
                       return (
                         <SelectItem key={area.id} value={area.id}>
@@ -230,7 +256,7 @@ export function AddProjectModal() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {statuses.map((status) => {
+                    {statuses.map((status: StatusConfig) => {
                       const colors = getColorClasses(status.color);
                       return (
                         <SelectItem key={status.id} value={status.id}>
@@ -254,7 +280,7 @@ export function AddProjectModal() {
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
                   <SelectContent>
-                    {priorities.map((priority) => {
+                    {priorities.map((priority: PriorityConfig) => {
                       const colors = getColorClasses(priority.color);
                       return (
                         <SelectItem key={priority.id} value={priority.id}>
@@ -276,7 +302,7 @@ export function AddProjectModal() {
                     <SelectValue placeholder="Select cadence" />
                   </SelectTrigger>
                   <SelectContent>
-                    {cadences.map((cadence) => (
+                    {cadences.map((cadence: CadenceConfig) => (
                       <SelectItem key={cadence.id} value={cadence.id}>
                         {cadence.name} ({cadence.days} days)
                       </SelectItem>
@@ -308,7 +334,7 @@ export function AddProjectModal() {
                   <SelectValue placeholder="Select confidence" />
                 </SelectTrigger>
                 <SelectContent>
-                  {confidences.map((confidence) => {
+                  {confidences.map((confidence: ConfidenceConfig) => {
                     const colors = getColorClasses(confidence.color);
                     return (
                       <SelectItem key={confidence.id} value={confidence.id}>

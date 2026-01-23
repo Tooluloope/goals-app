@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["@playwright/test"],
+    "skipLibCheck": true
+  },
+  "include": ["playwright.config.ts", "tests/**/*.ts", "global-setup.ts"]
+}

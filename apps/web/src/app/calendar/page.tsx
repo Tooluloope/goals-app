@@ -116,11 +116,26 @@ export default function CalendarPage() {
   } = useConfigStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
-  const statuses = currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : [];
-  const cadences = currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : [];
-  const doneTaskStatusIds = taskStatuses.filter((s) => s.name === 'Done').map((s) => s.id);
-  const activeStatusIds = statuses.filter((s) => s.type === 'active').map((s) => s.id);
+  const taskStatuses = useMemo(
+    () => (currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getTaskStatusesForWorkspace]
+  );
+  const statuses = useMemo(
+    () => (currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getStatusesForWorkspace]
+  );
+  const cadences = useMemo(
+    () => (currentWorkspace ? getCadencesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getCadencesForWorkspace]
+  );
+  const doneTaskStatusIds = useMemo(
+    () => taskStatuses.filter((s) => s.name === 'Done').map((s) => s.id),
+    [taskStatuses]
+  );
+  const activeStatusIds = useMemo(
+    () => statuses.filter((s) => s.type === 'active').map((s) => s.id),
+    [statuses]
+  );
 
   // Generate calendar events from projects
   const events = useMemo(() => {

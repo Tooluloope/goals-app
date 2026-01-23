@@ -22,6 +22,8 @@ export const aiKeys = {
   insights: () => [...aiKeys.all, 'insights'] as const,
   insightsList: (type?: string, includeDismissed?: boolean) =>
     [...aiKeys.insights(), 'list', { type, includeDismissed }] as const,
+  // Daily Text
+  dailyText: () => [...aiKeys.all, 'daily-text'] as const,
 };
 
 // ============================================================
@@ -176,5 +178,19 @@ export function useDismissAiInsight() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aiKeys.insights() });
     },
+  });
+}
+
+// ============================================================
+// DAILY TEXT
+// ============================================================
+
+// Fetch personalized daily text
+export function useDailyText() {
+  return useQuery({
+    queryKey: aiKeys.dailyText(),
+    queryFn: () => apiClient.getDailyText(),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    refetchOnWindowFocus: false,
   });
 }

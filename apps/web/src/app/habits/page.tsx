@@ -61,7 +61,7 @@ function getColorClass(colorName: string) {
 
 export default function HabitManagerPage() {
   const { data: habitsData, isLoading } = useHabits();
-  const habits = Array.isArray(habitsData) ? habitsData : [];
+  const habits = useMemo(() => (Array.isArray(habitsData) ? habitsData : []), [habitsData]);
   const deleteHabit = useDeleteHabit();
   const toggleLog = useToggleHabitLog();
 

@@ -1,14 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import {
-  subDays,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  startOfYear,
-  endOfYear,
-} from 'date-fns';
+import { subDays, endOfWeek, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import type { Mood } from '@goals/shared';
 
 export interface HabitData {

@@ -14,7 +14,7 @@ export function ProgressStats() {
   const { data: journalStreak, isLoading: journalLoading } = useJournalStreak();
   const { data: weeklyStats, isLoading: weeklyLoading } = useWeeklyReviewStats();
 
-  const habits = Array.isArray(habitsData) ? habitsData : [];
+  const habits = useMemo(() => (Array.isArray(habitsData) ? habitsData : []), [habitsData]);
 
   // Calculate habit stats
   const habitStats = useMemo(() => {

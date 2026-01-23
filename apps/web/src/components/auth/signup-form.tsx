@@ -62,7 +62,14 @@ export function SignupForm() {
           description: 'Welcome! Your account has been created successfully.',
           variant: 'success',
         });
-        router.push('/dashboard');
+        // Check for redirect URL (e.g., from invite page)
+        const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+        if (redirectUrl) {
+          sessionStorage.removeItem('redirectAfterLogin');
+          router.push(redirectUrl);
+        } else {
+          router.push('/dashboard');
+        }
       } else {
         toast({
           title: 'Signup failed',

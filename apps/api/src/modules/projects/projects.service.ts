@@ -121,7 +121,8 @@ export class ProjectsService {
   }
 
   async update(id: string, data: UpdateProjectDto, userId: string): Promise<Project> {
-    const project = await this.findById(id, userId);
+    // Verify project exists and user has access
+    await this.findById(id, userId);
 
     const updateData: any = { ...data };
     if (data.startDate) updateData.startDate = new Date(data.startDate);
@@ -163,7 +164,7 @@ export class ProjectsService {
   private async notifyBlockerResolved(
     blockerId: string,
     blockerName: string,
-    userId: string
+    _userId: string
   ): Promise<void> {
     // Find all projects that were blocked by this project
     const dependents = await this.prisma.projectDependency.findMany({
@@ -330,8 +331,8 @@ export class ProjectsService {
     note?: string
   ): Promise<ProjectDependency> {
     // Verify user has access to both projects
-    const dependent = await this.findById(projectId, userId);
-    const blocker = await this.findById(blockerId, userId);
+    await this.findById(projectId, userId);
+    await this.findById(blockerId, userId);
 
     // Prevent self-blocking
     if (projectId === blockerId) {

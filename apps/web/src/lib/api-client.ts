@@ -2,6 +2,8 @@ import type {
   User,
   UserSettings,
   Workspace,
+  WorkspaceInvite,
+  WorkspaceWithMembers,
   Project,
   Task,
   Notification,
@@ -210,6 +212,22 @@ class ApiClient {
     }
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return this.fetch<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      requiresAuth: false,
+    });
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    return this.fetch<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+      requiresAuth: false,
+    });
+  }
+
   // ============================================================
   // USERS
   // ============================================================
@@ -229,6 +247,26 @@ class ApiClient {
     return this.fetch<User>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
+    });
+  }
+
+  changeEmail(payload: {
+    email: string;
+    password: string;
+  }): Promise<{ message: string; email: string }> {
+    return this.fetch('/auth/change-email', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  changePassword(payload: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string }> {
+    return this.fetch('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   }
 
@@ -252,10 +290,44 @@ class ApiClient {
   }
 
   inviteToWorkspace(workspaceId: string, email: string) {
-    return this.fetch<void>(`/workspaces/${workspaceId}/invite`, {
+    return this.fetch<{ message: string; inviteId: string }>(`/workspaces/${workspaceId}/invite`, {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
+  }
+
+  getPendingInvites(workspaceId: string) {
+    return this.fetch<WorkspaceInvite[]>(`/workspaces/${workspaceId}/invites`);
+  }
+
+  cancelInvite(inviteId: string) {
+    return this.fetch<{ message: string }>(`/workspaces/invites/${inviteId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  resendInvite(inviteId: string) {
+    return this.fetch<{ message: string }>(`/workspaces/invites/${inviteId}/resend`, {
+      method: 'POST',
+    });
+  }
+
+  previewInvite(token: string) {
+    return this.fetch<{ workspace: { name: string }; email: string; expiresAt: string }>(
+      `/workspaces/invites/preview?token=${encodeURIComponent(token)}`,
+      { requiresAuth: false }
+    );
+  }
+
+  acceptInvite(token: string) {
+    return this.fetch<{ workspaceId: string }>('/workspaces/invites/accept', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  getWorkspaceWithMembers(id: string) {
+    return this.fetch<WorkspaceWithMembers>(`/workspaces/${id}`);
   }
 
   // ============================================================
@@ -833,6 +905,14 @@ class ApiClient {
     return this.fetch<AiInsight>(`/ai/insights/${id}/dismiss`, {
       method: 'PATCH',
     });
+  }
+
+  // ============================================================
+  // AI - DAILY TEXT
+  // ============================================================
+
+  getDailyText(): Promise<{ text: string; generatedAt: string; cached: boolean }> {
+    return this.fetch<{ text: string; generatedAt: string; cached: boolean }>('/ai/daily-text');
   }
 }
 

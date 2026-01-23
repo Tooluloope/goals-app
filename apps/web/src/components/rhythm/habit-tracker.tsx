@@ -110,9 +110,9 @@ export function HabitTracker({ selectedDate }: HabitTrackerProps) {
 
   return (
     <div className="space-y-4">
-      {/* Habit Cards - Horizontal Scroll */}
-      <div className="-mx-4 overflow-x-auto px-4 py-4">
-        <div className="flex gap-4">
+      {/* Habit Cards - Responsive Grid on desktop, Horizontal Scroll on mobile */}
+      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent sm:overflow-x-visible">
+        <div className="flex gap-3 min-w-min sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:min-w-0">
           {habits.map((habit) => (
             <HabitCard
               key={habit.id}
@@ -129,9 +129,9 @@ export function HabitTracker({ selectedDate }: HabitTrackerProps) {
           {isViewingToday && (
             <AddHabitModal
               trigger={
-                <button className="flex h-32 w-28 flex-shrink-0 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-card/50 text-muted-foreground transition-all hover:border-primary/50 hover:text-foreground">
-                  <Plus className="h-8 w-8" />
-                  <span className="text-sm font-medium">Add</span>
+                <button className="flex h-28 w-24 sm:h-28 sm:w-full flex-shrink-0 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/50 text-muted-foreground transition-all hover:border-primary/50 hover:text-foreground">
+                  <Plus className="h-7 w-7" />
+                  <span className="text-xs font-medium">Add</span>
                 </button>
               }
             />
@@ -172,12 +172,12 @@ function HabitCard({
   const IconComponent = HABIT_ICONS[habit.icon] || Target;
 
   return (
-    <div className="group relative">
+    <div className="group relative flex-shrink-0 sm:flex-shrink">
       <button
         onClick={onToggle}
         disabled={isToggling || isReadOnly}
         className={cn(
-          'relative flex h-32 w-28 flex-shrink-0 flex-col items-center justify-center gap-3 rounded-xl transition-all',
+          'relative flex h-28 w-24 sm:h-28 sm:w-full flex-col items-center justify-center gap-2 rounded-xl transition-all',
           !isReadOnly && 'active:scale-95 touch-manipulation',
           colorClasses,
           isToggling && 'opacity-70 scale-95',
@@ -186,21 +186,23 @@ function HabitCard({
       >
         <div className="relative">
           {isToggling ? (
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <Loader2 className="h-7 w-7 animate-spin" />
           ) : (
             <>
-              <IconComponent className="h-8 w-8" />
+              <IconComponent className="h-7 w-7" />
               {habit.completedToday && (
-                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-green-600 shadow-sm">
-                  <Check className="h-3 w-3" strokeWidth={3} />
+                <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/90 text-green-600 shadow-sm">
+                  <Check className="h-2.5 w-2.5" strokeWidth={3} />
                 </div>
               )}
             </>
           )}
         </div>
-        <span className="text-sm font-semibold max-w-full truncate px-1">{habit.name}</span>
+        <span className="text-xs font-semibold max-w-full truncate px-1">{habit.name}</span>
         {habit.currentStreak > 0 && !isToggling && (
-          <div className="absolute bottom-2 right-2 text-xs opacity-75">{habit.currentStreak}d</div>
+          <div className="absolute bottom-1.5 right-1.5 text-[10px] opacity-75">
+            {habit.currentStreak}d
+          </div>
         )}
       </button>
       {!isReadOnly && (
@@ -209,9 +211,9 @@ function HabitCard({
             e.stopPropagation();
             onDelete();
           }}
-          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-70 transition-opacity hover:opacity-100 md:hidden md:group-hover:flex md:opacity-100"
+          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-70 transition-opacity hover:opacity-100 md:hidden md:group-hover:flex md:opacity-100"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-2.5 w-2.5" />
         </button>
       )}
     </div>

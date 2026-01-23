@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
 import { CreateTaskDto, UpdateTaskDto, RecurrenceType } from '@goals/shared';
 import { Task, TaskDependency, RecurrenceType as PrismaRecurrenceType } from '@goals/database';
-import { addDays, addWeeks, addMonths, addYears, setDay, isAfter, startOfDay } from 'date-fns';
+import { addDays, addWeeks, addMonths, addYears, setDay, startOfDay } from 'date-fns';
 
 @Injectable()
 export class TasksService {

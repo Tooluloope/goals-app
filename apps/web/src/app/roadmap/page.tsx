@@ -38,10 +38,22 @@ export default function RoadmapPage() {
 
   const [selectedAreaId, setSelectedAreaId] = useState<string>('all');
 
-  const areas = currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : [];
-  const statuses = currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : [];
-  const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
-  const completedTaskStatusIds = taskStatuses.filter((s) => s.name === 'Done').map((s) => s.id);
+  const areas = useMemo(
+    () => (currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getAreasForWorkspace]
+  );
+  const statuses = useMemo(
+    () => (currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getStatusesForWorkspace]
+  );
+  const taskStatuses = useMemo(
+    () => (currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getTaskStatusesForWorkspace]
+  );
+  const completedTaskStatusIds = useMemo(
+    () => taskStatuses.filter((s) => s.name === 'Done').map((s) => s.id),
+    [taskStatuses]
+  );
 
   // Filter projects by area
   const filteredProjects = useMemo(() => {

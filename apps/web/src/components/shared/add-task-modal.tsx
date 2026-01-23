@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,7 +30,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useCreateTask, useProject } from '@/hooks/use-projects';
 import { useToast } from '@/hooks/use-toast';
-import { getColorClasses } from '@/types/config';
+import { getColorClasses, TaskStatusConfig } from '@/types/config';
 import { LocalImageAttachment, RecurrenceType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -66,9 +66,17 @@ export function AddTaskModal() {
   const [images, setImages] = useState<LocalImageAttachment[]>([]);
   const [showRecurrence, setShowRecurrence] = useState(false);
 
-  const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
-  const defaultStatusId =
-    taskStatuses.find((s) => s.name === 'Next Action')?.id || taskStatuses[0]?.id || '';
+  const taskStatuses = useMemo(
+    () => (currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : []),
+    [currentWorkspace, getTaskStatusesForWorkspace]
+  );
+  const defaultStatusId = useMemo(
+    () =>
+      taskStatuses.find((s: TaskStatusConfig) => s.name === 'Next Action')?.id ||
+      taskStatuses[0]?.id ||
+      '',
+    [taskStatuses]
+  );
 
   const handleAddImages = (newImages: LocalImageAttachment[]) => {
     setImages((prev) => [...prev, ...newImages].slice(0, 5));
@@ -111,7 +119,7 @@ export function AddTaskModal() {
   // Update default status when config loads
   useEffect(() => {
     if (taskStatuses.length > 0 && !watch('statusId')) {
-      const nextAction = taskStatuses.find((s) => s.name === 'Next Action');
+      const nextAction = taskStatuses.find((s: TaskStatusConfig) => s.name === 'Next Action');
       setValue('statusId', nextAction?.id || taskStatuses[0].id);
     }
   }, [taskStatuses, setValue, watch]);
@@ -192,7 +200,7 @@ export function AddTaskModal() {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {taskStatuses.map((status) => {
+                  {taskStatuses.map((status: TaskStatusConfig) => {
                     const colors = getColorClasses(status.color);
                     return (
                       <SelectItem key={status.id} value={status.id}>
