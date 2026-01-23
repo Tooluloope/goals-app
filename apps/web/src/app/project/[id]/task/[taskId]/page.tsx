@@ -363,30 +363,35 @@ export default function TaskDetailPage() {
                             ? getTaskStatusById(currentWorkspace.id, t.statusId)
                             : null;
                           return (
-                            <div
+                            <button
                               key={t.id}
-                              className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
+                              type="button"
+                              className="flex w-full items-center justify-between p-3 min-h-[52px] hover:bg-muted cursor-pointer touch-manipulation text-left transition-colors active:bg-muted"
                               onClick={() => handleAddBlocker(t.id)}
+                              onTouchEnd={(e) => {
+                                e.preventDefault();
+                                handleAddBlocker(t.id);
+                              }}
                             >
                               <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                                   {status?.type === 'completed' ? (
                                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                                   ) : (
                                     <Clock className="h-4 w-4 text-muted-foreground" />
                                   )}
                                 </div>
-                                <div>
-                                  <p className="text-sm font-medium">{t.title}</p>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{t.title}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {status?.name || 'Unknown'}
                                   </p>
                                 </div>
                               </div>
-                              <Button variant="ghost" size="sm">
+                              <span className="text-xs text-primary font-medium shrink-0 ml-2">
                                 Add
-                              </Button>
-                            </div>
+                              </span>
+                            </button>
                           );
                         })}
                       </ScrollArea>

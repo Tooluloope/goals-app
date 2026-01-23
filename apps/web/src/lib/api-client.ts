@@ -29,10 +29,18 @@ import type {
   UpdateMonthlyReviewDto,
   ProjectDependency,
   TaskDependency,
+  // AI Types
+  AiConversation,
+  AiMessage,
+  AiSummary,
+  AiInsight,
+  AiSummaryResponse,
+  SummaryType,
 } from '@goals/shared';
 
 // Dynamically determine API URL based on current hostname
-function getApiBaseUrl(): string {
+// Exported for SSE connections in use-ai-stream.ts
+export function getApiBaseUrl(): string {
   // If using proxy mode (for tunnels), use relative URLs
   // The Next.js rewrites will proxy /api/* to the backend
   if (process.env.NEXT_PUBLIC_USE_PROXY === 'true') {
@@ -722,6 +730,109 @@ class ApiClient {
 
   getMonthlyReviewPrompts(): Promise<{ prompts: Record<string, string> }> {
     return this.fetch<{ prompts: Record<string, string> }>('/reviews/monthly/prompts');
+  }
+
+  // ============================================================
+  // AI - CONVERSATIONS
+  // ============================================================
+
+  getAiConversations(limit?: number): Promise<(AiConversation & { messages: AiMessage[] })[]> {
+    const query = limit ? `?limit=${limit}` : '';
+    return this.fetch<(AiConversation & { messages: AiMessage[] })[]>(`/ai/conversations${query}`);
+  }
+
+  getAiConversation(id: string): Promise<AiConversation & { messages: AiMessage[] }> {
+    return this.fetch<AiConversation & { messages: AiMessage[] }>(`/ai/conversations/${id}`);
+  }
+
+  createAiConversation(title?: string): Promise<AiConversation> {
+    return this.fetch<AiConversation>('/ai/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    });
+  }
+
+  deleteAiConversation(id: string): Promise<void> {
+    return this.fetch<void>(`/ai/conversations/${id}`, { method: 'DELETE' });
+  }
+
+  /**
+   * Get the SSE endpoint URL for streaming chat messages.
+   * Use with EventSource or a streaming fetch.
+   */
+  getAiChatStreamUrl(conversationId: string): string {
+    return `${getApiBaseUrl()}/api/ai/conversations/${conversationId}/messages`;
+  }
+
+  /**
+   * Get auth headers for SSE requests.
+   */
+  getAuthHeaders(): Record<string, string> {
+    if (!this.accessToken) return {};
+    return { Authorization: `Bearer ${this.accessToken}` };
+  }
+
+  // ============================================================
+  // AI - SUMMARIES
+  // ============================================================
+
+  getAiSummaries(type?: SummaryType, limit?: number): Promise<AiSummary[]> {
+    const params = new URLSearchParams();
+    if (type) params.append('type', type);
+    if (limit) params.append('limit', limit.toString());
+    const query = params.toString();
+    return this.fetch<AiSummary[]>(`/ai/summaries${query ? `?${query}` : ''}`);
+  }
+
+  getWeeklyAiSummary(weekStart: string, forceRegenerate = false): Promise<AiSummaryResponse> {
+    const query = forceRegenerate ? '?forceRegenerate=true' : '';
+    return this.fetch<AiSummaryResponse>(`/ai/summaries/weekly/${weekStart}${query}`);
+  }
+
+  getMonthlyAiSummary(month: string, forceRegenerate = false): Promise<AiSummaryResponse> {
+    const query = forceRegenerate ? '?forceRegenerate=true' : '';
+    return this.fetch<AiSummaryResponse>(`/ai/summaries/monthly/${month}${query}`);
+  }
+
+  getYearlyAiSummary(year: string, forceRegenerate = false): Promise<AiSummaryResponse> {
+    const query = forceRegenerate ? '?forceRegenerate=true' : '';
+    return this.fetch<AiSummaryResponse>(`/ai/summaries/yearly/${year}${query}`);
+  }
+
+  generateAiSummary(
+    type: SummaryType,
+    periodStart: string,
+    forceRegenerate = false
+  ): Promise<AiSummaryResponse> {
+    return this.fetch<AiSummaryResponse>('/ai/summaries/generate', {
+      method: 'POST',
+      body: JSON.stringify({ type, periodStart, forceRegenerate }),
+    });
+  }
+
+  // ============================================================
+  // AI - INSIGHTS
+  // ============================================================
+
+  getAiInsights(type?: string, includeDismissed = false): Promise<AiInsight[]> {
+    const params = new URLSearchParams();
+    if (type) params.append('type', type);
+    if (includeDismissed) params.append('includeDismissed', 'true');
+    const query = params.toString();
+    return this.fetch<AiInsight[]>(`/ai/insights${query ? `?${query}` : ''}`);
+  }
+
+  generateAiInsights(types?: string[]): Promise<AiInsight[]> {
+    const query = types ? `?types=${types.join(',')}` : '';
+    return this.fetch<AiInsight[]>(`/ai/insights/generate${query}`, {
+      method: 'POST',
+    });
+  }
+
+  dismissAiInsight(id: string): Promise<AiInsight> {
+    return this.fetch<AiInsight>(`/ai/insights/${id}/dismiss`, {
+      method: 'PATCH',
+    });
   }
 }
 

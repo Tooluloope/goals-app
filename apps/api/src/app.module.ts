@@ -11,6 +11,7 @@ import { ConfigModule as AppConfigModule } from './modules/config/config.module'
 import { JournalModule } from './modules/journal/journal.module';
 import { HabitsModule } from './modules/habits/habits.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
     JournalModule,
     HabitsModule,
     ReviewsModule,
+    AiModule,
   ],
 })
 export class AppModule {}

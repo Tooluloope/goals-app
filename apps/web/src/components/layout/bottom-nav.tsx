@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, Calendar, Bell, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Kanban, Calendar, Bell, BookOpen, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
 
 const navigation = [
   { name: 'Today', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'AI', href: '/ai', icon: Bot },
   { name: 'Rhythm', href: '/rhythm', icon: BookOpen },
   { name: 'Board', href: '/board', icon: Kanban },
-  { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Alerts', href: '/notifications', icon: Bell },
 ];
 

@@ -421,3 +421,102 @@ export interface ProgressStats {
   weeklyReviewsCount: number;
   monthlyReviewsCount: number;
 }
+
+// ============================================================
+// AI TYPES
+// ============================================================
+
+export type SummaryType = 'weekly' | 'monthly' | 'yearly';
+export type MessageRole = 'user' | 'assistant';
+export type InsightType = 'pattern' | 'recommendation' | 'celebration' | 'warning' | 'milestone';
+
+export interface AiSummary {
+  id: string;
+  userId: string;
+  type: SummaryType;
+  periodStart: Date;
+  periodEnd: Date;
+  content: string;
+  metadata: AiSummaryMetadata;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AiSummaryMetadata {
+  highlights?: string[];
+  moodTrend?: 'improving' | 'stable' | 'declining';
+  topAchievements?: string[];
+  areasForImprovement?: string[];
+  habitInsights?: string;
+  encouragement?: string;
+  suggestedFocus?: string[];
+  tokensUsed?: number;
+}
+
+export interface AiConversation {
+  id: string;
+  userId: string;
+  title?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  messages?: AiMessage[];
+}
+
+export interface AiMessage {
+  id: string;
+  conversationId: string;
+  role: MessageRole;
+  content: string;
+  metadata: AiMessageMetadata;
+  createdAt: Date;
+}
+
+export interface AiMessageMetadata {
+  tokensUsed?: number;
+  latencyMs?: number;
+  model?: string;
+}
+
+export interface AiInsight {
+  id: string;
+  userId: string;
+  type: InsightType;
+  title: string;
+  content: string;
+  confidence: number;
+  actionable: boolean;
+  dismissed: boolean;
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+  expiresAt?: Date | null;
+}
+
+// AI Response Types (for API responses)
+export interface AiChatResponse {
+  message: AiMessage;
+  conversation: AiConversation;
+}
+
+export interface AiSummaryResponse {
+  summary: AiSummary;
+  isNew: boolean; // True if newly generated, false if cached
+}
+
+export interface AiInsightsResponse {
+  insights: AiInsight[];
+  generatedAt: Date;
+}
+
+// User Context for AI (aggregated data sent to Claude)
+export interface AiUserContext {
+  habits: {
+    name: string;
+    currentStreak: number;
+    completionRate: number;
+    completedToday: boolean;
+  }[];
+  journalStreak: number;
+  recentMoods: Mood[];
+  pendingTasks: number;
+  activeProjects: number;
+}

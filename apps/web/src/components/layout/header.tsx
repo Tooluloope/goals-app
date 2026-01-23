@@ -21,6 +21,8 @@ import {
   Folder,
   Search,
   Map,
+  Bot,
+  GitBranch,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -41,11 +43,13 @@ import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'AI Assistant', href: '/ai', icon: Bot },
   { name: 'Daily Rhythm', href: '/rhythm', icon: BookOpen },
   { name: 'Habit Manager', href: '/habits', icon: BarChart3 },
   { name: 'Projects', href: '/projects', icon: Folder },
   { name: 'Board', href: '/board', icon: Kanban },
   { name: 'Roadmap', href: '/roadmap', icon: Map },
+  { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Weekly Review', href: '/reviews/weekly', icon: CalendarCheck },
   { name: 'Monthly Review', href: '/reviews/monthly', icon: CalendarDays },

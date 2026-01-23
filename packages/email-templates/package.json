@@ -1,0 +1,23 @@
+{
+  "name": "email-templates",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "preview": "tsx scripts/preview.tsx",
+    "preview:all": "tsx scripts/preview-all.tsx"
+  },
+  "dependencies": {
+    "@react-email/components": "^0.0.20",
+    "@react-email/tailwind": "^0.0.15",
+    "@react-email/render": "^0.0.15",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

@@ -128,6 +128,30 @@ export function useKeyboardShortcuts() {
       description: 'Go to Monthly Review',
       category: 'navigation',
     },
+    {
+      key: 'a',
+      action: () => router.push('/ai'),
+      description: 'Go to AI Assistant',
+      category: 'navigation',
+    },
+    {
+      key: 'e',
+      action: () => router.push('/dependencies'),
+      description: 'Go to Dependencies',
+      category: 'navigation',
+    },
+    {
+      key: 'h',
+      action: () => router.push('/habits'),
+      description: 'Go to Habit Manager',
+      category: 'navigation',
+    },
+    {
+      key: 'o',
+      action: () => router.push('/roadmap'),
+      description: 'Go to Roadmap',
+      category: 'navigation',
+    },
 
     // Actions
     {
@@ -246,9 +270,13 @@ export function getShortcutDefinitions() {
     ],
     navigation: [
       { keys: ['D'], description: 'Go to Dashboard' },
+      { keys: ['A'], description: 'Go to AI Assistant' },
       { keys: ['R'], description: 'Go to Daily Rhythm' },
+      { keys: ['H'], description: 'Go to Habit Manager' },
       { keys: ['B'], description: 'Go to Board' },
       { keys: ['P'], description: 'Go to Projects' },
+      { keys: ['O'], description: 'Go to Roadmap' },
+      { keys: ['E'], description: 'Go to Dependencies' },
       { keys: ['C'], description: 'Go to Calendar' },
       { keys: ['W'], description: 'Go to Weekly Review' },
       { keys: ['M'], description: 'Go to Monthly Review' },
@@ -268,9 +296,13 @@ export const SHORTCUT_DEFINITIONS = {
   ],
   navigation: [
     { keys: ['D'], description: 'Go to Dashboard' },
+    { keys: ['A'], description: 'Go to AI Assistant' },
     { keys: ['R'], description: 'Go to Daily Rhythm' },
+    { keys: ['H'], description: 'Go to Habit Manager' },
     { keys: ['B'], description: 'Go to Board' },
     { keys: ['P'], description: 'Go to Projects' },
+    { keys: ['O'], description: 'Go to Roadmap' },
+    { keys: ['E'], description: 'Go to Dependencies' },
     { keys: ['C'], description: 'Go to Calendar' },
     { keys: ['W'], description: 'Go to Weekly Review' },
     { keys: ['M'], description: 'Go to Monthly Review' },

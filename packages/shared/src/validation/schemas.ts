@@ -401,6 +401,41 @@ export const updateWorkspaceConfigSchema = z.object({
 });
 
 // ============================================================
+// AI SCHEMAS
+// ============================================================
+
+export const summaryTypeSchema = z.enum(['weekly', 'monthly', 'yearly']);
+export const insightTypeSchema = z.enum([
+  'pattern',
+  'recommendation',
+  'celebration',
+  'warning',
+  'milestone',
+]);
+
+export const createAiConversationSchema = z.object({
+  title: z.string().max(100).optional().nullable(),
+});
+
+export const sendAiMessageSchema = z.object({
+  message: z.string().min(1, 'Message is required').max(4000, 'Message too long'),
+});
+
+export const generateSummarySchema = z.object({
+  type: summaryTypeSchema,
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  forceRegenerate: z.boolean().optional().default(false),
+});
+
+export const generateInsightsSchema = z.object({
+  types: z.array(insightTypeSchema).optional(),
+});
+
+export const dismissInsightSchema = z.object({
+  insightId: z.string().uuid('Invalid insight ID'),
+});
+
+// ============================================================
 // TYPE EXPORTS
 // ============================================================
 
@@ -436,3 +471,10 @@ export type CreateWeeklyReviewDto = z.infer<typeof createWeeklyReviewSchema>;
 export type UpdateWeeklyReviewDto = z.infer<typeof updateWeeklyReviewSchema>;
 export type CreateMonthlyReviewDto = z.infer<typeof createMonthlyReviewSchema>;
 export type UpdateMonthlyReviewDto = z.infer<typeof updateMonthlyReviewSchema>;
+
+// AI DTOs
+export type CreateAiConversationDto = z.infer<typeof createAiConversationSchema>;
+export type SendAiMessageDto = z.infer<typeof sendAiMessageSchema>;
+export type GenerateSummaryDto = z.infer<typeof generateSummarySchema>;
+export type GenerateInsightsDto = z.infer<typeof generateInsightsSchema>;
+export type DismissInsightDto = z.infer<typeof dismissInsightSchema>;

@@ -8,6 +8,8 @@ import { ReviewsDue } from '@/components/dashboard/reviews-due';
 import { StaleProjects } from '@/components/dashboard/stale-projects';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { ProgressStats } from '@/components/dashboard/progress-stats';
+import { AiInsightsPanel } from '@/components/ai/ai-insights-panel';
+import { Card } from '@/components/ui/card';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function DashboardPage() {
@@ -53,6 +55,11 @@ export default function DashboardPage() {
             <UpcomingDeadlines />
             <ReviewsDue />
           </div>
+
+          {/* AI Insights */}
+          <Card className="p-0 overflow-hidden">
+            <AiInsightsPanel className="p-4" />
+          </Card>
 
           {/* Stale Projects Warning */}
           <StaleProjects />

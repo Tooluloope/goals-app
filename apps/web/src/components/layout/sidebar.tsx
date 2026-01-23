@@ -22,6 +22,7 @@ import {
   BarChart3,
   Map,
   GitBranch,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ import { getModifierKey } from '@/hooks/use-keyboard-shortcuts';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'AI Assistant', href: '/ai', icon: Bot },
   { name: 'Daily Rhythm', href: '/rhythm', icon: BookOpen },
   { name: 'Habit Manager', href: '/habits', icon: BarChart3 },
   { name: 'Projects', href: '/projects', icon: Folder },

@@ -28,7 +28,9 @@ import {
   AlertTriangle,
   History,
   Send,
+  PanelRightOpen,
 } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export default function DependenciesPage() {
   const router = useRouter();
@@ -146,6 +148,121 @@ export default function DependenciesPage() {
                     <Download className="h-4 w-4" />
                     Export
                   </Button>
+
+                  {/* Mobile Blockers Sheet Trigger */}
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2 bg-card/90 lg:hidden">
+                        <PanelRightOpen className="h-4 w-4" />
+                        Blockers
+                        {blockedProjects.length > 0 && (
+                          <Badge variant="destructive" className="ml-1">
+                            {blockedProjects.length}
+                          </Badge>
+                        )}
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-80 p-0">
+                      <SheetHeader className="border-b p-5">
+                        <SheetTitle className="flex items-center gap-2">
+                          <Lock className="h-4 w-4 text-orange-500" />
+                          Active Blockers
+                          {blockedProjects.length > 0 && (
+                            <Badge variant="destructive" className="ml-auto">
+                              {blockedProjects.length}
+                            </Badge>
+                          )}
+                        </SheetTitle>
+                      </SheetHeader>
+                      <ScrollArea className="h-[calc(100vh-140px)]">
+                        <div className="space-y-3 p-4">
+                          {/* Auto-surface Toggle */}
+                          <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">Auto-surface</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                Notify when unblocked
+                              </span>
+                            </div>
+                            <Switch checked={autoSurface} onCheckedChange={setAutoSurface} />
+                          </div>
+
+                          {blockedProjects.length === 0 ? (
+                            <div className="rounded-xl border border-dashed p-6 text-center text-muted-foreground">
+                              <Unlock className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                              <p className="text-sm font-medium">No active blockers</p>
+                              <p className="mt-1 text-xs">All your goals are unblocked!</p>
+                            </div>
+                          ) : (
+                            blockedProjects.map((project) => {
+                              const priority = currentWorkspace
+                                ? getPriorityById(currentWorkspace.id, project.priorityId)
+                                : null;
+                              const priorityColors: Record<string, string> = {
+                                red: 'bg-red-500/10 text-red-500',
+                                amber: 'bg-amber-500/10 text-amber-500',
+                                slate: 'bg-slate-500/10 text-slate-400',
+                              };
+                              const priorityColor =
+                                priorityColors[priority?.color || 'slate'] || priorityColors.slate;
+                              const priorityLabels: Record<number, string> = {
+                                1: 'Critical',
+                                2: 'High',
+                                3: 'Medium',
+                              };
+                              const priorityLabel =
+                                priorityLabels[priority?.level || 3] || 'Medium';
+
+                              return (
+                                <Card
+                                  key={project.id}
+                                  className={cn(
+                                    'cursor-pointer transition-colors',
+                                    priority?.level === 1
+                                      ? 'border-red-500/30 hover:border-red-500/60'
+                                      : 'border-border hover:border-muted-foreground/50'
+                                  )}
+                                  onClick={() => router.push(`/project/${project.id}`)}
+                                >
+                                  <CardContent className="p-3">
+                                    <div className="mb-2 flex items-start justify-between">
+                                      <Badge
+                                        variant="secondary"
+                                        className={cn(
+                                          'text-[10px] font-bold uppercase',
+                                          priorityColor
+                                        )}
+                                      >
+                                        {priorityLabel}
+                                      </Badge>
+                                    </div>
+                                    <h4 className="text-sm font-medium leading-tight">
+                                      {project.name}
+                                    </h4>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      Blocked by:{' '}
+                                      <span className="text-foreground">
+                                        {project.activeBlockers
+                                          ?.map((b) => b.blocker?.name)
+                                          .join(', ') || 'Unknown'}
+                                      </span>
+                                    </p>
+                                    <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-3">
+                                      <div className="flex items-center gap-1 text-xs text-orange-500">
+                                        <AlertTriangle className="h-3 w-3" />
+                                        {project.activeBlockers?.length || 0} blocker
+                                        {(project.activeBlockers?.length || 0) !== 1 ? 's' : ''}
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </SheetContent>
+                  </Sheet>
                 </div>
               </div>
 

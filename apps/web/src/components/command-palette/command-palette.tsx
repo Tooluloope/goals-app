@@ -142,8 +142,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         className={cn(
           'w-full max-w-xl',
           'overflow-hidden rounded-2xl border bg-background shadow-2xl',
-          'animate-in fade-in-0 zoom-in-95 duration-200'
+          'animate-in fade-in-0 zoom-in-95 duration-200',
+          'pointer-events-auto'
         )}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input */}
         <div className="flex items-center border-b px-4">
@@ -173,7 +175,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         </div>
 
         {/* Results */}
-        <Command.List className="max-h-[400px] overflow-y-auto p-2">
+        <Command.List className="max-h-[400px] overflow-y-auto p-2 pointer-events-auto">
           <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
             No results found.
           </Command.Empty>
@@ -183,18 +185,21 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <Command.Group heading="Projects">
               {projects.slice(0, 5).map((project) => {
                 const area = areas.find((a) => a.id === project.areaId);
+                const handleProjectClick = () =>
+                  runCommand(() => router.push(`/project/${project.id}`));
                 return (
                   <Command.Item
                     key={project.id}
                     value={`project ${project.name} ${area?.name || ''}`}
-                    onSelect={() => runCommand(() => router.push(`/project/${project.id}`))}
-                    onClick={() => runCommand(() => router.push(`/project/${project.id}`))}
+                    onSelect={handleProjectClick}
                     className={cn(
-                      'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2',
-                      'text-sm outline-none',
+                      'relative flex cursor-pointer items-center rounded-lg px-3 py-3 min-h-[44px]',
+                      'text-sm outline-none touch-manipulation pointer-events-auto',
                       'aria-selected:bg-accent aria-selected:text-accent-foreground',
-                      'data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
+                      'hover:bg-accent hover:text-accent-foreground',
+                      'active:bg-accent'
                     )}
+                    onPointerUp={handleProjectClick}
                   >
                     <Target className="mr-3 h-4 w-4 text-muted-foreground" />
                     <div className="flex-1">
@@ -212,73 +217,88 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           {/* Quick Task Creation */}
           {activeProjects.length > 0 && (
             <Command.Group heading="Add Task To">
-              {activeProjects.slice(0, 3).map((project) => (
-                <Command.Item
-                  key={`task-${project.id}`}
-                  value={`add task to ${project.name}`}
-                  onSelect={() => runCommand(() => openAddTaskModal(project.id))}
-                  onClick={() => runCommand(() => openAddTaskModal(project.id))}
-                  className={cn(
-                    'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2',
-                    'text-sm outline-none',
-                    'aria-selected:bg-accent aria-selected:text-accent-foreground'
-                  )}
-                >
-                  <CheckSquare className="mr-3 h-4 w-4 text-muted-foreground" />
-                  <span>Add task to {project.name}</span>
-                </Command.Item>
-              ))}
+              {activeProjects.slice(0, 3).map((project) => {
+                const handleTaskClick = () => runCommand(() => openAddTaskModal(project.id));
+                return (
+                  <Command.Item
+                    key={`task-${project.id}`}
+                    value={`add task to ${project.name}`}
+                    onSelect={handleTaskClick}
+                    onPointerUp={handleTaskClick}
+                    className={cn(
+                      'relative flex cursor-pointer items-center rounded-lg px-3 py-3 min-h-[44px]',
+                      'text-sm outline-none touch-manipulation pointer-events-auto',
+                      'aria-selected:bg-accent aria-selected:text-accent-foreground',
+                      'hover:bg-accent hover:text-accent-foreground',
+                      'active:bg-accent'
+                    )}
+                  >
+                    <CheckSquare className="mr-3 h-4 w-4 text-muted-foreground" />
+                    <span>Add task to {project.name}</span>
+                  </Command.Item>
+                );
+              })}
             </Command.Group>
           )}
 
           {/* Navigation */}
           <Command.Group heading="Navigation">
-            {navigationCommands.map((cmd) => (
-              <Command.Item
-                key={cmd.id}
-                value={cmd.label}
-                onSelect={() => runCommand(cmd.action)}
-                onClick={() => runCommand(cmd.action)}
-                className={cn(
-                  'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2',
-                  'text-sm outline-none',
-                  'aria-selected:bg-accent aria-selected:text-accent-foreground'
-                )}
-              >
-                <cmd.icon className="mr-3 h-4 w-4 text-muted-foreground" />
-                <span className="flex-1">{cmd.label}</span>
-                {cmd.shortcut && (
-                  <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
-                    {cmd.shortcut}
-                  </kbd>
-                )}
-              </Command.Item>
-            ))}
+            {navigationCommands.map((cmd) => {
+              const handleNavClick = () => runCommand(cmd.action);
+              return (
+                <Command.Item
+                  key={cmd.id}
+                  value={cmd.label}
+                  onSelect={handleNavClick}
+                  onPointerUp={handleNavClick}
+                  className={cn(
+                    'relative flex cursor-pointer items-center rounded-lg px-3 py-3 min-h-[44px]',
+                    'text-sm outline-none touch-manipulation pointer-events-auto',
+                    'aria-selected:bg-accent aria-selected:text-accent-foreground',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    'active:bg-accent'
+                  )}
+                >
+                  <cmd.icon className="mr-3 h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1">{cmd.label}</span>
+                  {cmd.shortcut && (
+                    <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
+                      {cmd.shortcut}
+                    </kbd>
+                  )}
+                </Command.Item>
+              );
+            })}
           </Command.Group>
 
           {/* Actions */}
           <Command.Group heading="Actions">
-            {actionCommands.map((cmd) => (
-              <Command.Item
-                key={cmd.id}
-                value={cmd.label}
-                onSelect={() => runCommand(cmd.action)}
-                onClick={() => runCommand(cmd.action)}
-                className={cn(
-                  'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2',
-                  'text-sm outline-none',
-                  'aria-selected:bg-accent aria-selected:text-accent-foreground'
-                )}
-              >
-                <cmd.icon className="mr-3 h-4 w-4 text-muted-foreground" />
-                <span className="flex-1">{cmd.label}</span>
-                {cmd.shortcut && (
-                  <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
-                    {cmd.shortcut}
-                  </kbd>
-                )}
-              </Command.Item>
-            ))}
+            {actionCommands.map((cmd) => {
+              const handleActionClick = () => runCommand(cmd.action);
+              return (
+                <Command.Item
+                  key={cmd.id}
+                  value={cmd.label}
+                  onSelect={handleActionClick}
+                  onPointerUp={handleActionClick}
+                  className={cn(
+                    'relative flex cursor-pointer items-center rounded-lg px-3 py-3 min-h-[44px]',
+                    'text-sm outline-none touch-manipulation pointer-events-auto',
+                    'aria-selected:bg-accent aria-selected:text-accent-foreground',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    'active:bg-accent'
+                  )}
+                >
+                  <cmd.icon className="mr-3 h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1">{cmd.label}</span>
+                  {cmd.shortcut && (
+                    <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
+                      {cmd.shortcut}
+                    </kbd>
+                  )}
+                </Command.Item>
+              );
+            })}
           </Command.Group>
         </Command.List>
 
