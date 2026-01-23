@@ -2,7 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Users, Bell, LogOut, ChevronRight, Mail, Shield, Settings2 } from 'lucide-react';
+import {
+  User,
+  Users,
+  Bell,
+  LogOut,
+  ChevronRight,
+  Mail,
+  Shield,
+  Settings2,
+  Globe,
+} from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,9 +42,48 @@ import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useToast } from '@/hooks/use-toast';
 
+// Common IANA timezones grouped by region
+const COMMON_TIMEZONES = [
+  { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+  // Americas
+  { value: 'America/New_York', label: 'New York (Eastern Time)' },
+  { value: 'America/Chicago', label: 'Chicago (Central Time)' },
+  { value: 'America/Denver', label: 'Denver (Mountain Time)' },
+  { value: 'America/Los_Angeles', label: 'Los Angeles (Pacific Time)' },
+  { value: 'America/Toronto', label: 'Toronto (Eastern Time)' },
+  { value: 'America/Vancouver', label: 'Vancouver (Pacific Time)' },
+  { value: 'America/Mexico_City', label: 'Mexico City' },
+  { value: 'America/Sao_Paulo', label: 'São Paulo' },
+  // Europe
+  { value: 'Europe/London', label: 'London (GMT/BST)' },
+  { value: 'Europe/Paris', label: 'Paris (CET)' },
+  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+  { value: 'Europe/Amsterdam', label: 'Amsterdam (CET)' },
+  { value: 'Europe/Madrid', label: 'Madrid (CET)' },
+  { value: 'Europe/Rome', label: 'Rome (CET)' },
+  { value: 'Europe/Moscow', label: 'Moscow' },
+  // Asia
+  { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+  { value: 'Asia/Kolkata', label: 'India (IST)' },
+  { value: 'Asia/Singapore', label: 'Singapore' },
+  { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
+  { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+  { value: 'Asia/Seoul', label: 'Seoul (KST)' },
+  { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+  // Africa
+  { value: 'Africa/Lagos', label: 'Lagos (WAT)' },
+  { value: 'Africa/Johannesburg', label: 'Johannesburg (SAST)' },
+  { value: 'Africa/Cairo', label: 'Cairo (EET)' },
+  // Oceania
+  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+  { value: 'Australia/Melbourne', label: 'Melbourne (AEST)' },
+  { value: 'Australia/Perth', label: 'Perth (AWST)' },
+  { value: 'Pacific/Auckland', label: 'Auckland (NZST)' },
+];
+
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, currentWorkspace, workspaces, logout } = useAuthStore();
+  const { user, currentWorkspace, workspaces, logout, updateSettings } = useAuthStore();
   const { getConfig, initializeConfig, updateNotificationSettings, updateDashboardSettings } =
     useConfigStore();
   const { toast } = useToast();
@@ -93,6 +142,23 @@ export default function SettingsPage() {
     router.push('/auth/login');
   };
 
+  const handleTimezoneChange = async (timezone: string) => {
+    try {
+      await updateSettings({ timezone });
+      toast({
+        title: 'Timezone updated',
+        description: `Your timezone has been set to ${timezone}`,
+        variant: 'success',
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to update timezone',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <AppLayout title="Settings">
       <div className="container max-w-2xl px-4 py-6">
@@ -117,6 +183,41 @@ export default function SettingsPage() {
                 <h3 className="font-semibold text-lg">{user?.name}</h3>
                 <p className="text-muted-foreground">{user?.email}</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Regional Settings */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Regional Settings
+            </CardTitle>
+            <CardDescription>
+              Configure your timezone for accurate habit tracking and daily resets
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="timezone">Timezone</Label>
+                <p className="text-sm text-muted-foreground">
+                  Your habits and journal entries use this timezone
+                </p>
+              </div>
+              <Select value={user?.timezone || 'UTC'} onValueChange={handleTimezoneChange}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

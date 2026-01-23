@@ -11,6 +11,7 @@ export interface User {
   email: string;
   avatar?: string | null;
   defaultWorkspaceId: string;
+  timezone: string; // IANA timezone string (e.g., "America/New_York")
   settings: UserSettings;
   createdAt: Date;
   updatedAt: Date;
@@ -293,12 +294,15 @@ export interface JournalEntry {
   userId: string;
   date: Date;
   mood?: Mood | null;
+  emoji?: string | null;
   prompt?: string | null;
   content: string;
   wins?: string | null;
   challenges?: string | null;
   gratitude?: string | null;
   photoUrl?: string | null;
+  submitted?: boolean; // True when the day has passed (auto-locked)
+  submittedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -365,6 +369,8 @@ export interface WeeklyReview {
   lessonsLearned?: string | null;
   gratitude?: string | null;
   rating?: number | null; // 1-5 star rating
+  submitted?: boolean; // True when review is finalized (can't be changed)
+  submittedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -380,6 +386,8 @@ export interface MonthlyReview {
   lessonsLearned?: string | null;
   gratitude?: string | null;
   rating?: number | null; // 1-5 star rating
+  submitted?: boolean; // True when review is finalized (can't be changed)
+  submittedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

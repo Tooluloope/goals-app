@@ -12,6 +12,7 @@ import {
   useEdgesState,
   Position,
   MarkerType,
+  Handle,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useRouter } from 'next/navigation';
@@ -40,7 +41,7 @@ function ProjectNode({
       onClick={() => router.push(`/project/${data.project.id}`)}
       className={cn(
         'cursor-pointer rounded-lg border-2 px-4 py-3 shadow-md transition-all hover:shadow-lg',
-        'min-w-[180px] max-w-[250px]',
+        'min-w-[180px] max-w-[250px] relative',
         data.isCompleted
           ? 'border-green-300 bg-green-50'
           : `border-${data.color}-300 bg-${data.color}-50`
@@ -50,6 +51,9 @@ function ProjectNode({
         backgroundColor: data.isCompleted ? '#f0fdf4' : undefined,
       }}
     >
+      {/* Handles for edge connections */}
+      <Handle type="target" position={Position.Left} className="!bg-orange-500 !w-2 !h-2" />
+      <Handle type="source" position={Position.Right} className="!bg-orange-500 !w-2 !h-2" />
       <div
         className={cn(
           'font-medium truncate',
@@ -77,35 +81,92 @@ export function DependencyGraph({ projects, className, debug = false }: Dependen
   const { initialNodes, initialEdges } = useMemo(() => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    const nodesWithDeps = new Set<string>();
+    const edgeKeys = new Set<string>(); // Track created edges to avoid duplicates
+
+    // Create a map of all project IDs that actually exist in the projects array
+    const existingProjectIds = new Set(projects.map((p) => p.id));
+
+    // Debug logging
+    if (debug) {
+      console.log('[DependencyGraph] Processing projects:', projects.length);
+      projects.forEach((p) => {
+        if (p.blockedBy?.length || p.blocking?.length) {
+          console.log(`[DependencyGraph] Project "${p.name}" (${p.id}):`, {
+            blockedBy: p.blockedBy?.map((d) => ({ blockerId: d.blockerId, blocker: d.blocker })),
+            blocking: p.blocking?.map((d) => ({
+              dependentId: d.dependentId,
+              dependent: d.dependent,
+            })),
+          });
+        }
+      });
+    }
 
     // First pass: identify all projects involved in dependencies
+    // Only include projects that actually exist in the projects array
+    const nodesWithDeps = new Set<string>();
+
     projects.forEach((project) => {
       if (project.blockedBy && project.blockedBy.length > 0) {
-        nodesWithDeps.add(project.id);
-        project.blockedBy.forEach((dep) => {
+        // Check if any blocker exists in our projects
+        const hasValidBlocker = project.blockedBy.some((dep) => {
           const blockerId = dep.blockerId || dep.blocker?.id;
-          if (blockerId) nodesWithDeps.add(blockerId);
+          return blockerId && existingProjectIds.has(blockerId);
         });
+        if (hasValidBlocker) {
+          nodesWithDeps.add(project.id);
+          project.blockedBy.forEach((dep) => {
+            const blockerId = dep.blockerId || dep.blocker?.id;
+            // Only add if the blocker actually exists in our projects
+            if (blockerId && existingProjectIds.has(blockerId)) {
+              nodesWithDeps.add(blockerId);
+            }
+          });
+        }
       }
       if (project.blocking && project.blocking.length > 0) {
-        nodesWithDeps.add(project.id);
-        project.blocking.forEach((dep) => {
+        // Check if any dependent exists in our projects
+        const hasValidDependent = project.blocking.some((dep) => {
           const dependentId = dep.dependentId || dep.dependent?.id;
-          if (dependentId) nodesWithDeps.add(dependentId);
+          return dependentId && existingProjectIds.has(dependentId);
         });
+        if (hasValidDependent) {
+          nodesWithDeps.add(project.id);
+          project.blocking.forEach((dep) => {
+            const dependentId = dep.dependentId || dep.dependent?.id;
+            // Only add if the dependent actually exists in our projects
+            if (dependentId && existingProjectIds.has(dependentId)) {
+              nodesWithDeps.add(dependentId);
+            }
+          });
+        }
       }
     });
 
-    // Only show projects with dependencies
+    if (debug) {
+      console.log('[DependencyGraph] nodesWithDeps:', Array.from(nodesWithDeps));
+      console.log('[DependencyGraph] existingProjectIds:', Array.from(existingProjectIds));
+    }
+
+    // Only show projects with dependencies that exist in our projects array
     const relevantProjects = projects.filter((p) => nodesWithDeps.has(p.id));
 
+    if (debug) {
+      console.log(
+        '[DependencyGraph] relevantProjects:',
+        relevantProjects.map((p) => ({ id: p.id, name: p.name }))
+      );
+    }
+
     // Layout: arrange nodes in a grid pattern
-    const cols = Math.ceil(Math.sqrt(relevantProjects.length));
+    const cols = Math.max(1, Math.ceil(Math.sqrt(relevantProjects.length)));
     const nodeWidth = 220;
     const nodeHeight = 100;
     const gapX = 100;
     const gapY = 80;
+
+    // Track actual node IDs that are created
+    const createdNodeIds = new Set<string>();
 
     relevantProjects.forEach((project, index) => {
       const status = currentWorkspace ? getStatusById(currentWorkspace.id, project.statusId) : null;
@@ -127,20 +188,35 @@ export function DependencyGraph({ projects, className, debug = false }: Dependen
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
       });
+      createdNodeIds.add(project.id);
+    });
 
+    // Second pass: create edges only for nodes that actually exist
+    relevantProjects.forEach((project) => {
       // Create edges for blockedBy relationships
       if (project.blockedBy) {
         project.blockedBy.forEach((dep) => {
           const blockerId = dep.blockerId || dep.blocker?.id;
-          if (blockerId && nodesWithDeps.has(blockerId)) {
+          // IMPORTANT: Only create edge if BOTH source and target nodes exist
+          if (blockerId && createdNodeIds.has(blockerId) && createdNodeIds.has(project.id)) {
+            const edgeKey = `${blockerId}->${project.id}`;
+            if (edgeKeys.has(edgeKey)) return; // Skip duplicate
+            edgeKeys.add(edgeKey);
+
             const blockerStatus =
               dep.blocker && currentWorkspace
                 ? getStatusById(currentWorkspace.id, dep.blocker.statusId)
                 : null;
             const isResolved = blockerStatus?.type === 'completed';
 
+            if (debug) {
+              console.log(
+                `[DependencyGraph] Creating edge: ${blockerId} -> ${project.id} (blockedBy)`
+              );
+            }
+
             edges.push({
-              id: `${blockerId}-${project.id}`,
+              id: edgeKey,
               source: blockerId,
               target: project.id,
               markerEnd: {
@@ -165,27 +241,44 @@ export function DependencyGraph({ projects, className, debug = false }: Dependen
         });
       }
 
-      // Create edges for blocking relationships (fallback if blockedBy is empty)
+      // Create edges for blocking relationships (only if not already created via blockedBy)
       if (project.blocking) {
         project.blocking.forEach((dep) => {
           const dependentId = dep.dependentId || dep.dependent?.id;
-          if (dependentId && nodesWithDeps.has(dependentId)) {
+          // IMPORTANT: Only create edge if BOTH source and target nodes exist
+          if (dependentId && createdNodeIds.has(project.id) && createdNodeIds.has(dependentId)) {
+            const edgeKey = `${project.id}->${dependentId}`;
+            if (edgeKeys.has(edgeKey)) return; // Skip duplicate
+            edgeKeys.add(edgeKey);
+
+            const blockerStatus = currentWorkspace
+              ? getStatusById(currentWorkspace.id, project.statusId)
+              : null;
+            const isResolved = blockerStatus?.type === 'completed';
+
+            if (debug) {
+              console.log(
+                `[DependencyGraph] Creating edge: ${project.id} -> ${dependentId} (blocking)`
+              );
+            }
+
             edges.push({
-              id: `${project.id}-${dependentId}`,
+              id: edgeKey,
               source: project.id,
               target: dependentId,
               markerEnd: {
                 type: MarkerType.ArrowClosed,
-                color: '#f97316',
+                color: isResolved ? '#22c55e' : '#f97316',
               },
               style: {
-                stroke: '#f97316',
+                stroke: isResolved ? '#22c55e' : '#f97316',
                 strokeWidth: 2,
+                strokeDasharray: isResolved ? '5,5' : undefined,
               },
-              label: 'blocks',
+              label: isResolved ? 'resolved' : 'blocks',
               labelStyle: {
                 fontSize: 10,
-                fill: '#f97316',
+                fill: isResolved ? '#22c55e' : '#f97316',
               },
               labelBgStyle: {
                 fill: '#fff',
@@ -196,8 +289,14 @@ export function DependencyGraph({ projects, className, debug = false }: Dependen
       }
     });
 
+    if (debug) {
+      console.log('[DependencyGraph] Final result:', { nodes: nodes.length, edges: edges.length });
+      console.log('[DependencyGraph] createdNodeIds:', Array.from(createdNodeIds));
+      console.log('[DependencyGraph] edgeKeys:', Array.from(edgeKeys));
+    }
+
     return { initialNodes: nodes, initialEdges: edges };
-  }, [projects, currentWorkspace, getStatusById, getAreaById]);
+  }, [projects, currentWorkspace, getStatusById, getAreaById, debug]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -228,7 +327,30 @@ export function DependencyGraph({ projects, className, debug = false }: Dependen
         <div className="absolute left-4 top-4 z-20 rounded-lg border bg-card/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
           <div className="font-semibold text-foreground">Graph Debug</div>
           <div className="text-muted-foreground">Nodes: {nodes.length}</div>
-          <div className="text-muted-foreground">Edges: {edges.length}</div>
+          <div
+            className={cn(
+              'text-muted-foreground',
+              edges.length === 0 && nodes.length > 0 && 'text-red-500 font-medium'
+            )}
+          >
+            Edges: {edges.length}
+            {edges.length === 0 && nodes.length > 0 && ' (No edges created!)'}
+          </div>
+          {edges.length > 0 && (
+            <div className="mt-2 border-t pt-2">
+              <div className="text-muted-foreground">Edges:</div>
+              {edges.slice(0, 5).map((e) => (
+                <div key={e.id} className="text-[10px] text-muted-foreground truncate">
+                  {e.source} → {e.target}
+                </div>
+              ))}
+              {edges.length > 5 && (
+                <div className="text-[10px] text-muted-foreground">
+                  ...and {edges.length - 5} more
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       <ReactFlow

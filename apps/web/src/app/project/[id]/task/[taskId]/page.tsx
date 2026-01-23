@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EditTaskModal } from '@/components/shared/edit-task-modal';
 import { useTask, useUpdateTaskStatus, useDeleteTask } from '@/hooks/use-tasks';
 import { useProject } from '@/hooks/use-projects';
 import { useAddTaskBlocker, useRemoveTaskBlocker } from '@/hooks/use-dependencies';
@@ -68,9 +69,14 @@ export default function TaskDetailPage() {
   const { toast } = useToast();
 
   const { currentWorkspace } = useAuthStore();
-  const { getTaskStatusesForWorkspace, getTaskStatusById } = useConfigStore();
+  const { getTaskStatusesForWorkspace, getTaskStatusById, getPriorityById } = useConfigStore();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  // Get priority from parent project
+  const priority =
+    project && currentWorkspace ? getPriorityById(currentWorkspace.id, project.priorityId) : null;
 
   const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
   const currentStatus =
@@ -222,6 +228,19 @@ export default function TaskDetailPage() {
                   <Badge variant="outline" className="font-mono text-xs">
                     #{task.id.slice(-8)}
                   </Badge>
+                  {priority && (
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        'text-xs font-medium',
+                        priority.color === 'red' && 'bg-red-500/10 text-red-500',
+                        priority.color === 'amber' && 'bg-amber-500/10 text-amber-500',
+                        priority.color === 'slate' && 'bg-slate-500/10 text-slate-400'
+                      )}
+                    >
+                      {priority.level === 1 ? 'High Priority' : priority.name}
+                    </Badge>
+                  )}
                   {currentStatus && (
                     <Badge variant="secondary" className="text-xs">
                       {currentStatus.name}
@@ -245,7 +264,7 @@ export default function TaskDetailPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => {}}>
+                  <DropdownMenuItem onClick={() => setEditModalOpen(true)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Task
                   </DropdownMenuItem>
@@ -590,7 +609,7 @@ export default function TaskDetailPage() {
                       <label className="text-xs font-semibold text-muted-foreground">
                         Recurrence
                       </label>
-                      <div className="text-sm">
+                      <div className="flex items-center gap-2 text-sm">
                         <Badge variant="secondary">
                           {task.recurrenceType === 'daily' && 'Daily'}
                           {task.recurrenceType === 'weekly' && 'Weekly'}
@@ -598,11 +617,36 @@ export default function TaskDetailPage() {
                           {task.recurrenceType === 'yearly' && 'Yearly'}
                         </Badge>
                         {task.streak > 0 && (
-                          <span className="ml-2 text-muted-foreground">{task.streak} streak</span>
+                          <span className="flex items-center gap-1 text-amber-500">
+                            <Flame className="h-3.5 w-3.5" />
+                            {task.streak} streak
+                          </span>
                         )}
                       </div>
                     </div>
                   )}
+
+                  {/* Tags Section */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Tags</label>
+                    <div className="flex flex-wrap gap-2">
+                      {project.tagIds && project.tagIds.length > 0
+                        ? project.tagIds.slice(0, 3).map((tagId) => (
+                            <Badge key={tagId} variant="secondary" className="text-xs">
+                              {tagId.replace('tag-', '')}
+                            </Badge>
+                          ))
+                        : null}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+                      >
+                        <Plus className="h-3 w-3" />
+                        Add
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -612,9 +656,21 @@ export default function TaskDetailPage() {
                     Activity
                   </h4>
                   <div className="relative space-y-4 border-l border-border pl-4">
+                    {isBlocked && (
+                      <div className="relative">
+                        <div className="absolute -left-[17px] top-1 h-2.5 w-2.5 rounded-full bg-destructive ring-4 ring-card" />
+                        <p className="text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">Task</span> marked as{' '}
+                          <span className="text-destructive">Blocked</span>
+                        </p>
+                        <span className="text-[10px] text-muted-foreground">Recently</span>
+                      </div>
+                    )}
                     <div className="relative">
-                      <div className="absolute -left-[17px] top-1 h-2 w-2 rounded-full bg-muted-foreground ring-4 ring-card" />
-                      <p className="text-xs text-muted-foreground">Task created</p>
+                      <div className="absolute -left-[17px] top-1 h-2.5 w-2.5 rounded-full bg-muted-foreground/60 ring-4 ring-card" />
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">Task</span> created
+                      </p>
                       <span className="text-[10px] text-muted-foreground">
                         {formatDate(task.createdAt, 'MMM d, yyyy')}
                       </span>
@@ -626,6 +682,9 @@ export default function TaskDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Task Modal */}
+      <EditTaskModal task={task} open={editModalOpen} onOpenChange={setEditModalOpen} />
     </AppLayout>
   );
 }

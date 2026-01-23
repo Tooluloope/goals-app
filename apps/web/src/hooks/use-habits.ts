@@ -10,6 +10,7 @@ export const habitKeys = {
   list: (includeArchived?: boolean) => [...habitKeys.all, 'list', { includeArchived }] as const,
   detail: (id: string) => [...habitKeys.all, 'detail', id] as const,
   today: () => [...habitKeys.all, 'today'] as const,
+  forDate: (date: string) => [...habitKeys.all, 'date', date] as const,
   logs: (habitId: string, startDate?: string, endDate?: string) =>
     [...habitKeys.all, 'logs', habitId, { startDate, endDate }] as const,
 };
@@ -36,6 +37,15 @@ export function useTodayHabits() {
   return useQuery({
     queryKey: habitKeys.today(),
     queryFn: () => apiClient.getTodayHabits(),
+  });
+}
+
+// Fetch habits for a specific date
+export function useHabitsForDate(date: string) {
+  return useQuery({
+    queryKey: habitKeys.forDate(date),
+    queryFn: () => apiClient.getHabitsForDate(date),
+    enabled: !!date,
   });
 }
 

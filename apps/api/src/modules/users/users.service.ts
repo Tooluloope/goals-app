@@ -18,6 +18,7 @@ export class UsersService {
         name: true,
         avatar: true,
         defaultWorkspaceId: true,
+        timezone: true,
         settings: true,
         createdAt: true,
         updatedAt: true,
@@ -46,18 +47,25 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    // Extract timezone from settings (it's a top-level field, not in JSON)
+    const { timezone, ...jsonSettings } = settings;
+
     const currentSettings = user.settings as Record<string, any>;
-    const updatedSettings = { ...currentSettings, ...settings };
+    const updatedSettings = { ...currentSettings, ...jsonSettings };
 
     return this.prisma.user.update({
       where: { id: userId },
-      data: { settings: updatedSettings },
+      data: {
+        settings: updatedSettings,
+        ...(timezone !== undefined && { timezone }),
+      },
       select: {
         id: true,
         email: true,
         name: true,
         avatar: true,
         defaultWorkspaceId: true,
+        timezone: true,
         settings: true,
         createdAt: true,
         updatedAt: true,
@@ -78,6 +86,7 @@ export class UsersService {
         name: true,
         avatar: true,
         defaultWorkspaceId: true,
+        timezone: true,
         settings: true,
         createdAt: true,
         updatedAt: true,

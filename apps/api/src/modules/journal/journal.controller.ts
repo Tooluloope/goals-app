@@ -29,25 +29,26 @@ export class JournalController {
   async findToday(@CurrentUser() user: UserWithoutPassword): Promise<{
     entry: JournalEntry | null;
     prompt: string;
-    streak: number;
+    currentStreak: number;
+    longestStreak: number;
   }> {
-    const today = new Date().toISOString().split('T')[0];
-    const [entry, streak] = await Promise.all([
-      this.journalService.findByDate(today, user.id),
-      this.journalService.getStreak(user.id),
-    ]);
+    // Get today's date in user's timezone
+    const todayEntry = await this.journalService.findTodayEntry(user.id);
+    const streakData = await this.journalService.getStreak(user.id);
 
     return {
-      entry,
+      entry: todayEntry,
       prompt: this.journalService.getDailyPrompt(),
-      streak,
+      currentStreak: streakData.currentStreak,
+      longestStreak: streakData.longestStreak,
     };
   }
 
   @Get('streak')
-  async getStreak(@CurrentUser() user: UserWithoutPassword): Promise<{ streak: number }> {
-    const streak = await this.journalService.getStreak(user.id);
-    return { streak };
+  async getStreak(
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<{ currentStreak: number; longestStreak: number }> {
+    return this.journalService.getStreak(user.id);
   }
 
   @Get('prompt')

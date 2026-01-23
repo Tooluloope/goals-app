@@ -267,8 +267,6 @@ function HabitCard({
     return map;
   }, [habit.logs]);
 
-  console.log('Rendering HabitCard for:', habit);
-
   return (
     <Card
       className={cn(

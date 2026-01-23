@@ -14,11 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
-  Frown,
-  Meh,
-  Smile,
-  SmilePlus,
-  Angry,
   Lightbulb,
   Trophy,
   Flag,
@@ -27,6 +22,8 @@ import {
   Loader2,
   CheckCircle2,
   Lock,
+  Shuffle,
+  Sparkles,
 } from 'lucide-react';
 import type { Mood } from '@goals/shared';
 import { useToast } from '@/hooks/use-toast';
@@ -34,14 +31,51 @@ import { useToast } from '@/hooks/use-toast';
 const MOOD_OPTIONS: {
   value: Mood;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
+  emoji: string;
+  tint: string;
+  bg: string;
+  ring: string;
 }[] = [
-  { value: 'terrible', label: 'Terrible', icon: Angry, color: 'text-red-500 hover:text-red-400' },
-  { value: 'bad', label: 'Bad', icon: Frown, color: 'text-orange-500 hover:text-orange-400' },
-  { value: 'neutral', label: 'Okay', icon: Meh, color: 'text-yellow-500 hover:text-yellow-400' },
-  { value: 'good', label: 'Good', icon: Smile, color: 'text-green-500 hover:text-green-400' },
-  { value: 'great', label: 'Great', icon: SmilePlus, color: 'text-primary hover:text-primary/80' },
+  {
+    value: 'terrible',
+    label: 'Rough',
+    emoji: '😣',
+    tint: 'text-rose-600',
+    bg: 'bg-rose-500/10',
+    ring: 'border-rose-500/30',
+  },
+  {
+    value: 'bad',
+    label: 'Low',
+    emoji: '😕',
+    tint: 'text-orange-600',
+    bg: 'bg-orange-500/10',
+    ring: 'border-orange-500/30',
+  },
+  {
+    value: 'neutral',
+    label: 'Okay',
+    emoji: '😐',
+    tint: 'text-amber-600',
+    bg: 'bg-amber-500/10',
+    ring: 'border-amber-500/30',
+  },
+  {
+    value: 'good',
+    label: 'Good',
+    emoji: '🙂',
+    tint: 'text-emerald-600',
+    bg: 'bg-emerald-500/10',
+    ring: 'border-emerald-500/30',
+  },
+  {
+    value: 'great',
+    label: 'Great',
+    emoji: '😁',
+    tint: 'text-primary',
+    bg: 'bg-primary/10',
+    ring: 'border-primary/30',
+  },
 ];
 
 // Emoji categories for the picker
@@ -72,6 +106,9 @@ const EMOJI_CATEGORIES = [
   },
 ];
 
+const ALL_EMOJIS = EMOJI_CATEGORIES.flatMap((category) => category.emojis);
+const QUICK_EMOJIS = ['✨', '🔥', '🌿', '🎯', '💫', '🤍'];
+
 // Helper to safely parse a date
 function safeParseDate(dateValue: Date | string | null | undefined): Date | null {
   if (!dateValue) return null;
@@ -89,12 +126,12 @@ function safeFormatDate(date: Date | null, formatStr: string): string {
   }
 }
 
-interface DailyJournalProps {
+interface DailyJournalRhythm2Props {
   /** The date to show the journal for (controlled by parent). Format: 'yyyy-MM-dd' */
   selectedDate: string;
 }
 
-export function DailyJournal({ selectedDate }: DailyJournalProps) {
+export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) {
   const { toast } = useToast();
 
   // Determine if we're viewing today
@@ -169,6 +206,12 @@ export function DailyJournal({ selectedDate }: DailyJournalProps) {
       setIsSaved(false);
     }
   }, [mood, emoji, content, wins, challenges, gratitude, existingEntry]);
+
+  const handleRandomEmoji = () => {
+    if (!canEdit || ALL_EMOJIS.length === 0) return;
+    const nextEmoji = ALL_EMOJIS[Math.floor(Math.random() * ALL_EMOJIS.length)];
+    setEmoji(nextEmoji);
+  };
 
   const handleSave = useCallback(async () => {
     if (!canEdit) return;
@@ -248,18 +291,36 @@ export function DailyJournal({ selectedDate }: DailyJournalProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Daily Journal</h2>
+      <div className="rounded-3xl border bg-gradient-to-br from-background via-background to-primary/5 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Reflection Studio
+            </div>
+            <h2 className="mt-3 text-2xl font-semibold">Daily Journal</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Capture the mood, tag the moment, then let the story breathe.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-[11px] text-muted-foreground">
+            <span
+              className={cn('h-2 w-2 rounded-full', isSaved ? 'bg-emerald-500' : 'bg-amber-500')}
+            />
+            {isSaved ? 'All changes saved' : 'Editing...'}
+          </div>
+        </div>
 
-        {/* Mood Selector & Emoji Picker */}
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          {/* Mood Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Mood:</span>
-            <div className="flex items-center gap-1 rounded-full border bg-card p-1">
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-2xl border bg-card/70 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Mood Line
+              </p>
+              <span className="text-[11px] text-muted-foreground">Tap to set</span>
+            </div>
+            <div className="mt-3 grid grid-cols-5 gap-2">
               {MOOD_OPTIONS.map((option) => {
-                const Icon = option.icon;
                 const isSelected = mood === option.value;
                 return (
                   <button
@@ -268,100 +329,143 @@ export function DailyJournal({ selectedDate }: DailyJournalProps) {
                     title={option.label}
                     disabled={!canEdit}
                     className={cn(
-                      'rounded-full p-2 transition-all',
-                      isSelected ? 'bg-primary/20 text-primary scale-110' : option.color,
-                      canEdit ? 'hover:scale-110' : 'cursor-not-allowed opacity-70'
+                      'group flex flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-[11px] font-semibold transition-all',
+                      option.bg,
+                      option.ring,
+                      option.tint,
+                      isSelected && 'shadow-sm ring-2 ring-primary/40',
+                      canEdit ? 'hover:scale-[1.02]' : 'cursor-not-allowed opacity-60'
                     )}
                   >
-                    <Icon className="h-6 w-6" />
+                    <span className="text-2xl">{option.emoji}</span>
+                    <span className="uppercase tracking-wide">{option.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Emoji Picker */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Emoji:</span>
-            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!canEdit}
-                  className={cn(
-                    'h-11 min-w-11 text-2xl transition-all hover:scale-105',
-                    emoji && 'bg-primary/5 border-primary/30',
-                    !canEdit && 'cursor-not-allowed opacity-70'
-                  )}
-                >
-                  {emoji || '✨'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="center">
-                <div className="p-4 space-y-4">
-                  {/* Header with selected emoji preview */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{emoji || '✨'}</span>
-                      <span className="text-sm font-medium">
-                        {emoji ? "Today's emoji" : 'Pick an emoji'}
-                      </span>
-                    </div>
-                    {emoji && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => {
-                          setEmoji(undefined);
-                        }}
-                      >
-                        Clear
-                      </Button>
+          <div className="rounded-2xl border bg-card/70 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Emoji Stamp
+              </p>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRandomEmoji}
+                disabled={!canEdit}
+                className={cn('h-8 w-8', !canEdit && 'cursor-not-allowed opacity-60')}
+              >
+                <Shuffle className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    disabled={!canEdit}
+                    className={cn(
+                      'flex h-14 w-14 items-center justify-center rounded-2xl border text-3xl transition-all',
+                      emoji ? 'bg-primary/10 border-primary/30' : 'bg-muted/60',
+                      canEdit ? 'hover:scale-105' : 'cursor-not-allowed opacity-60'
                     )}
-                  </div>
+                  >
+                    {emoji || '✨'}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-0" align="center">
+                  <div className="space-y-4 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{emoji || '✨'}</span>
+                        <span className="text-sm font-medium">
+                          {emoji ? "Today's emoji" : 'Pick an emoji'}
+                        </span>
+                      </div>
+                      {emoji && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setEmoji(undefined);
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
 
-                  {/* Category tabs */}
-                  <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-                    {EMOJI_CATEGORIES.map((cat, idx) => (
-                      <button
-                        key={cat.name}
-                        onClick={() => setEmojiCategory(idx)}
-                        className={cn(
-                          'px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-all',
-                          emojiCategory === idx
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                        )}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Quick picks
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {QUICK_EMOJIS.map((quickEmoji) => (
+                          <button
+                            key={quickEmoji}
+                            onClick={() => {
+                              setEmoji(quickEmoji);
+                              setEmojiPickerOpen(false);
+                            }}
+                            className={cn(
+                              'flex h-10 w-10 items-center justify-center rounded-xl text-2xl transition-all',
+                              'hover:bg-primary/10 hover:scale-110 active:scale-95',
+                              emoji === quickEmoji && 'bg-primary/20 ring-2 ring-primary/50'
+                            )}
+                          >
+                            {quickEmoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                  {/* Emoji grid */}
-                  <div className="grid grid-cols-6 gap-1.5">
-                    {EMOJI_CATEGORIES[emojiCategory].emojis.map((e) => (
-                      <button
-                        key={e}
-                        onClick={() => {
-                          setEmoji(e);
-                          setEmojiPickerOpen(false);
-                        }}
-                        className={cn(
-                          'flex items-center justify-center h-11 w-11 rounded-lg text-2xl transition-all',
-                          'hover:bg-primary/10 hover:scale-110 active:scale-95',
-                          emoji === e && 'bg-primary/20 ring-2 ring-primary/50'
-                        )}
-                      >
-                        {e}
-                      </button>
-                    ))}
+                    <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+                      {EMOJI_CATEGORIES.map((cat, idx) => (
+                        <button
+                          key={cat.name}
+                          onClick={() => setEmojiCategory(idx)}
+                          className={cn(
+                            'px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-all',
+                            emojiCategory === idx
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                          )}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-6 gap-1.5">
+                      {EMOJI_CATEGORIES[emojiCategory].emojis.map((e) => (
+                        <button
+                          key={e}
+                          onClick={() => {
+                            setEmoji(e);
+                            setEmojiPickerOpen(false);
+                          }}
+                          className={cn(
+                            'flex items-center justify-center h-11 w-11 rounded-lg text-2xl transition-all',
+                            'hover:bg-primary/10 hover:scale-110 active:scale-95',
+                            emoji === e && 'bg-primary/20 ring-2 ring-primary/50'
+                          )}
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+              <div className="flex-1">
+                <p className="text-sm font-semibold">
+                  {emoji ? "Today's emoji" : 'Pick a highlight'}
+                </p>
+                <p className="text-xs text-muted-foreground">Add a visual tag to anchor the day.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

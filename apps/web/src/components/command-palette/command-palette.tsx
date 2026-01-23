@@ -188,6 +188,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     key={project.id}
                     value={`project ${project.name} ${area?.name || ''}`}
                     onSelect={() => runCommand(() => router.push(`/project/${project.id}`))}
+                    onClick={() => runCommand(() => router.push(`/project/${project.id}`))}
                     className={cn(
                       'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2',
                       'text-sm outline-none',
@@ -216,6 +217,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   key={`task-${project.id}`}
                   value={`add task to ${project.name}`}
                   onSelect={() => runCommand(() => openAddTaskModal(project.id))}
+                  onClick={() => runCommand(() => openAddTaskModal(project.id))}
                   className={cn(
                     'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2',
                     'text-sm outline-none',
@@ -236,6 +238,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 key={cmd.id}
                 value={cmd.label}
                 onSelect={() => runCommand(cmd.action)}
+                onClick={() => runCommand(cmd.action)}
                 className={cn(
                   'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2',
                   'text-sm outline-none',
@@ -260,6 +263,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 key={cmd.id}
                 value={cmd.label}
                 onSelect={() => runCommand(cmd.action)}
+                onClick={() => runCommand(cmd.action)}
                 className={cn(
                   'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2',
                   'text-sm outline-none',

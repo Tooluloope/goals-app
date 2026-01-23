@@ -1,7 +1,13 @@
 'use client';
 
-import { format } from 'date-fns';
-import { useTodayHabits, useToggleHabitLog, useDeleteHabit } from '@/hooks/use-habits';
+import { useState } from 'react';
+import { isToday, parseISO } from 'date-fns';
+import {
+  useTodayHabits,
+  useHabitsForDate,
+  useToggleHabitLog,
+  useDeleteHabit,
+} from '@/hooks/use-habits';
 import { Card, CardContent } from '@/components/ui/card';
 import { AddHabitModal } from '@/components/habits/add-habit-modal';
 import { cn } from '@/lib/utils';
@@ -22,6 +28,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { HabitWithStats } from '@goals/shared';
+
+interface HabitTrackerProps {
+  selectedDate: string; // 'yyyy-MM-dd' format
+}
 
 const HABIT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   book: BookOpen,
@@ -45,17 +55,35 @@ const COLOR_OPTIONS = [
   { name: 'purple', class: 'bg-purple-500', hover: 'hover:bg-purple-400' },
 ];
 
-export function HabitTracker() {
-  const { data: habitsData, isLoading } = useTodayHabits();
+export function HabitTracker({ selectedDate }: HabitTrackerProps) {
+  // Use date-specific habits if viewing a past date, otherwise use today's optimized query
+  const isViewingToday = isToday(parseISO(selectedDate));
+  const { data: todayData, isLoading: todayLoading } = useTodayHabits();
+  const { data: dateData, isLoading: dateLoading } = useHabitsForDate(selectedDate);
+
+  // Use today's data if viewing today (has optimistic updates), otherwise use date-specific data
+  const habitsData = isViewingToday ? todayData : dateData;
+  const isLoading = isViewingToday ? todayLoading : dateLoading;
+
   // Ensure habits is always an array (handle null/undefined)
   const habits = Array.isArray(habitsData) ? habitsData : [];
   const toggleLog = useToggleHabitLog();
   const deleteHabit = useDeleteHabit();
 
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const handleToggle = (habitId: string) => {
-    toggleLog.mutate({ habitId, date: today });
+    // Only allow toggling for today's habits
+    if (!isViewingToday) return;
+    // Prevent double-toggling while a mutation is in progress for this habit
+    if (togglingId === habitId) return;
+    setTogglingId(habitId);
+    toggleLog.mutate(
+      { habitId, date: selectedDate },
+      {
+        onSettled: () => setTogglingId(null),
+      }
+    );
   };
 
   const handleDeleteHabit = (habitId: string) => {
@@ -83,7 +111,7 @@ export function HabitTracker() {
   return (
     <div className="space-y-4">
       {/* Habit Cards - Horizontal Scroll */}
-      <div className="-mx-4 overflow-x-auto px-4 pb-4">
+      <div className="-mx-4 overflow-x-auto px-4 py-4">
         <div className="flex gap-4">
           {habits.map((habit) => (
             <HabitCard
@@ -92,18 +120,22 @@ export function HabitTracker() {
               onToggle={() => handleToggle(habit.id)}
               onDelete={() => handleDeleteHabit(habit.id)}
               colorClasses={getColorClasses(habit.color, habit.completedToday)}
+              isToggling={togglingId === habit.id}
+              isReadOnly={!isViewingToday}
             />
           ))}
 
-          {/* Add Habit Button */}
-          <AddHabitModal
-            trigger={
-              <button className="flex h-32 w-28 flex-shrink-0 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-card/50 text-muted-foreground transition-all hover:border-primary/50 hover:text-foreground">
-                <Plus className="h-8 w-8" />
-                <span className="text-sm font-medium">Add</span>
-              </button>
-            }
-          />
+          {/* Add Habit Button - Only show when viewing today */}
+          {isViewingToday && (
+            <AddHabitModal
+              trigger={
+                <button className="flex h-32 w-28 flex-shrink-0 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-card/50 text-muted-foreground transition-all hover:border-primary/50 hover:text-foreground">
+                  <Plus className="h-8 w-8" />
+                  <span className="text-sm font-medium">Add</span>
+                </button>
+              }
+            />
+          )}
         </div>
       </div>
 
@@ -127,11 +159,15 @@ function HabitCard({
   onToggle,
   onDelete,
   colorClasses,
+  isToggling,
+  isReadOnly,
 }: {
   habit: HabitWithStats;
   onToggle: () => void;
   onDelete: () => void;
   colorClasses: string;
+  isToggling: boolean;
+  isReadOnly: boolean;
 }) {
   const IconComponent = HABIT_ICONS[habit.icon] || Target;
 
@@ -139,31 +175,45 @@ function HabitCard({
     <div className="group relative">
       <button
         onClick={onToggle}
+        disabled={isToggling || isReadOnly}
         className={cn(
           'relative flex h-32 w-28 flex-shrink-0 flex-col items-center justify-center gap-3 rounded-xl transition-all',
-          colorClasses
+          !isReadOnly && 'active:scale-95 touch-manipulation',
+          colorClasses,
+          isToggling && 'opacity-70 scale-95',
+          isReadOnly && 'cursor-default'
         )}
       >
-        <IconComponent className="h-8 w-8" />
-        <span className="text-sm font-semibold">{habit.name}</span>
-        {habit.completedToday && (
-          <div className="absolute right-2 top-2">
-            <Check className="h-4 w-4" />
-          </div>
-        )}
-        {habit.currentStreak > 0 && (
+        <div className="relative">
+          {isToggling ? (
+            <Loader2 className="h-8 w-8 animate-spin" />
+          ) : (
+            <>
+              <IconComponent className="h-8 w-8" />
+              {habit.completedToday && (
+                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-green-600 shadow-sm">
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        <span className="text-sm font-semibold max-w-full truncate px-1">{habit.name}</span>
+        {habit.currentStreak > 0 && !isToggling && (
           <div className="absolute bottom-2 right-2 text-xs opacity-75">{habit.currentStreak}d</div>
         )}
       </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="absolute -right-2 -top-2 hidden h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground group-hover:flex"
-      >
-        <Trash2 className="h-3 w-3" />
-      </button>
+      {!isReadOnly && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-70 transition-opacity hover:opacity-100 md:hidden md:group-hover:flex md:opacity-100"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }

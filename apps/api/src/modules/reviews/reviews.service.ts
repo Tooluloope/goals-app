@@ -7,11 +7,26 @@ import {
   UpdateMonthlyReviewDto,
 } from '@goals/shared';
 import { WeeklyReview, MonthlyReview } from '@goals/database';
-import { startOfDay, parseISO, startOfWeek, startOfMonth, subWeeks, subMonths } from 'date-fns';
+import { startOfDay, parseISO, startOfWeek, startOfMonth, subWeeks } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class ReviewsService {
   constructor(private prisma: PrismaService) {}
+
+  // Get user's timezone from database, default to UTC
+  private async getUserTimezone(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    return user?.timezone || 'UTC';
+  }
+
+  // Get current date/time in user's timezone
+  private getNowInTimezone(timezone: string): Date {
+    return toZonedTime(new Date(), timezone);
+  }
 
   // ============================================================
   // WEEKLY REVIEWS
@@ -151,9 +166,11 @@ export class ReviewsService {
     weekStart: string;
     isCurrentWeek: boolean;
   }> {
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-    const weekStartStr = weekStart.toISOString().split('T')[0];
+    // Use user's timezone to determine current week
+    const userTimezone = await this.getUserTimezone(userId);
+    const nowInTz = this.getNowInTimezone(userTimezone);
+    const weekStart = startOfWeek(nowInTz, { weekStartsOn: 1 }); // Monday
+    const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
 
     const review = await this.findWeeklyReviewByWeek(weekStartStr, userId);
 
@@ -306,9 +323,11 @@ export class ReviewsService {
     month: string;
     isCurrentMonth: boolean;
   }> {
-    const now = new Date();
-    const month = startOfMonth(now);
-    const monthStr = month.toISOString().split('T')[0];
+    // Use user's timezone to determine current month
+    const userTimezone = await this.getUserTimezone(userId);
+    const nowInTz = this.getNowInTimezone(userTimezone);
+    const month = startOfMonth(nowInTz);
+    const monthStr = formatInTimeZone(month, userTimezone, 'yyyy-MM-dd');
 
     const review = await this.findMonthlyReviewByMonth(monthStr, userId);
 
@@ -330,6 +349,10 @@ export class ReviewsService {
     lastWeeklyReview: Date | null;
     lastMonthlyReview: Date | null;
   }> {
+    // Get user's timezone for accurate "current week" calculation
+    const userTimezone = await this.getUserTimezone(userId);
+    const nowInTz = this.getNowInTimezone(userTimezone);
+
     const [weeklyCount, monthlyCount, lastWeekly, lastMonthly] = await Promise.all([
       this.prisma.weeklyReview.count({ where: { userId } }),
       this.prisma.monthlyReview.count({ where: { userId } }),
@@ -354,7 +377,7 @@ export class ReviewsService {
     });
 
     let streak = 0;
-    let expectedWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+    let expectedWeek = startOfWeek(nowInTz, { weekStartsOn: 1 });
 
     for (const review of weeklyReviews) {
       const reviewWeek = startOfDay(review.weekStart);

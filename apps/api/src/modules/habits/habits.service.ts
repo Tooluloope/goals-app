@@ -2,21 +2,31 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateHabitDto, UpdateHabitDto, ToggleHabitLogDto, HabitWithStats } from '@goals/shared';
 import { Habit, HabitLog } from '@goals/database';
-import { startOfDay, parseISO, subDays, differenceInDays } from 'date-fns';
-
-// Helper to get local date as YYYY-MM-DD string
-function getLocalDateStr(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
+import { subDays } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 // Helper to get date string from a DB date (stored as UTC midnight)
 function getDbDateStr(date: Date): string {
   return date.toISOString().substring(0, 10);
 }
 
+// Helper to get today's date string in a specific timezone
+function getTodayInTimezone(timezone: string): string {
+  return formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
+}
+
 @Injectable()
 export class HabitsService {
   constructor(private prisma: PrismaService) {}
+
+  // Get user's timezone from database, default to UTC
+  private async getUserTimezone(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    return user?.timezone || 'UTC';
+  }
 
   async create(data: CreateHabitDto, userId: string): Promise<Habit> {
     // Get the max order for user's habits
@@ -87,7 +97,14 @@ export class HabitsService {
     return habit;
   }
 
-  async findAll(userId: string, includeArchived = false): Promise<HabitWithStats[]> {
+  async findAll(
+    userId: string,
+    includeArchived = false,
+    clientDate?: string
+  ): Promise<HabitWithStats[]> {
+    // Get user's stored timezone (or use clientDate for backward compatibility)
+    const userTimezone = await this.getUserTimezone(userId);
+
     const habits = await this.prisma.habit.findMany({
       where: {
         userId,
@@ -106,16 +123,16 @@ export class HabitsService {
       },
     });
 
-    // Use UTC date string for comparison to match how dates are stored in DB
-    // DB stores dates as UTC midnight, so we use UTC for today as well
-    const todayStr = getDbDateStr(new Date());
+    // Use user's stored timezone to calculate "today"
+    // clientDate is kept for backward compatibility but stored timezone takes precedence
+    const todayStr = clientDate || getTodayInTimezone(userTimezone);
 
     return habits.map((habit) => {
       const completedToday = habit.logs.some(
         (log) => getDbDateStr(log.date) === todayStr && log.completed
       );
 
-      const { currentStreak, longestStreak } = this.calculateStreaks(habit.logs);
+      const { currentStreak, longestStreak } = this.calculateStreaks(habit.logs, todayStr);
       const completionRate = this.calculateCompletionRate(habit.logs);
 
       return {
@@ -224,7 +241,10 @@ export class HabitsService {
     await this.prisma.$transaction(updates);
   }
 
-  private calculateStreaks(logs: HabitLog[]): { currentStreak: number; longestStreak: number } {
+  private calculateStreaks(
+    logs: HabitLog[],
+    todayStr: string
+  ): { currentStreak: number; longestStreak: number } {
     if (logs.length === 0) return { currentStreak: 0, longestStreak: 0 };
 
     const completedLogs = logs.filter((log) => log.completed);
@@ -235,10 +255,9 @@ export class HabitsService {
       (a, b) => b.localeCompare(a)
     );
 
-    // Use UTC dates to match how dates are stored in DB (as UTC midnight)
-    const now = new Date();
-    const todayStr = getDbDateStr(now);
-    const yesterdayDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    // Calculate yesterday based on today's date string
+    const todayDate = new Date(todayStr + 'T00:00:00.000Z');
+    const yesterdayDate = new Date(todayDate.getTime() - 24 * 60 * 60 * 1000);
     const yesterdayStr = getDbDateStr(yesterdayDate);
 
     let currentStreak = 0;

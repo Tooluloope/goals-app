@@ -15,18 +15,23 @@ export class HabitsController {
   @Get()
   findAll(
     @CurrentUser() user: UserWithoutPassword,
-    @Query('includeArchived') includeArchived?: string
+    @Query('includeArchived') includeArchived?: string,
+    @Query('date') date?: string
   ): Promise<HabitWithStats[]> {
-    return this.habitsService.findAll(user.id, includeArchived === 'true');
+    return this.habitsService.findAll(user.id, includeArchived === 'true', date);
   }
 
   @Get('today')
-  async getToday(@CurrentUser() user: UserWithoutPassword): Promise<{
+  async getToday(
+    @CurrentUser() user: UserWithoutPassword,
+    @Query('date') date?: string
+  ): Promise<{
     habits: HabitWithStats[];
     completedCount: number;
     totalCount: number;
   }> {
-    const habits = await this.habitsService.findAll(user.id, false);
+    // Use the client's local date for completedToday comparison
+    const habits = await this.habitsService.findAll(user.id, false, date);
     const completedCount = habits.filter((h) => h.completedToday).length;
 
     return {

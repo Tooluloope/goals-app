@@ -24,14 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ImageUpload, ImageThumbnail } from '@/components/shared/image-upload';
-import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
-import { useCreateTask, useProject } from '@/hooks/use-projects';
+import { useUpdateTask } from '@/hooks/use-tasks';
 import { useToast } from '@/hooks/use-toast';
 import { getColorClasses } from '@/types/config';
-import { LocalImageAttachment, RecurrenceType } from '@/types';
+import { Task, RecurrenceType } from '@/types';
 import { cn } from '@/lib/utils';
 
 const WEEKDAYS = [
@@ -56,27 +54,20 @@ const taskSchema = z.object({
 
 type TaskFormData = z.infer<typeof taskSchema>;
 
-export function AddTaskModal() {
-  const { addTaskModalOpen, addTaskProjectId, closeAddTaskModal } = useUIStore();
+interface EditTaskModalProps {
+  task: Task;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function EditTaskModal({ task, open, onOpenChange }: EditTaskModalProps) {
   const { currentWorkspace } = useAuthStore();
   const { getTaskStatusesForWorkspace } = useConfigStore();
-  const { data: project } = useProject(addTaskProjectId || '');
-  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
   const { toast } = useToast();
-  const [images, setImages] = useState<LocalImageAttachment[]>([]);
-  const [showRecurrence, setShowRecurrence] = useState(false);
+  const [showRecurrence, setShowRecurrence] = useState(task.isRecurring);
 
   const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
-  const defaultStatusId =
-    taskStatuses.find((s) => s.name === 'Next Action')?.id || taskStatuses[0]?.id || '';
-
-  const handleAddImages = (newImages: LocalImageAttachment[]) => {
-    setImages((prev) => [...prev, ...newImages].slice(0, 5));
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const {
     register,
@@ -88,13 +79,13 @@ export function AddTaskModal() {
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: '',
-      statusId: defaultStatusId,
-      dueDate: '',
-      isRecurring: false,
-      recurrenceType: 'none',
-      recurrenceInterval: 1,
-      recurrenceDays: [],
+      title: task.title,
+      statusId: task.statusId,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+      isRecurring: task.isRecurring,
+      recurrenceType: task.recurrenceType || 'none',
+      recurrenceInterval: task.recurrenceInterval || 1,
+      recurrenceDays: task.recurrenceDays || [],
     },
   });
 
@@ -108,47 +99,46 @@ export function AddTaskModal() {
     setValue('recurrenceDays', newDays);
   };
 
-  // Update default status when config loads
+  // Reset form when task changes
   useEffect(() => {
-    if (taskStatuses.length > 0 && !watch('statusId')) {
-      const nextAction = taskStatuses.find((s) => s.name === 'Next Action');
-      setValue('statusId', nextAction?.id || taskStatuses[0].id);
-    }
-  }, [taskStatuses, setValue, watch]);
+    reset({
+      title: task.title,
+      statusId: task.statusId,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+      isRecurring: task.isRecurring,
+      recurrenceType: task.recurrenceType || 'none',
+      recurrenceInterval: task.recurrenceInterval || 1,
+      recurrenceDays: task.recurrenceDays || [],
+    });
+    setShowRecurrence(task.isRecurring);
+  }, [task, reset]);
 
   const onSubmit = async (data: TaskFormData) => {
-    if (!addTaskProjectId) return;
-
     try {
-      await createTask.mutateAsync({
-        projectId: addTaskProjectId,
-        title: data.title,
-        statusId: data.statusId,
-        dueDate: data.dueDate || undefined,
-        images: images.length > 0 ? (images as any) : undefined,
-        isRecurring: data.isRecurring,
-        recurrenceType: data.isRecurring ? data.recurrenceType : 'none',
-        recurrenceInterval: data.recurrenceInterval || 1,
-        recurrenceDays: data.recurrenceType === 'weekly' ? data.recurrenceDays : [],
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: {
+          title: data.title,
+          statusId: data.statusId,
+          dueDate: data.dueDate || undefined,
+          isRecurring: data.isRecurring,
+          recurrenceType: data.isRecurring ? data.recurrenceType : 'none',
+          recurrenceInterval: data.recurrenceInterval || 1,
+          recurrenceDays: data.recurrenceType === 'weekly' ? data.recurrenceDays : [],
+        },
       });
 
-      const taskType = data.isRecurring ? 'Recurring task' : 'Task';
       toast({
-        title: `${taskType} created`,
-        description: data.isRecurring
-          ? `Your recurring task has been added. It will repeat ${data.recurrenceType}.`
-          : 'Your new task has been added.',
+        title: 'Task updated',
+        description: 'Your changes have been saved.',
         variant: 'success',
       });
 
-      reset();
-      setImages([]);
-      setShowRecurrence(false);
-      closeAddTaskModal();
+      onOpenChange(false);
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to create task. Please try again.',
+        description: 'Failed to update task. Please try again.',
         variant: 'destructive',
       });
     }
@@ -156,17 +146,15 @@ export function AddTaskModal() {
 
   const handleClose = () => {
     reset();
-    setImages([]);
-    setShowRecurrence(false);
-    closeAddTaskModal();
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={addTaskModalOpen} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Add Task</DialogTitle>
-          <DialogDescription>{project && `Adding task to "${project.name}"`}</DialogDescription>
+          <DialogTitle>Edit Task</DialogTitle>
+          <DialogDescription>Update your task details</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
@@ -313,44 +301,20 @@ export function AddTaskModal() {
                 </div>
               )}
             </div>
-
-            {/* Image Upload */}
-            <div className="space-y-2">
-              <Label>Attach images (optional)</Label>
-              {images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {images.map((image, index) => (
-                    <ImageThumbnail
-                      key={image.id}
-                      image={image}
-                      onRemove={() => handleRemoveImage(index)}
-                      className="h-14 w-14"
-                    />
-                  ))}
-                </div>
-              )}
-              {images.length < 5 && (
-                <ImageUpload
-                  onImagesAdd={handleAddImages}
-                  maxFiles={5 - images.length}
-                  maxSizeMB={5}
-                />
-              )}
-            </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || createTask.isPending}>
-              {isSubmitting || createTask.isPending ? (
+            <Button type="submit" disabled={isSubmitting || updateTask.isPending}>
+              {isSubmitting || updateTask.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
+                  Saving...
                 </>
               ) : (
-                'Add Task'
+                'Save Changes'
               )}
             </Button>
           </DialogFooter>

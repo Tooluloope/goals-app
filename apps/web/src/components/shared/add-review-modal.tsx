@@ -168,8 +168,8 @@ export function AddReviewModal() {
 
   return (
     <Dialog open={addReviewModalOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-lg lg:max-w-4xl">
-        <div className="flex flex-col max-h-[90vh]">
+      <DialogContent className="max-h-[85vh] sm:max-h-[90vh] overflow-hidden p-0 sm:max-w-lg lg:max-w-4xl">
+        <div className="flex flex-col max-h-[85vh] sm:max-h-[90vh]">
           {/* Header & Progress */}
           <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
             <div className="flex flex-col gap-3">
@@ -466,20 +466,20 @@ export function AddReviewModal() {
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-border shrink-0 flex justify-between items-center">
+          <div className="p-4 sm:p-6 border-t border-border shrink-0 flex justify-between items-center gap-3 pb-safe">
             {step === 1 ? (
               <>
-                <Button variant="ghost" onClick={handleClose}>
+                <Button variant="ghost" onClick={handleClose} className="touch-manipulation">
                   Cancel
                 </Button>
-                <Button onClick={handleNext} className="gap-2">
+                <Button onClick={handleNext} className="gap-2 touch-manipulation">
                   Next Step
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" onClick={handleBack} className="gap-2">
+                <Button variant="ghost" onClick={handleBack} className="gap-2 touch-manipulation">
                   <ArrowLeft className="w-4 h-4" />
                   Back
                 </Button>
@@ -487,7 +487,7 @@ export function AddReviewModal() {
                   type="submit"
                   form="review-form"
                   disabled={isSubmitting || addReview.isPending}
-                  className="gap-2"
+                  className="gap-2 touch-manipulation"
                 >
                   {isSubmitting || addReview.isPending ? (
                     <>

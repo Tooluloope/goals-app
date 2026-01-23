@@ -29,6 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { ManageBlockersModal } from '@/components/shared/manage-blockers-modal';
+import { EditProjectModal } from '@/components/shared/edit-project-modal';
 
 interface ProjectHeaderProps {
   project: Project;
@@ -41,6 +42,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   const { toast } = useToast();
   const { currentWorkspace } = useAuthStore();
   const [blockersModalOpen, setBlockersModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const {
     getStatusesForWorkspace,
     getStatusById,
@@ -141,7 +143,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => {}}>
+              <DropdownMenuItem onClick={() => setEditModalOpen(true)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Details
               </DropdownMenuItem>
@@ -276,6 +278,9 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         open={blockersModalOpen}
         onOpenChange={setBlockersModalOpen}
       />
+
+      {/* Edit Project Modal */}
+      <EditProjectModal project={project} open={editModalOpen} onOpenChange={setEditModalOpen} />
     </div>
   );
 }

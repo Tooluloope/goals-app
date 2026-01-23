@@ -33,15 +33,31 @@ import type {
 
 // Dynamically determine API URL based on current hostname
 function getApiBaseUrl(): string {
+  // If using proxy mode (for tunnels), use relative URLs
+  // The Next.js rewrites will proxy /api/* to the backend
+  if (process.env.NEXT_PUBLIC_USE_PROXY === 'true') {
+    return '';
+  }
+
   // Server-side: use environment variable
   if (typeof window === 'undefined') {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   }
 
-  // Client-side: use the same hostname but with API port
-  const hostname = window.location.hostname;
-  const apiPort = process.env.NEXT_PUBLIC_API_PORT || '3001';
+  // If explicit API URL is set, use it
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
 
+  // Client-side: check if we're on a tunnel (not localhost)
+  const hostname = window.location.hostname;
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    // On a tunnel - use relative URLs (proxied by Next.js)
+    return '';
+  }
+
+  // Local development: use the same hostname but with API port
+  const apiPort = process.env.NEXT_PUBLIC_API_PORT || '3001';
   return `http://${hostname}:${apiPort}`;
 }
 
@@ -160,10 +176,15 @@ class ApiClient {
     return data.user;
   }
 
-  async signup(name: string, email: string, password: string): Promise<AuthResponse['user']> {
+  async signup(
+    name: string,
+    email: string,
+    password: string,
+    timezone?: string
+  ): Promise<AuthResponse['user']> {
     const data = await this.fetch<AuthResponse>('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, timezone }),
       requiresAuth: false,
     });
     this.setTokens(data.accessToken, data.refreshToken);
@@ -189,7 +210,7 @@ class ApiClient {
     return this.fetch<User>('/users/me');
   }
 
-  updateUserSettings(settings: Partial<UserSettings>): Promise<User> {
+  updateUserSettings(settings: Partial<UserSettings> & { timezone?: string }): Promise<User> {
     return this.fetch<User>('/users/me/settings', {
       method: 'PATCH',
       body: JSON.stringify(settings),
@@ -472,8 +493,14 @@ class ApiClient {
     return this.fetch<JournalEntry | null>(`/journal/date/${date}`);
   }
 
-  getTodayJournalEntry(): Promise<JournalEntry | null> {
-    return this.fetch<JournalEntry | null>('/journal/today');
+  async getTodayJournalEntry(): Promise<JournalEntry | null> {
+    const response = await this.fetch<{
+      entry: JournalEntry | null;
+      prompt: string;
+      currentStreak: number;
+      longestStreak: number;
+    }>('/journal/today');
+    return response.entry;
   }
 
   getJournalStreak(): Promise<{ currentStreak: number; longestStreak: number }> {
@@ -500,7 +527,7 @@ class ApiClient {
 
   upsertJournalEntry(data: CreateJournalEntryDto): Promise<JournalEntry> {
     return this.fetch<JournalEntry>('/journal/upsert', {
-      method: 'POST',
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   }
@@ -514,7 +541,16 @@ class ApiClient {
   // ============================================================
 
   getHabits(includeArchived = false): Promise<HabitWithStats[]> {
-    return this.fetch<HabitWithStats[]>(`/habits?includeArchived=${includeArchived}`);
+    // Pass the client's local date to ensure completedToday matches user's timezone
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return this.fetch<HabitWithStats[]>(
+      `/habits?includeArchived=${includeArchived}&date=${localDate}`
+    );
+  }
+
+  getHabitsForDate(date: string, includeArchived = false): Promise<HabitWithStats[]> {
+    return this.fetch<HabitWithStats[]>(`/habits?includeArchived=${includeArchived}&date=${date}`);
   }
 
   getHabit(id: string): Promise<HabitWithStats> {
@@ -522,11 +558,15 @@ class ApiClient {
   }
 
   async getTodayHabits(): Promise<HabitWithStats[]> {
+    // Pass the client's local date to ensure completedToday matches user's timezone
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
     const response = await this.fetch<{
       habits: HabitWithStats[];
       completedCount: number;
       totalCount: number;
-    }>('/habits/today');
+    }>(`/habits/today?date=${localDate}`);
     return response.habits;
   }
 

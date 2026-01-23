@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, getDate, getDaysInMonth, isAfter } from 'date-fns';
 import { AppLayout } from '@/components/layout/app-layout';
 import {
   useCurrentMonthReview,
@@ -12,6 +12,16 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import {
   Calendar,
@@ -26,6 +36,9 @@ import {
   Loader2,
   CheckCircle2,
   BarChart3,
+  Lock,
+  Send,
+  AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -48,6 +61,14 @@ export default function MonthlyReviewPage() {
   const [gratitude, setGratitude] = useState('');
   const [rating, setRating] = useState<number | undefined>(undefined);
   const [isSaved, setIsSaved] = useState(true);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+
+  // Check if it's end of month (last 3 days or past the month)
+  const daysInMonth = getDaysInMonth(today);
+  const currentDay = getDate(today);
+  const isEndOfMonth = currentDay >= daysInMonth - 2 || isAfter(today, monthEnd);
+  const isSubmitted = existingReview?.submitted === true;
+  const canEdit = !isSubmitted;
 
   // Load existing review data
   useEffect(() => {
@@ -97,45 +118,63 @@ export default function MonthlyReviewPage() {
     existingReview,
   ]);
 
-  const handleSave = useCallback(async () => {
-    const monthStr = format(monthStart, 'yyyy-MM-dd');
+  const handleSave = useCallback(
+    async (submit = false) => {
+      if (!canEdit && !submit) return;
 
-    try {
-      await upsertReview.mutateAsync({
-        month: monthStr,
-        highlights: highlights || undefined,
-        challenges: challenges || undefined,
-        goalsAchieved: goalsAchieved || undefined,
-        goalsForNextMonth: goalsForNextMonth || undefined,
-        lessonsLearned: lessonsLearned || undefined,
-        gratitude: gratitude || undefined,
-        rating,
-      });
+      const monthStr = format(monthStart, 'yyyy-MM-dd');
 
-      setIsSaved(true);
-      toast({
-        title: 'Review saved',
-        description: 'Your monthly review has been saved successfully.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error saving',
-        description: 'Failed to save your review. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  }, [
-    highlights,
-    challenges,
-    goalsAchieved,
-    goalsForNextMonth,
-    lessonsLearned,
-    gratitude,
-    rating,
-    monthStart,
-    upsertReview,
-    toast,
-  ]);
+      try {
+        await upsertReview.mutateAsync({
+          month: monthStr,
+          highlights: highlights || undefined,
+          challenges: challenges || undefined,
+          goalsAchieved: goalsAchieved || undefined,
+          goalsForNextMonth: goalsForNextMonth || undefined,
+          lessonsLearned: lessonsLearned || undefined,
+          gratitude: gratitude || undefined,
+          rating,
+          submitted: submit || undefined,
+        });
+
+        setIsSaved(true);
+        toast({
+          title: submit ? 'Review submitted' : 'Review saved',
+          description: submit
+            ? 'Your monthly review has been finalized and can no longer be edited.'
+            : 'Your monthly review has been saved as a draft.',
+        });
+      } catch (error) {
+        toast({
+          title: 'Error saving',
+          description: 'Failed to save your review. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    },
+    [
+      highlights,
+      challenges,
+      goalsAchieved,
+      goalsForNextMonth,
+      lessonsLearned,
+      gratitude,
+      rating,
+      monthStart,
+      upsertReview,
+      toast,
+      canEdit,
+    ]
+  );
+
+  const handleSubmit = useCallback(() => {
+    setShowSubmitDialog(true);
+  }, []);
+
+  const confirmSubmit = useCallback(async () => {
+    setShowSubmitDialog(false);
+    await handleSave(true);
+  }, [handleSave]);
 
   if (isLoadingReview) {
     return (
@@ -204,12 +243,14 @@ export default function MonthlyReviewPage() {
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
-                  onClick={() => setRating(star)}
+                  onClick={() => canEdit && setRating(star)}
+                  disabled={!canEdit}
                   className={cn(
-                    'rounded-lg p-2 transition-all hover:scale-110',
+                    'rounded-lg p-2 transition-all',
                     rating && rating >= star
                       ? 'text-yellow-500'
-                      : 'text-muted-foreground/30 hover:text-yellow-500/50'
+                      : 'text-muted-foreground/30 hover:text-yellow-500/50',
+                    canEdit ? 'hover:scale-110' : 'cursor-not-allowed'
                   )}
                 >
                   <Star className={cn('h-8 w-8', rating && rating >= star && 'fill-current')} />
@@ -234,10 +275,14 @@ export default function MonthlyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What were the best moments of this month?"
+                placeholder={canEdit ? 'What were the best moments of this month?' : ''}
                 value={highlights}
-                onChange={(e) => setHighlights(e.target.value)}
-                className="min-h-[120px] resize-none"
+                onChange={(e) => canEdit && setHighlights(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[120px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -255,10 +300,14 @@ export default function MonthlyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What obstacles did you overcome or struggle with?"
+                placeholder={canEdit ? 'What obstacles did you overcome or struggle with?' : ''}
                 value={challenges}
-                onChange={(e) => setChallenges(e.target.value)}
-                className="min-h-[120px] resize-none"
+                onChange={(e) => canEdit && setChallenges(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[120px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -276,10 +325,14 @@ export default function MonthlyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What goals did you accomplish this month?"
+                placeholder={canEdit ? 'What goals did you accomplish this month?' : ''}
                 value={goalsAchieved}
-                onChange={(e) => setGoalsAchieved(e.target.value)}
-                className="min-h-[120px] resize-none"
+                onChange={(e) => canEdit && setGoalsAchieved(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[120px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -297,10 +350,14 @@ export default function MonthlyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What do you want to achieve next month?"
+                placeholder={canEdit ? 'What do you want to achieve next month?' : ''}
                 value={goalsForNextMonth}
-                onChange={(e) => setGoalsForNextMonth(e.target.value)}
-                className="min-h-[120px] resize-none"
+                onChange={(e) => canEdit && setGoalsForNextMonth(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[120px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -318,10 +375,14 @@ export default function MonthlyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What key insights did you gain this month?"
+                placeholder={canEdit ? 'What key insights did you gain this month?' : ''}
                 value={lessonsLearned}
-                onChange={(e) => setLessonsLearned(e.target.value)}
-                className="min-h-[100px] resize-none"
+                onChange={(e) => canEdit && setLessonsLearned(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[100px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -339,42 +400,95 @@ export default function MonthlyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What are you most grateful for this month?"
+                placeholder={canEdit ? 'What are you most grateful for this month?' : ''}
                 value={gratitude}
-                onChange={(e) => setGratitude(e.target.value)}
-                className="min-h-[100px] resize-none"
+                onChange={(e) => canEdit && setGratitude(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[100px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
         </div>
 
-        {/* Save Button - bottom-20 on mobile to clear bottom nav, bottom-4 on desktop */}
+        {/* Save/Submit Buttons - bottom-20 on mobile to clear bottom nav, bottom-4 on desktop */}
         <div className="sticky bottom-20 z-20 mt-8 md:bottom-4">
-          <Button
-            size="lg"
-            className="w-full shadow-lg"
-            onClick={handleSave}
-            disabled={upsertReview.isPending || isSaved}
-          >
-            {upsertReview.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : isSaved ? (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Saved
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Review
-              </>
-            )}
-          </Button>
+          {isSubmitted ? (
+            <div className="flex items-center justify-center gap-2 rounded-lg bg-green-500/10 p-4 text-green-700">
+              <Lock className="h-5 w-5" />
+              <span className="font-medium">
+                This review has been submitted and cannot be edited
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                size="lg"
+                variant="outline"
+                className="flex-1 shadow-lg"
+                onClick={() => handleSave(false)}
+                disabled={upsertReview.isPending || isSaved}
+              >
+                {upsertReview.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Draft Saved
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Draft
+                  </>
+                )}
+              </Button>
+
+              {isEndOfMonth && (
+                <Button
+                  size="lg"
+                  className="flex-1 shadow-lg"
+                  onClick={handleSubmit}
+                  disabled={upsertReview.isPending}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  Submit Review
+                </Button>
+              )}
+
+              {!isEndOfMonth && (
+                <div className="flex items-center justify-center gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground sm:flex-1">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Submit available in last 3 days</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Submit Confirmation Dialog */}
+      <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Monthly Review?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Once submitted, your monthly review will be finalized and{' '}
+              <span className="font-semibold text-destructive">cannot be edited</span>. Make sure
+              you&apos;ve reviewed all your entries before submitting.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSubmit}>Submit Review</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

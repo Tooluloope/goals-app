@@ -10,6 +10,7 @@ const transformUser = (apiUser: any): User => ({
   email: apiUser.email,
   avatar: apiUser.avatar ?? undefined,
   defaultWorkspaceId: apiUser.defaultWorkspaceId,
+  timezone: apiUser.timezone ?? 'UTC',
   settings: apiUser.settings,
   createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
   updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date(),
@@ -33,11 +34,11 @@ interface AuthState {
 
   // Actions
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string, timezone?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   setCurrentWorkspace: (workspace: Workspace) => void;
   loadWorkspaces: () => Promise<void>;
-  updateSettings: (settings: Partial<User['settings']>) => Promise<void>;
+  updateSettings: (settings: Partial<User['settings']> & { timezone?: string }) => Promise<void>;
   refreshUser: () => Promise<void>;
   initializeAuth: () => Promise<void>;
 }
@@ -79,11 +80,11 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      signup: async (name: string, email: string, password: string) => {
+      signup: async (name: string, email: string, password: string, timezone?: string) => {
         set({ isLoading: true });
-        console.log('Signing up user:', { name, email });
+        console.log('Signing up user:', { name, email, timezone });
         try {
-          const apiUser = await apiClient.signup(name, email, password);
+          const apiUser = await apiClient.signup(name, email, password, timezone);
           const user = transformUser(apiUser);
           const apiWorkspaces = await apiClient.getWorkspaces();
           const workspaces = apiWorkspaces.map(transformWorkspace);
@@ -132,7 +133,7 @@ export const useAuthStore = create<AuthState>()(
         set({ workspaces });
       },
 
-      updateSettings: async (settings: Partial<User['settings']>) => {
+      updateSettings: async (settings: Partial<User['settings']> & { timezone?: string }) => {
         const { user } = get();
         if (!user) return;
 

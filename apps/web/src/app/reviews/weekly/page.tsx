@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfWeek, endOfWeek, isSaturday, isSunday, isAfter } from 'date-fns';
 import { AppLayout } from '@/components/layout/app-layout';
 import {
   useCurrentWeekReview,
@@ -13,6 +13,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import {
   Calendar,
@@ -27,6 +37,9 @@ import {
   CheckCircle2,
   Flame,
   BarChart3,
+  Lock,
+  Send,
+  AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -48,6 +61,12 @@ export default function WeeklyReviewPage() {
   const [gratitude, setGratitude] = useState('');
   const [rating, setRating] = useState<number | undefined>(undefined);
   const [isSaved, setIsSaved] = useState(true);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+
+  // Check if it's end of week (Saturday, Sunday, or past the week)
+  const isEndOfWeek = isSaturday(today) || isSunday(today) || isAfter(today, weekEnd);
+  const isSubmitted = existingReview?.submitted === true;
+  const canEdit = !isSubmitted;
 
   // Load existing review data
   useEffect(() => {
@@ -78,43 +97,61 @@ export default function WeeklyReviewPage() {
     }
   }, [wentWell, toImprove, focusNextWeek, lessonsLearned, gratitude, rating, existingReview]);
 
-  const handleSave = useCallback(async () => {
-    const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+  const handleSave = useCallback(
+    async (submit = false) => {
+      if (!canEdit && !submit) return;
 
-    try {
-      await upsertReview.mutateAsync({
-        weekStart: weekStartStr,
-        wentWell: wentWell || undefined,
-        toImprove: toImprove || undefined,
-        focusNextWeek: focusNextWeek || undefined,
-        lessonsLearned: lessonsLearned || undefined,
-        gratitude: gratitude || undefined,
-        rating,
-      });
+      const weekStartStr = format(weekStart, 'yyyy-MM-dd');
 
-      setIsSaved(true);
-      toast({
-        title: 'Review saved',
-        description: 'Your weekly review has been saved successfully.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error saving',
-        description: 'Failed to save your review. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  }, [
-    wentWell,
-    toImprove,
-    focusNextWeek,
-    lessonsLearned,
-    gratitude,
-    rating,
-    weekStart,
-    upsertReview,
-    toast,
-  ]);
+      try {
+        await upsertReview.mutateAsync({
+          weekStart: weekStartStr,
+          wentWell: wentWell || undefined,
+          toImprove: toImprove || undefined,
+          focusNextWeek: focusNextWeek || undefined,
+          lessonsLearned: lessonsLearned || undefined,
+          gratitude: gratitude || undefined,
+          rating,
+          submitted: submit || undefined,
+        });
+
+        setIsSaved(true);
+        toast({
+          title: submit ? 'Review submitted' : 'Review saved',
+          description: submit
+            ? 'Your weekly review has been finalized and can no longer be edited.'
+            : 'Your weekly review has been saved as a draft.',
+        });
+      } catch (error) {
+        toast({
+          title: 'Error saving',
+          description: 'Failed to save your review. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    },
+    [
+      wentWell,
+      toImprove,
+      focusNextWeek,
+      lessonsLearned,
+      gratitude,
+      rating,
+      weekStart,
+      upsertReview,
+      toast,
+      canEdit,
+    ]
+  );
+
+  const handleSubmit = useCallback(() => {
+    setShowSubmitDialog(true);
+  }, []);
+
+  const confirmSubmit = useCallback(async () => {
+    setShowSubmitDialog(false);
+    await handleSave(true);
+  }, [handleSave]);
 
   if (isLoadingReview) {
     return (
@@ -196,12 +233,14 @@ export default function WeeklyReviewPage() {
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
-                  onClick={() => setRating(star)}
+                  onClick={() => canEdit && setRating(star)}
+                  disabled={!canEdit}
                   className={cn(
-                    'rounded-lg p-2 transition-all hover:scale-110',
+                    'rounded-lg p-2 transition-all',
                     rating && rating >= star
                       ? 'text-yellow-500'
-                      : 'text-muted-foreground/30 hover:text-yellow-500/50'
+                      : 'text-muted-foreground/30 hover:text-yellow-500/50',
+                    canEdit ? 'hover:scale-110' : 'cursor-not-allowed'
                   )}
                 >
                   <Star className={cn('h-8 w-8', rating && rating >= star && 'fill-current')} />
@@ -226,10 +265,14 @@ export default function WeeklyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="Celebrate your wins..."
+                placeholder={canEdit ? 'Celebrate your wins...' : ''}
                 value={wentWell}
-                onChange={(e) => setWentWell(e.target.value)}
-                className="min-h-[120px] resize-none"
+                onChange={(e) => canEdit && setWentWell(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[120px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -247,10 +290,14 @@ export default function WeeklyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What could have been better?"
+                placeholder={canEdit ? 'What could have been better?' : ''}
                 value={toImprove}
-                onChange={(e) => setToImprove(e.target.value)}
-                className="min-h-[120px] resize-none"
+                onChange={(e) => canEdit && setToImprove(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[120px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -268,10 +315,14 @@ export default function WeeklyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What are your priorities for next week?"
+                placeholder={canEdit ? 'What are your priorities for next week?' : ''}
                 value={focusNextWeek}
-                onChange={(e) => setFocusNextWeek(e.target.value)}
-                className="min-h-[120px] resize-none"
+                onChange={(e) => canEdit && setFocusNextWeek(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[120px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -289,10 +340,14 @@ export default function WeeklyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What did you learn this week?"
+                placeholder={canEdit ? 'What did you learn this week?' : ''}
                 value={lessonsLearned}
-                onChange={(e) => setLessonsLearned(e.target.value)}
-                className="min-h-[100px] resize-none"
+                onChange={(e) => canEdit && setLessonsLearned(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[100px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
@@ -310,42 +365,95 @@ export default function WeeklyReviewPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="What are you grateful for this week?"
+                placeholder={canEdit ? 'What are you grateful for this week?' : ''}
                 value={gratitude}
-                onChange={(e) => setGratitude(e.target.value)}
-                className="min-h-[100px] resize-none"
+                onChange={(e) => canEdit && setGratitude(e.target.value)}
+                readOnly={!canEdit}
+                className={cn(
+                  'min-h-[100px] resize-none',
+                  !canEdit && 'cursor-not-allowed opacity-80'
+                )}
               />
             </CardContent>
           </Card>
         </div>
 
-        {/* Save Button - bottom-20 on mobile to clear bottom nav, bottom-4 on desktop */}
+        {/* Save/Submit Buttons - bottom-20 on mobile to clear bottom nav, bottom-4 on desktop */}
         <div className="sticky bottom-20 z-20 mt-8 md:bottom-4">
-          <Button
-            size="lg"
-            className="w-full shadow-lg"
-            onClick={handleSave}
-            disabled={upsertReview.isPending || isSaved}
-          >
-            {upsertReview.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : isSaved ? (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Saved
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Review
-              </>
-            )}
-          </Button>
+          {isSubmitted ? (
+            <div className="flex items-center justify-center gap-2 rounded-lg bg-green-500/10 p-4 text-green-700">
+              <Lock className="h-5 w-5" />
+              <span className="font-medium">
+                This review has been submitted and cannot be edited
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                size="lg"
+                variant="outline"
+                className="flex-1 shadow-lg"
+                onClick={() => handleSave(false)}
+                disabled={upsertReview.isPending || isSaved}
+              >
+                {upsertReview.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Draft Saved
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Draft
+                  </>
+                )}
+              </Button>
+
+              {isEndOfWeek && (
+                <Button
+                  size="lg"
+                  className="flex-1 shadow-lg"
+                  onClick={handleSubmit}
+                  disabled={upsertReview.isPending}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  Submit Review
+                </Button>
+              )}
+
+              {!isEndOfWeek && (
+                <div className="flex items-center justify-center gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground sm:flex-1">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Submit available on Saturday/Sunday</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Submit Confirmation Dialog */}
+      <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Weekly Review?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Once submitted, your weekly review will be finalized and{' '}
+              <span className="font-semibold text-destructive">cannot be edited</span>. Make sure
+              you&apos;ve reviewed all your entries before submitting.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSubmit}>Submit Review</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Image as ImageIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, Trash2, Image as ImageIcon, ChevronRight, GitBranch } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -15,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageGallery } from '@/components/shared/image-gallery';
 import { CompactImageGallery } from '@/components/shared/image-gallery';
+import { TaskDependencyGraph } from '@/components/shared/task-dependency-graph';
 import { Project, ChecklistItem, Task, LocalImageAttachment } from '@/types';
 import {
   useAddRequirement,
@@ -120,6 +122,34 @@ export function ProjectSections({ project }: ProjectSectionsProps) {
             <TasksSection projectId={project.id} tasks={tasks} />
           </AccordionContent>
         </AccordionItem>
+
+        {/* Task Dependency Graph */}
+        {tasks.length > 0 && (
+          <AccordionItem value="task-graph" className="border rounded-2xl bg-card">
+            <AccordionTrigger className="px-4 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <GitBranch className="h-4 w-4 text-primary" />
+                <span className="font-semibold">Task Dependencies</span>
+                <Badge variant="secondary">
+                  {
+                    tasks.filter(
+                      (t) => (t.blockedBy?.length ?? 0) > 0 || (t.blocking?.length ?? 0) > 0
+                    ).length
+                  }{' '}
+                  linked
+                </Badge>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="h-[400px] rounded-lg border bg-muted/30 overflow-hidden">
+                <TaskDependencyGraph projectId={project.id} tasks={tasks} className="h-full" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Click on a task to view its details. Drag to pan, scroll to zoom.
+              </p>
+            </AccordionContent>
+          </AccordionItem>
+        )}
 
         {/* Key Decisions */}
         {keyDecisions.length > 0 && (
@@ -401,6 +431,7 @@ function ChecklistSection({
 
 // Tasks Section
 function TasksSection({ projectId, tasks }: { projectId: string; tasks: Task[] }) {
+  const router = useRouter();
   const [newTask, setNewTask] = useState('');
   const createTask = useCreateTask();
   const updateTaskStatus = useUpdateTaskStatus();
@@ -444,23 +475,32 @@ function TasksSection({ projectId, tasks }: { projectId: string; tasks: Task[] }
           handleStatusChange(task.id, checked ? doneStatusId : nextActionStatusId)
         }
         className="h-5 w-5"
+        onClick={(e) => e.stopPropagation()}
       />
-      <span
+      <button
         className={cn(
-          'flex-1',
+          'flex-1 text-left hover:text-primary transition-colors cursor-pointer',
           task.statusId === doneStatusId && 'line-through text-muted-foreground'
         )}
+        onClick={() => router.push(`/project/${projectId}/task/${task.id}`)}
       >
         {task.title}
-      </span>
+      </button>
       {task.dueDate && (
         <span className="text-xs text-muted-foreground">{formatDate(task.dueDate, 'MMM d')}</span>
       )}
+      <ChevronRight
+        className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-pointer hover:text-primary transition-all"
+        onClick={() => router.push(`/project/${projectId}/task/${task.id}`)}
+      />
       <Button
         variant="ghost"
         size="icon-sm"
         className="opacity-0 group-hover:opacity-100"
-        onClick={() => handleDelete(task.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDelete(task.id);
+        }}
       >
         <Trash2 className="h-3 w-3" />
       </Button>

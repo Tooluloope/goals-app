@@ -68,6 +68,7 @@ export class AuthService {
           email: signupDto.email,
           name: signupDto.name,
           passwordHash,
+          timezone: signupDto.timezone || 'UTC', // Use provided timezone or default to UTC
           settings: {
             theme: 'light',
             compactMode: false,

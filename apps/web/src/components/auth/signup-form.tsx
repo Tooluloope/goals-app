@@ -53,7 +53,9 @@ export function SignupForm() {
   const onSubmit = async (data: SignupFormData) => {
     setIsSubmitting(true);
     try {
-      const success = await signup(data.name, data.email, data.password);
+      // Detect user's timezone from browser
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const success = await signup(data.name, data.email, data.password, timezone);
       if (success) {
         toast({
           title: 'Account created',

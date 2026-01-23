@@ -18,6 +18,7 @@ model User {
   name               String
   avatar             String?
   defaultWorkspaceId String?
+  timezone           String    @default("UTC") // IANA timezone string (e.g., "America/New_York")
   settings           Json      @default("{\"theme\": \"light\", \"compactMode\": false, \"showWelcomeOnLogin\": true}")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -369,6 +370,7 @@ model JournalEntry {
   userId      String
   date        DateTime @db.Date
   mood        Mood?
+  emoji       String?  // User-selected emoji for the day
   prompt      String?  @db.Text
   content     String   @db.Text
   wins        String?  @db.Text

@@ -3,10 +3,26 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateJournalEntryDto, UpdateJournalEntryDto } from '@goals/shared';
 import { JournalEntry, Mood } from '@goals/database';
 import { startOfDay, parseISO } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class JournalService {
   constructor(private prisma: PrismaService) {}
+
+  // Get user's timezone from database, default to UTC
+  private async getUserTimezone(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    return user?.timezone || 'UTC';
+  }
+
+  // Get today's date at start of day in user's timezone
+  private getTodayInTimezone(timezone: string): Date {
+    const todayStr = formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
+    return new Date(todayStr + 'T00:00:00.000Z');
+  }
 
   async create(data: CreateJournalEntryDto, userId: string): Promise<JournalEntry> {
     const date = startOfDay(parseISO(data.date));
@@ -30,6 +46,7 @@ export class JournalService {
         userId,
         date,
         mood: data.mood as Mood | null,
+        emoji: data.emoji,
         prompt: data.prompt,
         content: data.content,
         wins: data.wins,
@@ -51,6 +68,7 @@ export class JournalService {
       where: { id },
       data: {
         mood: data.mood as Mood | null | undefined,
+        emoji: data.emoji,
         prompt: data.prompt,
         content: data.content,
         wins: data.wins,
@@ -73,6 +91,7 @@ export class JournalService {
       },
       update: {
         mood: data.mood as Mood | null,
+        emoji: data.emoji,
         prompt: data.prompt,
         content: data.content,
         wins: data.wins,
@@ -84,6 +103,7 @@ export class JournalService {
         userId,
         date,
         mood: data.mood as Mood | null,
+        emoji: data.emoji,
         prompt: data.prompt,
         content: data.content,
         wins: data.wins,
@@ -129,6 +149,21 @@ export class JournalService {
     });
   }
 
+  // Find today's entry using user's timezone
+  async findTodayEntry(userId: string): Promise<JournalEntry | null> {
+    const userTimezone = await this.getUserTimezone(userId);
+    const today = this.getTodayInTimezone(userTimezone);
+
+    return this.prisma.journalEntry.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date: today,
+        },
+      },
+    });
+  }
+
   async findAll(userId: string, limit = 30, offset = 0): Promise<JournalEntry[]> {
     return this.prisma.journalEntry.findMany({
       where: { userId },
@@ -155,7 +190,10 @@ export class JournalService {
     });
   }
 
-  async getStreak(userId: string): Promise<number> {
+  async getStreak(userId: string): Promise<{ currentStreak: number; longestStreak: number }> {
+    // Get user's timezone for accurate "today" calculation
+    const userTimezone = await this.getUserTimezone(userId);
+
     // Get all journal entries for the user ordered by date descending
     const entries = await this.prisma.journalEntry.findMany({
       where: { userId },
@@ -163,10 +201,12 @@ export class JournalService {
       select: { date: true },
     });
 
-    if (entries.length === 0) return 0;
+    if (entries.length === 0) return { currentStreak: 0, longestStreak: 0 };
 
-    let streak = 0;
-    const today = startOfDay(new Date());
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    const today = this.getTodayInTimezone(userTimezone);
     let currentDate = today;
 
     for (const entry of entries) {
@@ -176,17 +216,27 @@ export class JournalService {
       );
 
       if (diffDays === 0) {
-        streak++;
+        tempStreak++;
+        if (currentStreak === 0 || currentStreak === tempStreak - 1) {
+          currentStreak = tempStreak;
+        }
         currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
       } else if (diffDays === 1) {
-        streak++;
+        tempStreak++;
+        if (currentStreak === tempStreak - 1) {
+          currentStreak = tempStreak;
+        }
         currentDate = entryDate;
       } else {
-        break;
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 1;
+        currentDate = entryDate;
       }
     }
 
-    return streak;
+    longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
+
+    return { currentStreak, longestStreak };
   }
 
   // Get random daily prompt

@@ -1,78 +1,333 @@
 'use client';
 
-import { format } from 'date-fns';
-import { AppLayout } from '@/components/layout/app-layout';
-import { HabitTracker } from '@/components/rhythm/habit-tracker';
-import { DailyJournal } from '@/components/rhythm/daily-journal';
-import { useJournalStreak } from '@/hooks/use-journal';
-import { useTodayHabits } from '@/hooks/use-habits';
-import { Flame, BookOpen } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { addDays, format, isFuture, isToday, parseISO, subDays } from 'date-fns';
+import { BookOpen, CalendarDays, ChevronLeft, ChevronRight, Flame, Sparkles } from 'lucide-react';
 
-export default function RhythmPage() {
-  const today = new Date();
-  const { data: habitsData } = useTodayHabits();
+import { AppLayout } from '@/components/layout/app-layout';
+import { DailyJournalRhythm2 } from '@/components/rhythm/daily-journal-rhythm2';
+import { HabitTracker } from '@/components/rhythm/habit-tracker';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { useJournalStreak } from '@/hooks/use-journal';
+import { useHabitsForDate, useTodayHabits } from '@/hooks/use-habits';
+
+export default function Rhythm2Page() {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const isViewingToday = isToday(selectedDate);
+
+  const { data: habitsData } = useHabitsForDate(selectedDateStr);
+  const { data: todayHabitsData } = useTodayHabits();
   const { data: streak } = useJournalStreak();
 
-  // Ensure habits is always an array (handle null/undefined)
   const habits = Array.isArray(habitsData) ? habitsData : [];
-  const completedHabits = habits.filter((h) => h.completedToday).length;
-  const totalHabits = habits.length;
+  const todayHabits = Array.isArray(todayHabitsData) ? todayHabitsData : [];
+  const displayHabits = isViewingToday ? todayHabits : habits;
+
+  const completedHabits = displayHabits.filter((h) => h.completedToday).length;
+  const totalHabits = displayHabits.length;
   const progressPercent = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
 
+  const goToPreviousDay = () => setSelectedDate(subDays(selectedDate, 1));
+  const goToNextDay = () => {
+    const nextDay = addDays(selectedDate, 1);
+    if (!isFuture(nextDay)) setSelectedDate(nextDay);
+  };
+  const goToToday = () => setSelectedDate(new Date());
+
+  const weekDates = useMemo(() => {
+    const dates: Date[] = [];
+    for (let i = -3; i <= 3; i++) {
+      dates.push(addDays(selectedDate, i));
+    }
+    return dates;
+  }, [selectedDate]);
+
+  const progressRingStyle = {
+    background: `conic-gradient(hsl(var(--primary)) ${progressPercent}%, hsl(var(--muted)) 0)`,
+  };
+
   return (
-    <AppLayout title="Daily Rhythm">
-      <div className="container max-w-4xl px-4 py-6 md:py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold md:text-3xl">Today&apos;s Rhythm</h1>
-          <p className="mt-1 text-muted-foreground">{format(today, 'EEEE, MMMM d, yyyy')}</p>
-        </div>
+    <AppLayout title="Rhythm">
+      <div className="relative overflow-hidden animate-fade-in">
+        <div className="pointer-events-none absolute -left-32 top-10 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-40 -top-20 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
 
-        {/* Stats Row */}
-        <div className="mb-6 flex items-center gap-6">
-          {streak && streak.currentStreak > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <Flame className="h-5 w-5 text-orange-500" />
-              <span className="font-medium">{streak.currentStreak} day streak</span>
-            </div>
-          )}
-          {totalHabits > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <BookOpen className="h-5 w-5 text-primary" />
-              <span className="font-medium">
-                {completedHabits}/{totalHabits} habits
-              </span>
-            </div>
-          )}
-        </div>
+        <div className="container max-w-6xl px-4 py-5 sm:py-6 md:py-10">
+          <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
+            <section className="order-2 space-y-6 lg:order-1">
+              <div className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-background via-background to-muted/40 p-4 shadow-sm sm:p-6 md:p-8 animate-slide-up">
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Rhythm Check-in
+                    </div>
+                    <h1 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
+                      {isViewingToday ? "Today's Flow" : 'Daily Rhythm'}
+                    </h1>
+                    <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                      {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                    </p>
+                  </div>
 
-        {/* Progress Bar */}
-        {totalHabits > 0 && (
-          <div className="mb-8">
-            <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="font-medium uppercase tracking-wider text-muted-foreground">
-                Daily Goals
-              </span>
-              <span className="font-bold text-primary">
-                {completedHabits}/{totalHabits} Complete
-              </span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
+                  <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={goToPreviousDay}
+                      className="h-10 w-10"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full min-w-[132px] justify-center gap-2 border-border bg-background/80 font-medium sm:w-auto',
+                            isViewingToday &&
+                              'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15'
+                          )}
+                        >
+                          <CalendarDays className="h-4 w-4" />
+                          {isViewingToday ? 'Today' : format(selectedDate, 'MMM d')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <div className="space-y-4 p-4">
+                          <div className="flex gap-2">
+                            <Button
+                              variant={isViewingToday ? 'default' : 'outline'}
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => {
+                                goToToday();
+                                setCalendarOpen(false);
+                              }}
+                            >
+                              Today
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => {
+                                setSelectedDate(subDays(new Date(), 1));
+                                setCalendarOpen(false);
+                              }}
+                            >
+                              Yesterday
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              This Week
+                            </p>
+                            <div className="grid grid-cols-7 gap-1">
+                              {weekDates.map((date) => {
+                                const dateStr = format(date, 'yyyy-MM-dd');
+                                const isSelected = dateStr === selectedDateStr;
+                                const isDateToday = isToday(date);
+                                const isFutureDate = isFuture(date);
+
+                                return (
+                                  <button
+                                    key={dateStr}
+                                    onClick={() => {
+                                      if (!isFutureDate) {
+                                        setSelectedDate(date);
+                                        setCalendarOpen(false);
+                                      }
+                                    }}
+                                    disabled={isFutureDate}
+                                    className={cn(
+                                      'flex flex-col items-center justify-center rounded-xl p-2 text-sm transition-colors',
+                                      isSelected && 'bg-primary text-primary-foreground',
+                                      !isSelected && isDateToday && 'bg-primary/10 font-semibold',
+                                      !isSelected &&
+                                        !isDateToday &&
+                                        !isFutureDate &&
+                                        'hover:bg-muted',
+                                      isFutureDate && 'cursor-not-allowed opacity-40'
+                                    )}
+                                  >
+                                    <span className="text-[10px] uppercase">
+                                      {format(date, 'EEE')}
+                                    </span>
+                                    <span className="text-lg font-semibold">
+                                      {format(date, 'd')}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              Jump to Date
+                            </p>
+                            <input
+                              type="date"
+                              value={selectedDateStr}
+                              max={format(new Date(), 'yyyy-MM-dd')}
+                              onChange={(e) => {
+                                const date = parseISO(e.target.value);
+                                if (!isNaN(date.getTime()) && !isFuture(date)) {
+                                  setSelectedDate(date);
+                                  setCalendarOpen(false);
+                                }
+                              }}
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={goToNextDay}
+                      disabled={isViewingToday}
+                      className="h-10 w-10"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-3">
+                  {streak && streak.currentStreak > 0 && (
+                    <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-600">
+                      <Flame className="h-4 w-4" />
+                      {streak.currentStreak} day streak
+                    </div>
+                  )}
+                  {totalHabits > 0 && (
+                    <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      <BookOpen className="h-4 w-4" />
+                      {completedHabits}/{totalHabits} habits complete
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border bg-card p-4 shadow-sm sm:p-5 md:p-6 animate-slide-up">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Daily Momentum
+                    </p>
+                    <h2 className="mt-1 text-xl font-semibold">Habit Pulse</h2>
+                  </div>
+                  <span className="text-sm font-semibold text-primary">
+                    {progressPercent.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="mt-5">
+                  <HabitTracker selectedDate={selectedDateStr} />
+                </div>
+              </div>
+
+              <div className="animate-slide-up">
+                <DailyJournalRhythm2 selectedDate={selectedDateStr} />
+              </div>
+            </section>
+
+            <aside className="order-1 space-y-5 sm:space-y-6 lg:order-2">
+              <div className="rounded-3xl border bg-card p-4 shadow-sm sm:p-6 animate-slide-up">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Today at a glance
+                </p>
+                <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+                  <div
+                    className="relative flex h-28 w-28 items-center justify-center rounded-full self-center sm:self-auto"
+                    style={progressRingStyle}
+                  >
+                    <div className="flex h-20 w-20 flex-col items-center justify-center rounded-full bg-background">
+                      <span className="text-xl font-semibold">{completedHabits}</span>
+                      <span className="text-[11px] uppercase text-muted-foreground">
+                        of {totalHabits}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold">Habit completion</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isViewingToday
+                        ? "Stay steady with today's rhythm."
+                        : 'Review how that day went.'}
+                    </p>
+                    <div className="text-xs font-semibold text-primary">
+                      {progressPercent.toFixed(0)}% complete
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border bg-card p-4 shadow-sm sm:p-6 animate-slide-up">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Week rhythm
+                </p>
+                <div className="mt-4 grid grid-cols-7 gap-2">
+                  {weekDates.map((date) => {
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const isSelected = dateStr === selectedDateStr;
+                    const isDateToday = isToday(date);
+                    const isFutureDate = isFuture(date);
+
+                    return (
+                      <button
+                        key={`rail-${dateStr}`}
+                        onClick={() => {
+                          if (!isFutureDate) setSelectedDate(date);
+                        }}
+                        disabled={isFutureDate}
+                        className={cn(
+                          'flex flex-col items-center justify-center rounded-2xl border px-2 py-3 text-xs transition-all',
+                          isSelected && 'border-primary bg-primary text-primary-foreground',
+                          !isSelected && isDateToday && 'border-primary/40 bg-primary/10',
+                          !isSelected && !isDateToday && !isFutureDate && 'hover:border-primary/40',
+                          isFutureDate && 'cursor-not-allowed opacity-40'
+                        )}
+                      >
+                        <span className="text-[10px] uppercase">{format(date, 'EEE')}</span>
+                        <span className="text-base font-semibold">{format(date, 'd')}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border bg-gradient-to-br from-primary/10 via-background to-background p-4 shadow-sm sm:p-6 animate-slide-up">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Intentional focus
+                </p>
+                <div className="mt-4 space-y-2">
+                  <h3 className="text-lg font-semibold">Small wins compound</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Lock in a few habits, then reflect. Consistency turns into momentum.
+                  </p>
+                </div>
+              </div>
+            </aside>
           </div>
-        )}
-
-        {/* Habit Tracker */}
-        <div className="mb-8">
-          <HabitTracker />
         </div>
-
-        {/* Daily Journal */}
-        <DailyJournal />
       </div>
     </AppLayout>
   );
