@@ -1,10 +1,25 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { format, startOfMonth, endOfMonth, getDate, getDaysInMonth, isAfter } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  getDate,
+  getDaysInMonth,
+  isAfter,
+  addMonths,
+  subMonths,
+  isFuture,
+  isSameMonth,
+  parse,
+} from 'date-fns';
 import { AppLayout } from '@/components/layout/app-layout';
+import { useAuthStore } from '@/store/auth-store';
 import {
   useCurrentMonthReview,
+  useMonthlyReviewByDate,
   useUpsertMonthlyReview,
   useMonthlyReviewStats,
   useMonthlyReviewPrompts,
@@ -12,6 +27,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,16 +55,38 @@ import {
   Lock,
   Send,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MonthlyReviewPage() {
+  const router = useRouter();
+  const { currentWorkspace } = useAuthStore();
   const { toast } = useToast();
   const today = new Date();
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const { data: existingReview, isLoading: isLoadingReview } = useCurrentMonthReview();
+  const selectedMonthStart = startOfMonth(selectedDate);
+  const selectedMonthStr = format(selectedMonthStart, 'yyyy-MM-dd');
+  const isViewingCurrentMonth = isSameMonth(selectedDate, today);
+  const currentMonthEnd = endOfMonth(today);
+
+  // Redirect to Family Hub if in family workspace (this is a personal-only page)
+  useEffect(() => {
+    if (currentWorkspace?.type === 'family') {
+      router.replace('/family');
+    }
+  }, [currentWorkspace, router]);
+
+  const { data: currentReview, isLoading: isLoadingCurrentReview } = useCurrentMonthReview();
+  const { data: dateReview, isLoading: isLoadingDateReview } = useMonthlyReviewByDate(
+    isViewingCurrentMonth ? '' : selectedMonthStr
+  );
+  const existingReview = isViewingCurrentMonth ? currentReview : dateReview;
+  const isLoadingReview = isViewingCurrentMonth ? isLoadingCurrentReview : isLoadingDateReview;
   const { data: stats } = useMonthlyReviewStats();
   const { data: prompts } = useMonthlyReviewPrompts();
   const upsertReview = useUpsertMonthlyReview();
@@ -66,9 +104,29 @@ export default function MonthlyReviewPage() {
   // Check if it's end of month (last 3 days or past the month)
   const daysInMonth = getDaysInMonth(today);
   const currentDay = getDate(today);
-  const isEndOfMonth = currentDay >= daysInMonth - 2 || isAfter(today, monthEnd);
+  const isEndOfMonth =
+    isViewingCurrentMonth && (currentDay >= daysInMonth - 2 || isAfter(today, currentMonthEnd));
   const isSubmitted = existingReview?.submitted === true;
-  const canEdit = !isSubmitted;
+  const canEdit = isViewingCurrentMonth && !isSubmitted;
+
+  const goToPreviousMonth = () => setSelectedDate(subMonths(selectedDate, 1));
+  const goToNextMonth = () => {
+    const nextMonth = addMonths(selectedDate, 1);
+    if (!isFuture(nextMonth)) setSelectedDate(nextMonth);
+  };
+  const goToCurrentMonth = () => setSelectedDate(today);
+
+  // Reset form when switching months
+  useEffect(() => {
+    setHighlights('');
+    setChallenges('');
+    setGoalsAchieved('');
+    setGoalsForNextMonth('');
+    setLessonsLearned('');
+    setGratitude('');
+    setRating(undefined);
+    setIsSaved(true);
+  }, [selectedMonthStr]);
 
   // Load existing review data
   useEffect(() => {
@@ -122,11 +180,9 @@ export default function MonthlyReviewPage() {
     async (submit = false) => {
       if (!canEdit && !submit) return;
 
-      const monthStr = format(monthStart, 'yyyy-MM-dd');
-
       try {
         await upsertReview.mutateAsync({
-          month: monthStr,
+          month: selectedMonthStr,
           highlights: highlights || undefined,
           challenges: challenges || undefined,
           goalsAchieved: goalsAchieved || undefined,
@@ -160,10 +216,10 @@ export default function MonthlyReviewPage() {
       lessonsLearned,
       gratitude,
       rating,
-      monthStart,
       upsertReview,
       toast,
       canEdit,
+      selectedMonthStr,
     ]
   );
 
@@ -190,16 +246,119 @@ export default function MonthlyReviewPage() {
     <AppLayout title="Monthly Review">
       <div className="container max-w-4xl px-4 py-6 md:py-8">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span className="text-sm">{format(monthStart, 'MMMM yyyy')}</span>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span className="text-sm">{format(selectedMonthStart, 'MMMM yyyy')}</span>
+            </div>
+            <h1 className="mt-2 text-2xl font-bold md:text-3xl">Monthly Review</h1>
+            <p className="mt-1 text-muted-foreground">
+              Reflect on your month and set intentions for the next
+            </p>
           </div>
-          <h1 className="mt-2 text-2xl font-bold md:text-3xl">Monthly Review</h1>
-          <p className="mt-1 text-muted-foreground">
-            Reflect on your month and set intentions for the next
-          </p>
+
+          {/* Month Picker */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goToPreviousMonth}
+              className="h-9 w-9 shrink-0"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'min-w-[150px] justify-center gap-2 font-medium',
+                    isViewingCurrentMonth &&
+                      'bg-primary text-primary-foreground hover:bg-primary/90'
+                  )}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  {isViewingCurrentMonth ? 'This month' : format(selectedMonthStart, 'MMM yyyy')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <div className="p-4 space-y-4">
+                  {/* Quick Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant={isViewingCurrentMonth ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        goToCurrentMonth();
+                        setCalendarOpen(false);
+                      }}
+                    >
+                      This month
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedDate(subMonths(today, 1));
+                        setCalendarOpen(false);
+                      }}
+                    >
+                      Last month
+                    </Button>
+                  </div>
+
+                  {/* Month Input */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Jump to Month
+                    </p>
+                    <input
+                      type="month"
+                      value={format(selectedMonthStart, 'yyyy-MM')}
+                      max={format(today, 'yyyy-MM')}
+                      onChange={(e) => {
+                        const date = parse(e.target.value, 'yyyy-MM', new Date());
+                        if (!isNaN(date.getTime()) && !isFuture(date)) {
+                          setSelectedDate(date);
+                          setCalendarOpen(false);
+                        }
+                      }}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goToNextMonth}
+              disabled={isViewingCurrentMonth}
+              className="h-9 w-9 shrink-0"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
+
+        {/* Locked Banner for Past Months or Submitted Review */}
+        {!canEdit && (
+          <div className="mb-6 flex items-center justify-center gap-2 rounded-lg bg-muted p-4 text-muted-foreground">
+            <Lock className="h-5 w-5" />
+            <span className="font-medium">
+              {isViewingCurrentMonth
+                ? 'This review has been submitted and cannot be edited'
+                : existingReview
+                  ? 'This review is from a past month and is read-only'
+                  : 'No review found for this month'}
+            </span>
+          </div>
+        )}
 
         {/* Stats Row */}
         {stats && (
@@ -414,15 +573,8 @@ export default function MonthlyReviewPage() {
         </div>
 
         {/* Save/Submit Buttons - bottom-20 on mobile to clear bottom nav, bottom-4 on desktop */}
-        <div className="sticky bottom-20 z-20 mt-8 md:bottom-4">
-          {isSubmitted ? (
-            <div className="flex items-center justify-center gap-2 rounded-lg bg-green-500/10 p-4 text-green-700">
-              <Lock className="h-5 w-5" />
-              <span className="font-medium">
-                This review has been submitted and cannot be edited
-              </span>
-            </div>
-          ) : (
+        {canEdit && (
+          <div className="sticky bottom-20 z-20 mt-8 md:bottom-4">
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 size="lg"
@@ -468,8 +620,8 @@ export default function MonthlyReviewPage() {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Submit Confirmation Dialog */}

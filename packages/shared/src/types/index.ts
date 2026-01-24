@@ -17,10 +17,35 @@ export interface User {
   updatedAt: Date;
 }
 
+export interface EmailPreferences {
+  habitReminders: boolean;
+  taskDueReminders: boolean;
+  weeklySummary: boolean;
+  monthlySummary: boolean;
+  staleProjectAlerts: boolean;
+  reviewDueReminders: boolean;
+  streakMilestones: boolean;
+  aiInsights: boolean;
+  inactivityReminders: boolean;
+}
+
+export const defaultEmailPreferences: EmailPreferences = {
+  habitReminders: true,
+  taskDueReminders: true,
+  weeklySummary: true,
+  monthlySummary: true,
+  staleProjectAlerts: true,
+  reviewDueReminders: true,
+  streakMilestones: true,
+  aiInsights: true,
+  inactivityReminders: false, // Opt-in by default
+};
+
 export interface UserSettings {
   theme: 'light' | 'dark' | 'system';
   compactMode: boolean;
   showWelcomeOnLogin: boolean;
+  emailPreferences?: EmailPreferences;
 }
 
 // ============================================================
@@ -102,6 +127,7 @@ export interface KeyDecision {
 export interface ReviewNote {
   id: string;
   projectId: string;
+  createdById?: string | null;
   date: Date;
   notes: string;
   progress: string;
@@ -110,6 +136,11 @@ export interface ReviewNote {
   nextStep: string;
   createdAt: Date;
   images?: ImageAttachment[];
+  createdBy?: {
+    id: string;
+    name: string;
+    avatar?: string | null;
+  } | null;
 }
 
 export interface ProjectMetrics {
@@ -144,6 +175,7 @@ export interface Project {
   objective: string;
   failureCriteria?: string | null;
   tagIds: string[];
+  ownerId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   // Relations (populated when fetched)

@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { AppLayout } from '@/components/layout/app-layout';
 import { DailyFocus } from '@/components/dashboard/daily-focus';
@@ -13,9 +15,17 @@ import { Card } from '@/components/ui/card';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const { user, currentWorkspace } = useAuthStore();
   const today = new Date();
   const greeting = getGreeting();
+
+  // Redirect to Family Hub if in family workspace
+  useEffect(() => {
+    if (currentWorkspace?.type === 'family') {
+      router.replace('/family');
+    }
+  }, [currentWorkspace, router]);
 
   function getGreeting() {
     const hour = today.getHours();

@@ -270,6 +270,13 @@ class ApiClient {
     });
   }
 
+  deleteAccount(password: string): Promise<{ message: string }> {
+    return this.fetch('/auth/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+  }
+
   // ============================================================
   // WORKSPACES
   // ============================================================
@@ -408,8 +415,11 @@ class ApiClient {
   // TASKS
   // ============================================================
 
-  getTasks(): Promise<Task[]> {
-    return this.fetch<Task[]>('/tasks');
+  getTasks(workspaceId?: string): Promise<import('@/types').TaskWithProject[]> {
+    const params = new URLSearchParams();
+    if (workspaceId) params.append('workspaceId', workspaceId);
+    const query = params.toString();
+    return this.fetch<import('@/types').TaskWithProject[]>(`/tasks${query ? `?${query}` : ''}`);
   }
 
   getTask(
@@ -808,19 +818,26 @@ class ApiClient {
   // AI - CONVERSATIONS
   // ============================================================
 
-  getAiConversations(limit?: number): Promise<(AiConversation & { messages: AiMessage[] })[]> {
-    const query = limit ? `?limit=${limit}` : '';
-    return this.fetch<(AiConversation & { messages: AiMessage[] })[]>(`/ai/conversations${query}`);
+  getAiConversations(
+    workspaceId: string,
+    limit?: number
+  ): Promise<(AiConversation & { messages: AiMessage[] })[]> {
+    const params = new URLSearchParams();
+    params.append('workspaceId', workspaceId);
+    if (limit) params.append('limit', limit.toString());
+    return this.fetch<(AiConversation & { messages: AiMessage[] })[]>(
+      `/ai/conversations?${params.toString()}`
+    );
   }
 
   getAiConversation(id: string): Promise<AiConversation & { messages: AiMessage[] }> {
     return this.fetch<AiConversation & { messages: AiMessage[] }>(`/ai/conversations/${id}`);
   }
 
-  createAiConversation(title?: string): Promise<AiConversation> {
+  createAiConversation(workspaceId: string, title?: string): Promise<AiConversation> {
     return this.fetch<AiConversation>('/ai/conversations', {
       method: 'POST',
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ workspaceId, title }),
     });
   }
 
@@ -848,37 +865,56 @@ class ApiClient {
   // AI - SUMMARIES
   // ============================================================
 
-  getAiSummaries(type?: SummaryType, limit?: number): Promise<AiSummary[]> {
+  getAiSummaries(workspaceId: string, type?: SummaryType, limit?: number): Promise<AiSummary[]> {
     const params = new URLSearchParams();
+    params.append('workspaceId', workspaceId);
     if (type) params.append('type', type);
     if (limit) params.append('limit', limit.toString());
-    const query = params.toString();
-    return this.fetch<AiSummary[]>(`/ai/summaries${query ? `?${query}` : ''}`);
+    return this.fetch<AiSummary[]>(`/ai/summaries?${params.toString()}`);
   }
 
-  getWeeklyAiSummary(weekStart: string, forceRegenerate = false): Promise<AiSummaryResponse> {
-    const query = forceRegenerate ? '?forceRegenerate=true' : '';
-    return this.fetch<AiSummaryResponse>(`/ai/summaries/weekly/${weekStart}${query}`);
+  getWeeklyAiSummary(
+    workspaceId: string,
+    weekStart: string,
+    forceRegenerate = false
+  ): Promise<AiSummaryResponse> {
+    const params = new URLSearchParams();
+    params.append('workspaceId', workspaceId);
+    if (forceRegenerate) params.append('forceRegenerate', 'true');
+    return this.fetch<AiSummaryResponse>(`/ai/summaries/weekly/${weekStart}?${params.toString()}`);
   }
 
-  getMonthlyAiSummary(month: string, forceRegenerate = false): Promise<AiSummaryResponse> {
-    const query = forceRegenerate ? '?forceRegenerate=true' : '';
-    return this.fetch<AiSummaryResponse>(`/ai/summaries/monthly/${month}${query}`);
+  getMonthlyAiSummary(
+    workspaceId: string,
+    month: string,
+    forceRegenerate = false
+  ): Promise<AiSummaryResponse> {
+    const params = new URLSearchParams();
+    params.append('workspaceId', workspaceId);
+    if (forceRegenerate) params.append('forceRegenerate', 'true');
+    return this.fetch<AiSummaryResponse>(`/ai/summaries/monthly/${month}?${params.toString()}`);
   }
 
-  getYearlyAiSummary(year: string, forceRegenerate = false): Promise<AiSummaryResponse> {
-    const query = forceRegenerate ? '?forceRegenerate=true' : '';
-    return this.fetch<AiSummaryResponse>(`/ai/summaries/yearly/${year}${query}`);
+  getYearlyAiSummary(
+    workspaceId: string,
+    year: string,
+    forceRegenerate = false
+  ): Promise<AiSummaryResponse> {
+    const params = new URLSearchParams();
+    params.append('workspaceId', workspaceId);
+    if (forceRegenerate) params.append('forceRegenerate', 'true');
+    return this.fetch<AiSummaryResponse>(`/ai/summaries/yearly/${year}?${params.toString()}`);
   }
 
   generateAiSummary(
+    workspaceId: string,
     type: SummaryType,
     periodStart: string,
     forceRegenerate = false
   ): Promise<AiSummaryResponse> {
     return this.fetch<AiSummaryResponse>('/ai/summaries/generate', {
       method: 'POST',
-      body: JSON.stringify({ type, periodStart, forceRegenerate }),
+      body: JSON.stringify({ workspaceId, type, periodStart, forceRegenerate }),
     });
   }
 
@@ -886,17 +922,23 @@ class ApiClient {
   // AI - INSIGHTS
   // ============================================================
 
-  getAiInsights(type?: string, includeDismissed = false): Promise<AiInsight[]> {
+  getAiInsights(
+    workspaceId: string,
+    type?: string,
+    includeDismissed = false
+  ): Promise<AiInsight[]> {
     const params = new URLSearchParams();
+    params.append('workspaceId', workspaceId);
     if (type) params.append('type', type);
     if (includeDismissed) params.append('includeDismissed', 'true');
-    const query = params.toString();
-    return this.fetch<AiInsight[]>(`/ai/insights${query ? `?${query}` : ''}`);
+    return this.fetch<AiInsight[]>(`/ai/insights?${params.toString()}`);
   }
 
-  generateAiInsights(types?: string[]): Promise<AiInsight[]> {
-    const query = types ? `?types=${types.join(',')}` : '';
-    return this.fetch<AiInsight[]>(`/ai/insights/generate${query}`, {
+  generateAiInsights(workspaceId: string, types?: string[]): Promise<AiInsight[]> {
+    const params = new URLSearchParams();
+    params.append('workspaceId', workspaceId);
+    if (types) params.append('types', types.join(','));
+    return this.fetch<AiInsight[]>(`/ai/insights/generate?${params.toString()}`, {
       method: 'POST',
     });
   }
@@ -911,8 +953,12 @@ class ApiClient {
   // AI - DAILY TEXT
   // ============================================================
 
-  getDailyText(): Promise<{ text: string; generatedAt: string; cached: boolean }> {
-    return this.fetch<{ text: string; generatedAt: string; cached: boolean }>('/ai/daily-text');
+  getDailyText(
+    workspaceId: string
+  ): Promise<{ text: string; generatedAt: string; cached: boolean }> {
+    return this.fetch<{ text: string; generatedAt: string; cached: boolean }>(
+      `/ai/daily-text?workspaceId=${workspaceId}`
+    );
   }
 }
 

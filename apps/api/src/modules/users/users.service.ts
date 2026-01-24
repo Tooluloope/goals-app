@@ -48,10 +48,20 @@ export class UsersService {
     }
 
     // Extract timezone from settings (it's a top-level field, not in JSON)
-    const { timezone, ...jsonSettings } = settings;
+    const { timezone, emailPreferences, ...otherSettings } = settings;
 
     const currentSettings = user.settings as Record<string, any>;
-    const updatedSettings = { ...currentSettings, ...jsonSettings };
+
+    // Deep merge emailPreferences if provided
+    const updatedEmailPreferences = emailPreferences
+      ? { ...(currentSettings.emailPreferences || {}), ...emailPreferences }
+      : currentSettings.emailPreferences;
+
+    const updatedSettings = {
+      ...currentSettings,
+      ...otherSettings,
+      ...(updatedEmailPreferences && { emailPreferences: updatedEmailPreferences }),
+    };
 
     return this.prisma.user.update({
       where: { id: userId },

@@ -22,7 +22,11 @@
     "test:watch": "jest --watch"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,css,md}": "prettier --write"
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,css,md}": "prettier --write"
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",

@@ -21,11 +21,12 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ImageUpload, ImageThumbnail } from '@/components/shared/image-upload';
+// TODO: Re-enable when backend supports images
+// import { ImageUpload, ImageThumbnail } from '@/components/shared/image-upload';
 import { useUIStore } from '@/store/ui-store';
 import { useAddReview, useProject } from '@/hooks/use-projects';
 import { useToast } from '@/hooks/use-toast';
-import { LocalImageAttachment } from '@/types';
+// import { LocalImageAttachment } from '@/types';
 import { cn } from '@/lib/utils';
 
 const reviewSchema = z.object({
@@ -55,7 +56,8 @@ export function AddReviewModal() {
   const { data: project } = useProject(addReviewProjectId || '');
   const addReview = useAddReview();
   const { toast } = useToast();
-  const [images, setImages] = useState<LocalImageAttachment[]>([]);
+  // TODO: Re-enable when backend supports images
+  // const [images, setImages] = useState<LocalImageAttachment[]>([]);
   const [step, setStep] = useState(1);
   const [nextSteps, setNextSteps] = useState<NextStep[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
@@ -81,13 +83,14 @@ export function AddReviewModal() {
   const currentStatus = watch('status');
   const currentConfidence = watch('confidence');
 
-  const handleAddImages = (newImages: LocalImageAttachment[]) => {
-    setImages((prev) => [...prev, ...newImages].slice(0, 10));
-  };
+  // TODO: Re-enable when backend supports images
+  // const handleAddImages = (newImages: LocalImageAttachment[]) => {
+  //   setImages((prev) => [...prev, ...newImages].slice(0, 10));
+  // };
 
-  const handleRemoveImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
+  // const handleRemoveImage = (index: number) => {
+  //   setImages((prev) => prev.filter((_, i) => i !== index));
+  // };
 
   const handleAddTask = () => {
     if (!newTaskText.trim()) return;
@@ -128,7 +131,8 @@ export function AddReviewModal() {
         blockers: data.blockers,
         changes: '',
         nextStep: nextSteps.map((s) => s.text).join('\n'),
-        images: images.length > 0 ? (images as any) : undefined,
+        // TODO: Images not yet implemented in backend - uncomment when ready
+        // images: images.length > 0 ? (images as any) : undefined,
       });
 
       toast({
@@ -149,7 +153,7 @@ export function AddReviewModal() {
 
   const handleClose = () => {
     reset();
-    setImages([]);
+    // setImages([]); // TODO: Re-enable when backend supports images
     setStep(1);
     setNextSteps([]);
     setNewTaskText('');
@@ -434,8 +438,8 @@ export function AddReviewModal() {
                     )}
                   </div>
 
-                  {/* Image Upload */}
-                  <div className="space-y-2">
+                  {/* Image Upload - TODO: Enable when backend supports images */}
+                  {/* <div className="space-y-2">
                     <label className="text-base font-semibold">Attach images</label>
                     {images.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-2">
@@ -459,7 +463,7 @@ export function AddReviewModal() {
                     <p className="text-xs text-muted-foreground">
                       Add photos to document your progress (max 10 images)
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               )}
             </form>
@@ -484,8 +488,8 @@ export function AddReviewModal() {
                   Back
                 </Button>
                 <Button
-                  type="submit"
-                  form="review-form"
+                  type="button"
+                  onClick={handleSubmit(onSubmit)}
                   disabled={isSubmitting || addReview.isPending}
                   className="gap-2 touch-manipulation"
                 >

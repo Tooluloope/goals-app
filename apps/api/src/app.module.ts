@@ -13,6 +13,7 @@ import { HabitsModule } from './modules/habits/habits.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { AiModule } from './modules/ai/ai.module';
 import { EmailModule } from './modules/email/email.module';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { EmailModule } from './modules/email/email.module';
     HabitsModule,
     ReviewsModule,
     AiModule,
+    SchedulerModule,
   ],
 })
 export class AppModule {}

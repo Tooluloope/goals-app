@@ -8,10 +8,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Project } from '@/types';
 import { getColorClasses } from '@/types/config';
 import { useConfigStore } from '@/store/config-store';
 import { useAuthStore } from '@/store/auth-store';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import {
   calculateProjectProgress,
   formatDate,
@@ -31,6 +33,10 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
   const router = useRouter();
   const { currentWorkspace } = useAuthStore();
   const { getAreaById, getPriorityById, getConfig, getTagById } = useConfigStore();
+  const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
+
+  // Get owner info if assigned
+  const owner = project.ownerId ? workspaceMembers.find((m) => m.userId === project.ownerId) : null;
 
   const config = currentWorkspace ? getConfig(currentWorkspace.id) : null;
 
@@ -168,11 +174,21 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
               </div>
             )}
 
-            {/* Deadline */}
+            {/* Deadline and Owner */}
             <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                {formatDate(project.targetDate, 'MMM d')}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  {formatDate(project.targetDate, 'MMM d')}
+                </div>
+                {owner && (
+                  <Avatar className="h-5 w-5" title={owner.name}>
+                    <AvatarImage src={owner.avatar || undefined} />
+                    <AvatarFallback className="text-[10px]">
+                      {owner.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </div>
               {daysUntil <= 30 && daysUntil >= 0 && (
                 <span

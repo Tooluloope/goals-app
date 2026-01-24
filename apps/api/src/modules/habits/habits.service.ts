@@ -1,9 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateHabitDto, UpdateHabitDto, ToggleHabitLogDto, HabitWithStats } from '@goals/shared';
+import { EmailService } from '../email/email.service';
+import {
+  CreateHabitDto,
+  UpdateHabitDto,
+  ToggleHabitLogDto,
+  HabitWithStats,
+  HabitFrequency,
+} from '@goals/shared';
 import { Habit, HabitLog } from '@goals/database';
-import { subDays } from 'date-fns';
+import { subDays, startOfWeek, getDay } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+
+// Streak milestones that trigger celebration emails
+const STREAK_MILESTONES = [7, 30, 100, 365] as const;
+type _StreakMilestone = (typeof STREAK_MILESTONES)[number];
 
 // Helper to get date string from a DB date (stored as UTC midnight)
 function getDbDateStr(date: Date): string {
@@ -15,9 +26,44 @@ function getTodayInTimezone(timezone: string): string {
   return formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
 }
 
+// Helper to check if a date is an expected day for a habit based on its frequency
+function isExpectedDay(
+  dateStr: string,
+  frequency: HabitFrequency,
+  frequencyDays: number[]
+): boolean {
+  const date = new Date(dateStr + 'T00:00:00.000Z');
+  const dayOfWeek = getDay(date); // 0 = Sunday, 6 = Saturday
+
+  switch (frequency) {
+    case 'daily':
+      return true;
+    case 'weekly':
+      // For weekly habits, any day is valid for completion once per week
+      return true;
+    case 'specific_days':
+      // Only expected on specified days
+      return frequencyDays.includes(dayOfWeek);
+    default:
+      return true;
+  }
+}
+
+// Helper to get week key for a date (used for weekly habit tracking)
+function getWeekKey(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00.000Z');
+  const weekStart = startOfWeek(date, { weekStartsOn: 0 }); // Sunday
+  return getDbDateStr(weekStart);
+}
+
 @Injectable()
 export class HabitsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(HabitsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   // Get user's timezone from database, default to UTC
   private async getUserTimezone(userId: string): Promise<string> {
@@ -132,8 +178,17 @@ export class HabitsService {
         (log) => getDbDateStr(log.date) === todayStr && log.completed
       );
 
-      const { currentStreak, longestStreak } = this.calculateStreaks(habit.logs, todayStr);
-      const completionRate = this.calculateCompletionRate(habit.logs);
+      const { currentStreak, longestStreak } = this.calculateStreaks(
+        habit.logs,
+        todayStr,
+        habit.frequency as HabitFrequency,
+        habit.frequencyDays
+      );
+      const completionRate = this.calculateCompletionRate(
+        habit.logs,
+        habit.frequency as HabitFrequency,
+        habit.frequencyDays
+      );
 
       return {
         ...habit,
@@ -166,21 +221,92 @@ export class HabitsService {
       },
     });
 
+    let result: HabitLog;
+    let justCompleted = false;
+
     if (existingLog) {
       // Toggle the completed status
-      return this.prisma.habitLog.update({
+      result = await this.prisma.habitLog.update({
         where: { id: existingLog.id },
         data: { completed: !existingLog.completed },
       });
+      justCompleted = !existingLog.completed; // Was incomplete, now complete
     } else {
       // Create new log
-      return this.prisma.habitLog.create({
+      result = await this.prisma.habitLog.create({
         data: {
           habitId,
           date,
           completed: true,
         },
       });
+      justCompleted = true;
+    }
+
+    // Check for streak milestones if habit was just completed
+    if (justCompleted) {
+      this.checkAndSendStreakMilestoneEmail(habitId, userId, data.date).catch((err) => {
+        this.logger.error(`Failed to check streak milestone: ${err.message}`);
+      });
+    }
+
+    return result;
+  }
+
+  private async checkAndSendStreakMilestoneEmail(
+    habitId: string,
+    userId: string,
+    dateStr: string
+  ): Promise<void> {
+    // Get habit with logs to calculate streak
+    const habit = await this.prisma.habit.findUnique({
+      where: { id: habitId },
+      include: {
+        logs: {
+          where: { date: { gte: subDays(new Date(), 400) } }, // Get enough logs for 365-day streak
+          orderBy: { date: 'desc' },
+        },
+      },
+    });
+
+    if (!habit) return;
+
+    // Get user info for email
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true, settings: true },
+    });
+
+    if (!user) return;
+
+    // Check email preferences
+    const settings = user.settings as Record<string, any> | null;
+    const emailPrefs = settings?.emailPreferences;
+    if (emailPrefs?.streakMilestones === false) {
+      return; // User has opted out of streak milestone emails
+    }
+
+    // Calculate current streak
+    const { currentStreak } = this.calculateStreaks(
+      habit.logs,
+      dateStr,
+      habit.frequency as HabitFrequency,
+      habit.frequencyDays
+    );
+
+    // Check if current streak matches a milestone
+    const milestone = STREAK_MILESTONES.find((m) => currentStreak === m);
+    if (milestone) {
+      await this.emailService.sendStreakMilestoneEmail(
+        user.email,
+        user.name,
+        habit.name,
+        currentStreak,
+        String(milestone) as '7' | '30' | '100' | '365'
+      );
+      this.logger.log(
+        `Sent streak milestone email to ${user.email} for ${habit.name} (${milestone} days)`
+      );
     }
   }
 
@@ -243,7 +369,9 @@ export class HabitsService {
 
   private calculateStreaks(
     logs: HabitLog[],
-    todayStr: string
+    todayStr: string,
+    frequency: HabitFrequency,
+    frequencyDays: number[]
   ): { currentStreak: number; longestStreak: number } {
     if (logs.length === 0) return { currentStreak: 0, longestStreak: 0 };
 
@@ -255,7 +383,24 @@ export class HabitsService {
       (a, b) => b.localeCompare(a)
     );
 
-    // Calculate yesterday based on today's date string
+    // For weekly habits, count consecutive weeks with at least one completion
+    if (frequency === 'weekly') {
+      return this.calculateWeeklyStreaks(completedDates, todayStr);
+    }
+
+    // For specific_days, only count expected days
+    if (frequency === 'specific_days') {
+      return this.calculateSpecificDaysStreaks(completedDates, todayStr, frequencyDays);
+    }
+
+    // Default: daily habits - consecutive calendar days
+    return this.calculateDailyStreaks(completedDates, todayStr);
+  }
+
+  private calculateDailyStreaks(
+    completedDates: string[],
+    todayStr: string
+  ): { currentStreak: number; longestStreak: number } {
     const todayDate = new Date(todayStr + 'T00:00:00.000Z');
     const yesterdayDate = new Date(todayDate.getTime() - 24 * 60 * 60 * 1000);
     const yesterdayStr = getDbDateStr(yesterdayDate);
@@ -264,20 +409,18 @@ export class HabitsService {
     let longestStreak = 0;
     let tempStreak = 0;
     let previousDateStr: string | null = null;
-    let currentStreakFinalized = false; // Once we hit a gap, stop counting current streak
+    let currentStreakFinalized = false;
 
     for (const dateStr of completedDates) {
       if (previousDateStr === null) {
-        // First log - check if it's today or yesterday to start current streak
         if (dateStr === todayStr || dateStr === yesterdayStr) {
           currentStreak = 1;
           tempStreak = 1;
         } else {
           tempStreak = 1;
-          currentStreakFinalized = true; // Can't have current streak if first date isn't recent
+          currentStreakFinalized = true;
         }
       } else {
-        // Check if dates are consecutive (1 day apart)
         const prevDate = new Date(previousDateStr + 'T00:00:00.000Z');
         const currDate = new Date(dateStr + 'T00:00:00.000Z');
         const daysDiff = Math.round(
@@ -290,25 +433,174 @@ export class HabitsService {
             currentStreak++;
           }
         } else {
-          // Gap found - finalize current streak (keep the value, just stop counting)
           longestStreak = Math.max(longestStreak, tempStreak);
           tempStreak = 1;
           currentStreakFinalized = true;
         }
       }
-
       previousDateStr = dateStr;
     }
 
     longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
-
     return { currentStreak, longestStreak };
   }
 
-  private calculateCompletionRate(logs: HabitLog[]): number {
+  private calculateWeeklyStreaks(
+    completedDates: string[],
+    todayStr: string
+  ): { currentStreak: number; longestStreak: number } {
+    // Get unique weeks with completions
+    const completedWeeks = [...new Set(completedDates.map((d) => getWeekKey(d)))].sort((a, b) =>
+      b.localeCompare(a)
+    );
+
+    if (completedWeeks.length === 0) return { currentStreak: 0, longestStreak: 0 };
+
+    const currentWeek = getWeekKey(todayStr);
+    const todayDate = new Date(todayStr + 'T00:00:00.000Z');
+    const lastWeekDate = new Date(todayDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const lastWeek = getWeekKey(getDbDateStr(lastWeekDate));
+
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let previousWeek: string | null = null;
+    let currentStreakFinalized = false;
+
+    for (const week of completedWeeks) {
+      if (previousWeek === null) {
+        if (week === currentWeek || week === lastWeek) {
+          currentStreak = 1;
+          tempStreak = 1;
+        } else {
+          tempStreak = 1;
+          currentStreakFinalized = true;
+        }
+      } else {
+        const prevWeekDate = new Date(previousWeek + 'T00:00:00.000Z');
+        const currWeekDate = new Date(week + 'T00:00:00.000Z');
+        const weeksDiff = Math.round(
+          (prevWeekDate.getTime() - currWeekDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+        );
+
+        if (weeksDiff === 1) {
+          tempStreak++;
+          if (!currentStreakFinalized && currentStreak > 0) {
+            currentStreak++;
+          }
+        } else {
+          longestStreak = Math.max(longestStreak, tempStreak);
+          tempStreak = 1;
+          currentStreakFinalized = true;
+        }
+      }
+      previousWeek = week;
+    }
+
+    longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
+    return { currentStreak, longestStreak };
+  }
+
+  private calculateSpecificDaysStreaks(
+    completedDates: string[],
+    todayStr: string,
+    frequencyDays: number[]
+  ): { currentStreak: number; longestStreak: number } {
+    if (frequencyDays.length === 0) {
+      // No specific days set, treat as daily
+      return this.calculateDailyStreaks(completedDates, todayStr);
+    }
+
+    // Build list of expected days going back 30 days
+    const expectedDays: string[] = [];
+    const todayDate = new Date(todayStr + 'T00:00:00.000Z');
+
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(todayDate.getTime() - i * 24 * 60 * 60 * 1000);
+      const checkDateStr = getDbDateStr(checkDate);
+      if (isExpectedDay(checkDateStr, 'specific_days', frequencyDays)) {
+        expectedDays.push(checkDateStr);
+      }
+    }
+
+    if (expectedDays.length === 0) return { currentStreak: 0, longestStreak: 0 };
+
+    // Check consecutive expected days
+    const completedSet = new Set(completedDates);
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let currentStreakFinalized = false;
+
+    // expectedDays is already sorted descending (most recent first)
+    for (const expectedDay of expectedDays) {
+      const wasCompleted = completedSet.has(expectedDay);
+
+      if (wasCompleted) {
+        tempStreak++;
+        if (!currentStreakFinalized) {
+          currentStreak++;
+        }
+      } else {
+        // Missed an expected day - streak broken
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 0;
+        currentStreakFinalized = true;
+      }
+    }
+
+    longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
+    return { currentStreak, longestStreak };
+  }
+
+  private calculateCompletionRate(
+    logs: HabitLog[],
+    frequency: HabitFrequency,
+    frequencyDays: number[]
+  ): number {
     if (logs.length === 0) return 0;
 
-    const completedCount = logs.filter((log) => log.completed).length;
-    return Math.round((completedCount / 30) * 100); // Percentage of last 30 days
+    const completedDates = new Set(
+      logs.filter((log) => log.completed).map((log) => getDbDateStr(log.date))
+    );
+
+    // Calculate how many expected days in last 30 days
+    const today = new Date();
+    let expectedDays = 0;
+    let completedExpectedDays = 0;
+
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+      const checkDateStr = getDbDateStr(checkDate);
+
+      if (frequency === 'weekly') {
+        // For weekly, count 4-5 weeks and check if each week has a completion
+        // Simplified: count once per week
+        if (getDay(checkDate) === 0) {
+          // Count Sundays as week markers
+          expectedDays++;
+          // Check if any day in that week was completed
+          const weekKey = getWeekKey(checkDateStr);
+          const weekHasCompletion = [...completedDates].some((d) => getWeekKey(d) === weekKey);
+          if (weekHasCompletion) completedExpectedDays++;
+        }
+      } else if (frequency === 'specific_days') {
+        if (isExpectedDay(checkDateStr, frequency, frequencyDays)) {
+          expectedDays++;
+          if (completedDates.has(checkDateStr)) {
+            completedExpectedDays++;
+          }
+        }
+      } else {
+        // Daily
+        expectedDays++;
+        if (completedDates.has(checkDateStr)) {
+          completedExpectedDays++;
+        }
+      }
+    }
+
+    if (expectedDays === 0) return 0;
+    return Math.round((completedExpectedDays / expectedDays) * 100);
   }
 }

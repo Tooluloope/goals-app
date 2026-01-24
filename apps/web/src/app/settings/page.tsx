@@ -22,6 +22,8 @@ import {
   Image as ImageIcon,
   Lock,
   KeyRound,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
@@ -149,7 +151,9 @@ type SectionId =
   | 'workspaces'
   | 'family'
   | 'notifications'
-  | 'about';
+  | 'emailPrefs'
+  | 'about'
+  | 'danger';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -163,17 +167,20 @@ export default function SettingsPage() {
     updateProfile,
     changeEmail,
     changePassword,
+    deleteAccount,
   } = useAuthStore();
   const { getConfig, initializeConfig, updateNotificationSettings, updateDashboardSettings } =
     useConfigStore();
   const { toast } = useToast();
 
   // Collapsible sections state - only profile expanded by default
-  const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(new Set(['profile']));
+  const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(
+    new Set<SectionId>(['profile'])
+  );
 
   const toggleSection = (section: SectionId) => {
     setExpandedSections((prev) => {
-      const next = new Set(prev);
+      const next = new Set<SectionId>(prev);
       if (next.has(section)) {
         next.delete(section);
       } else {
@@ -205,6 +212,10 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Get family workspace
   const familyWorkspace = workspaces.find((w) => w.type === 'family');
@@ -479,6 +490,33 @@ export default function SettingsPage() {
     router.push('/auth/login');
   };
 
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(deletePassword);
+      toast({
+        title: 'Account deleted',
+        description: 'Your account has been permanently deleted.',
+        variant: 'default',
+      });
+      router.push('/auth/login');
+    } catch (error) {
+      toast({
+        title: 'Failed to delete account',
+        description:
+          error instanceof Error ? error.message : 'Please check your password and try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingAccount(false);
+      setDeletePassword('');
+      setDeleteConfirmText('');
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
   const handleTimezoneChange = async (timezone: string) => {
     try {
       await updateSettings({ timezone });
@@ -491,6 +529,32 @@ export default function SettingsPage() {
       toast({
         title: 'Error',
         description: 'Failed to update timezone',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleEmailPreferenceChange = async (key: string, value: boolean) => {
+    try {
+      const currentPrefs = user?.settings?.emailPreferences || {};
+      // Backend handles partial updates and merges with existing preferences
+      await updateSettings({
+        emailPreferences: {
+          ...currentPrefs,
+          [key]: value,
+        } as any,
+      });
+      toast({
+        title: 'Email preferences updated',
+        description: value
+          ? 'You will receive these emails'
+          : 'You will no longer receive these emails',
+        variant: 'success',
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to update email preferences',
         variant: 'destructive',
       });
     }
@@ -999,6 +1063,143 @@ export default function SettingsPage() {
           </div>
         </CollapsibleCard>
 
+        {/* Email Preferences */}
+        <CollapsibleCard
+          id="emailPrefs"
+          icon={<Mail className="h-5 w-5" />}
+          title="Email Preferences"
+          description="Choose which emails you want to receive"
+          isExpanded={expandedSections.has('emailPrefs')}
+          onToggle={() => toggleSection('emailPrefs')}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Habit reminders</Label>
+                <p className="text-sm text-muted-foreground">Daily reminders for your habits</p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.habitReminders ?? true}
+                onCheckedChange={(v) => handleEmailPreferenceChange('habitReminders', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Task due reminders</Label>
+                <p className="text-sm text-muted-foreground">
+                  Notifications when tasks are due soon
+                </p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.taskDueReminders ?? true}
+                onCheckedChange={(v) => handleEmailPreferenceChange('taskDueReminders', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Weekly summary</Label>
+                <p className="text-sm text-muted-foreground">Weekly digest of your progress</p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.weeklySummary ?? true}
+                onCheckedChange={(v) => handleEmailPreferenceChange('weeklySummary', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Monthly summary</Label>
+                <p className="text-sm text-muted-foreground">Monthly review of your achievements</p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.monthlySummary ?? true}
+                onCheckedChange={(v) => handleEmailPreferenceChange('monthlySummary', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Stale project alerts</Label>
+                <p className="text-sm text-muted-foreground">Alerts when projects need attention</p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.staleProjectAlerts ?? true}
+                onCheckedChange={(v) => handleEmailPreferenceChange('staleProjectAlerts', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Review due reminders</Label>
+                <p className="text-sm text-muted-foreground">
+                  Reminders when project reviews are due
+                </p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.reviewDueReminders ?? true}
+                onCheckedChange={(v) => handleEmailPreferenceChange('reviewDueReminders', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Streak milestones</Label>
+                <p className="text-sm text-muted-foreground">
+                  Celebrations for habit streaks (7, 30, 100 days)
+                </p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.streakMilestones ?? true}
+                onCheckedChange={(v) => handleEmailPreferenceChange('streakMilestones', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>AI insights</Label>
+                <p className="text-sm text-muted-foreground">
+                  Personalized insights about your progress
+                </p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.aiInsights ?? true}
+                onCheckedChange={(v) => handleEmailPreferenceChange('aiInsights', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Inactivity reminders</Label>
+                <p className="text-sm text-muted-foreground">
+                  Gentle reminders if you haven&apos;t logged in
+                </p>
+              </div>
+              <Switch
+                checked={user?.settings?.emailPreferences?.inactivityReminders ?? false}
+                onCheckedChange={(v) => handleEmailPreferenceChange('inactivityReminders', v)}
+              />
+            </div>
+          </div>
+        </CollapsibleCard>
+
         {/* App Info */}
         <CollapsibleCard
           id="about"
@@ -1015,6 +1216,102 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Built with</span>
               <span className="font-medium">Next.js + TypeScript</span>
+            </div>
+          </div>
+        </CollapsibleCard>
+
+        {/* Danger Zone */}
+        <CollapsibleCard
+          id="danger"
+          icon={<AlertTriangle className="h-5 w-5 text-destructive" />}
+          title="Danger Zone"
+          description="Irreversible actions"
+          isExpanded={expandedSections.has('danger')}
+          onToggle={() => toggleSection('danger')}
+        >
+          <div className="space-y-4">
+            <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+              <h4 className="font-medium text-destructive">Delete Account</h4>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Permanently delete your account and all associated data. This action cannot be
+                undone.
+              </p>
+              <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive" className="mt-4">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-5 w-5" />
+                      Delete Account
+                    </DialogTitle>
+                    <DialogDescription>
+                      This action is permanent and cannot be undone. All your data including
+                      projects, tasks, habits, journal entries, and reviews will be permanently
+                      deleted.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="delete-password">Enter your password to confirm</Label>
+                      <Input
+                        id="delete-password"
+                        type="password"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        placeholder="Your password"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="delete-confirm">
+                        Type <span className="font-mono font-bold">DELETE</span> to confirm
+                      </Label>
+                      <Input
+                        id="delete-confirm"
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="DELETE"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsDeleteDialogOpen(false);
+                        setDeletePassword('');
+                        setDeleteConfirmText('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteAccount}
+                      disabled={
+                        isDeletingAccount || !deletePassword || deleteConfirmText !== 'DELETE'
+                      }
+                    >
+                      {isDeletingAccount ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Account
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CollapsibleCard>

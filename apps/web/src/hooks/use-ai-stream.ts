@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient, getApiBaseUrl } from '@/lib/api-client';
+import { useAuthStore } from '@/store/auth-store';
 import { aiKeys } from './use-ai';
 
 interface StreamState {
@@ -23,6 +24,8 @@ interface StreamEvent {
  */
 export function useAiStream(conversationId: string) {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useAuthStore();
+  const workspaceId = currentWorkspace?.id || '';
   const [state, setState] = useState<StreamState>({
     content: '',
     isStreaming: false,
@@ -119,7 +122,7 @@ export function useAiStream(conversationId: string) {
           queryKey: aiKeys.conversationDetail(conversationId),
         });
         queryClient.invalidateQueries({
-          queryKey: aiKeys.conversations(),
+          queryKey: aiKeys.conversations(workspaceId),
         });
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
@@ -138,7 +141,7 @@ export function useAiStream(conversationId: string) {
         });
       }
     },
-    [conversationId, state.isStreaming, queryClient]
+    [conversationId, workspaceId, state.isStreaming, queryClient]
   );
 
   const stopStream = useCallback(() => {

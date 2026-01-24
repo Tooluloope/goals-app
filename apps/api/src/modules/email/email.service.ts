@@ -11,6 +11,8 @@ import {
   GoalData,
   InsightData,
   InactivityData,
+  StaleProjectData,
+  ReviewDueData,
   EmailTemplateKey,
 } from '../../emails/templates';
 
@@ -24,7 +26,9 @@ type EmailData =
   | StreakData
   | GoalData
   | InsightData
-  | InactivityData;
+  | InactivityData
+  | StaleProjectData
+  | ReviewDueData;
 
 interface SendEmailResult {
   success: boolean;
@@ -365,6 +369,46 @@ export class EmailService {
       daysSinceActive,
       lastActivity,
       actionUrl: `${this.appUrl}/dashboard`,
+    });
+  }
+
+  // ============================================================
+  // PROJECT MANAGEMENT EMAILS
+  // ============================================================
+
+  async sendStaleProjectEmail(
+    to: string,
+    name: string,
+    projectId: string,
+    projectName: string,
+    daysSinceUpdate: number,
+    projectStatus?: string
+  ): Promise<SendEmailResult> {
+    return this.sendEmail<StaleProjectData>(to, 'staleProject', {
+      toName: name,
+      projectName,
+      daysSinceUpdate,
+      projectStatus,
+      actionUrl: `${this.appUrl}/project/${projectId}`,
+    });
+  }
+
+  async sendReviewDueEmail(
+    to: string,
+    name: string,
+    projectId: string,
+    projectName: string,
+    reviewType: 'weekly' | 'monthly' | 'cadence',
+    daysSinceLastReview: number,
+    cadence?: string
+  ): Promise<SendEmailResult> {
+    return this.sendEmail<ReviewDueData>(to, 'reviewDue', {
+      toName: name,
+      projectName,
+      reviewType,
+      daysSinceLastReview,
+      cadence,
+      actionUrl: `${this.appUrl}/project/${projectId}`,
     });
   }
 }

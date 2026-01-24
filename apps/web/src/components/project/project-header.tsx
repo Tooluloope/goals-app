@@ -2,7 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MoreHorizontal, Trash2, Edit, Lock, Unlock, GitBranch } from 'lucide-react';
+import {
+  ArrowLeft,
+  MoreHorizontal,
+  Trash2,
+  Edit,
+  Lock,
+  Unlock,
+  GitBranch,
+  User,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -22,9 +31,11 @@ import {
 } from '@/components/ui/select';
 import { Project } from '@/types';
 import { getColorClasses } from '@/types/config';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { calculateProjectProgress, formatDate, cn } from '@/lib/utils';
 import { triggerCelebration } from '@/lib/confetti';
-import { useUpdateProjectStatus, useDeleteProject } from '@/hooks/use-projects';
+import { useUpdateProjectStatus, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
@@ -38,9 +49,11 @@ interface ProjectHeaderProps {
 export function ProjectHeader({ project }: ProjectHeaderProps) {
   const router = useRouter();
   const updateStatus = useUpdateProjectStatus();
+  const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const { toast } = useToast();
-  const { currentWorkspace } = useAuthStore();
+  const { currentWorkspace, user } = useAuthStore();
+  const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const [blockersModalOpen, setBlockersModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const {
@@ -52,6 +65,8 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     getConfidenceById,
     getTaskStatusesForWorkspace,
   } = useConfigStore();
+
+  const hasMultipleMembers = workspaceMembers.length > 1;
 
   const statuses = currentWorkspace ? getStatusesForWorkspace(currentWorkspace.id) : [];
   const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
@@ -94,6 +109,25 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         title: 'Status updated',
         description: `Goal moved to ${newStatus?.name || 'new status'}`,
         variant: 'success',
+      });
+    }
+  };
+
+  const handleOwnerChange = async (newOwnerId: string) => {
+    try {
+      await updateProject.mutateAsync({
+        projectId: project.id,
+        updates: { ownerId: newOwnerId === 'unassigned' ? null : newOwnerId },
+      });
+      toast({
+        title: 'Owner updated',
+        variant: 'success',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update owner',
+        variant: 'destructive',
       });
     }
   };
@@ -221,23 +255,87 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         )}
 
         {/* Status Selector */}
-        <div className="mt-4 flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">Status:</span>
-          <Select value={project.statusId} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statuses.map((status) => {
-                const colors = getColorClasses(status.color);
-                return (
-                  <SelectItem key={status.id} value={status.id}>
-                    <span className={colors.text}>{status.name}</span>
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Status:</span>
+            <Select value={project.statusId} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statuses.map((status) => {
+                  const colors = getColorClasses(status.color);
+                  return (
+                    <SelectItem key={status.id} value={status.id}>
+                      <span className={colors.text}>{status.name}</span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Owner Selector - only show for workspaces with multiple members */}
+          {hasMultipleMembers && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Owner:</span>
+              <Select value={project.ownerId || 'unassigned'} onValueChange={handleOwnerChange}>
+                <SelectTrigger className="w-40">
+                  <SelectValue>
+                    {project.ownerId ? (
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const member = workspaceMembers.find((m) => m.userId === project.ownerId);
+                          return member ? (
+                            <>
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={member.avatar || undefined} />
+                                <AvatarFallback className="text-xs">
+                                  {member.name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{member.name}</span>
+                            </>
+                          ) : (
+                            'Unknown'
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <span>Unassigned</span>
+                      </div>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span>Unassigned</span>
+                    </div>
                   </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+                  {workspaceMembers.map((member) => (
+                    <SelectItem key={member.userId} value={member.userId}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={member.avatar || undefined} />
+                          <AvatarFallback className="text-xs">
+                            {member.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{member.name}</span>
+                        {member.userId === user?.id && (
+                          <span className="text-xs text-muted-foreground">(you)</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         {/* Progress Bar */}

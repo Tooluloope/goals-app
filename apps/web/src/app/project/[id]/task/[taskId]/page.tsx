@@ -18,12 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EditTaskModal } from '@/components/shared/edit-task-modal';
-import { useTask, useUpdateTaskStatus, useDeleteTask } from '@/hooks/use-tasks';
+import { useTask, useUpdateTaskStatus, useUpdateTask, useDeleteTask } from '@/hooks/use-tasks';
 import { useProject } from '@/hooks/use-projects';
 import { useAddTaskBlocker, useRemoveTaskBlocker } from '@/hooks/use-dependencies';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate, cn } from '@/lib/utils';
 import { getColorClasses } from '@/types/config';
 import {
@@ -45,6 +47,7 @@ import {
   Tag,
   Plus,
   Flame,
+  User,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -63,13 +66,16 @@ export default function TaskDetailPage() {
   const { data: task, isLoading: taskLoading } = useTask(taskId);
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const updateStatus = useUpdateTaskStatus();
+  const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const addBlocker = useAddTaskBlocker();
   const removeBlocker = useRemoveTaskBlocker();
   const { toast } = useToast();
 
-  const { currentWorkspace } = useAuthStore();
+  const { currentWorkspace, user } = useAuthStore();
   const { getTaskStatusesForWorkspace, getTaskStatusById, getPriorityById } = useConfigStore();
+  const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
+  const hasMultipleMembers = workspaceMembers.length > 1;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -121,6 +127,26 @@ export default function TaskDetailPage() {
       toast({
         title: 'Error',
         description: 'Failed to update status',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAssigneeChange = async (newAssigneeId: string) => {
+    if (!task) return;
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: { assignedToId: newAssigneeId === 'unassigned' ? null : newAssigneeId },
+      });
+      toast({
+        title: 'Assignee updated',
+        variant: 'success',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update assignee',
         variant: 'destructive',
       });
     }
@@ -597,6 +623,75 @@ export default function TaskDetailPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Assignee - only show for workspaces with multiple members */}
+                  {hasMultipleMembers && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        Assignee
+                      </label>
+                      <Select
+                        value={task.assignedToId || 'unassigned'}
+                        onValueChange={handleAssigneeChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue>
+                            {task.assignedToId ? (
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  const member = workspaceMembers.find(
+                                    (m) => m.userId === task.assignedToId
+                                  );
+                                  return member ? (
+                                    <>
+                                      <Avatar className="h-5 w-5">
+                                        <AvatarImage src={member.avatar || undefined} />
+                                        <AvatarFallback className="text-xs">
+                                          {member.name.charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span>{member.name}</span>
+                                    </>
+                                  ) : (
+                                    'Unknown'
+                                  );
+                                })()}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <User className="h-4 w-4" />
+                                <span>Unassigned</span>
+                              </div>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span>Unassigned</span>
+                            </div>
+                          </SelectItem>
+                          {workspaceMembers.map((member) => (
+                            <SelectItem key={member.userId} value={member.userId}>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-5 w-5">
+                                  <AvatarImage src={member.avatar || undefined} />
+                                  <AvatarFallback className="text-xs">
+                                    {member.name.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{member.name}</span>
+                                {member.userId === user?.id && (
+                                  <span className="text-xs text-muted-foreground">(you)</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-muted-foreground">Project</label>

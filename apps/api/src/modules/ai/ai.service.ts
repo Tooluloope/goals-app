@@ -105,15 +105,17 @@ export class AiService {
   // ============================================================
 
   async getDailyText(
-    userId: string
+    userId: string,
+    workspaceId: string
   ): Promise<{ text: string; generatedAt: string; cached: boolean }> {
     const today = startOfDay(new Date());
 
     // Check for cached daily text first
     const cached = await this.prisma.aiDailyText.findUnique({
       where: {
-        userId_date: {
+        userId_workspaceId_date: {
           userId,
+          workspaceId,
           date: today,
         },
       },
@@ -129,8 +131,8 @@ export class AiService {
 
     // Generate new daily text
     try {
-      // Get user context for personalization
-      const userContext = await this.dataAggregator.getUserContext(userId);
+      // Get user context for personalization (scoped to workspace)
+      const userContext = await this.dataAggregator.getUserContext(userId, workspaceId);
 
       // Get user's name
       const user = await this.prisma.user.findUnique({
@@ -168,10 +170,11 @@ Be warm, encouraging, and specific if context is available. Keep it brief and up
 
       const trimmedText = response.content.trim();
 
-      // Cache the generated text for the day
+      // Cache the generated text for the day (per workspace)
       await this.prisma.aiDailyText.create({
         data: {
           userId,
+          workspaceId,
           date: today,
           content: trimmedText,
         },
@@ -197,9 +200,13 @@ Be warm, encouraging, and specific if context is available. Keep it brief and up
   // CONVERSATIONS
   // ============================================================
 
-  async getConversations(userId: string, limit = 20): Promise<ConversationWithLastMessage[]> {
+  async getConversations(
+    userId: string,
+    workspaceId: string,
+    limit = 20
+  ): Promise<ConversationWithLastMessage[]> {
     return this.prisma.aiConversation.findMany({
-      where: { userId },
+      where: { userId, workspaceId },
       orderBy: { updatedAt: 'desc' },
       take: limit,
       include: {
@@ -228,10 +235,11 @@ Be warm, encouraging, and specific if context is available. Keep it brief and up
     return conversation;
   }
 
-  async createConversation(userId: string, title?: string) {
+  async createConversation(userId: string, workspaceId: string, title?: string) {
     return this.prisma.aiConversation.create({
       data: {
         userId,
+        workspaceId,
         title: title || 'New conversation',
       },
     });
@@ -275,11 +283,14 @@ Be warm, encouraging, and specific if context is available. Keep it brief and up
     }
   ) {
     try {
-      // Verify conversation ownership
+      // Verify conversation ownership and get workspace context
       const conversation = await this.getConversation(userId, conversationId);
 
-      // Get user context
-      const userContext = await this.dataAggregator.getUserContext(userId);
+      // Get user context (scoped to the conversation's workspace)
+      const userContext = await this.dataAggregator.getUserContext(
+        userId,
+        conversation.workspaceId
+      );
 
       // Save user message
       await this.prisma.aiMessage.create({
@@ -369,10 +380,16 @@ If asked about something you don't have data for, say so honestly.`;
   // SUMMARIES
   // ============================================================
 
-  async getSummaries(userId: string, type?: SummaryType, limit = 10): Promise<AiSummary[]> {
+  async getSummaries(
+    userId: string,
+    workspaceId: string,
+    type?: SummaryType,
+    limit = 10
+  ): Promise<AiSummary[]> {
     return this.prisma.aiSummary.findMany({
       where: {
         userId,
+        workspaceId,
         ...(type ? { type } : {}),
       },
       orderBy: { periodStart: 'desc' },
@@ -382,6 +399,7 @@ If asked about something you don't have data for, say so honestly.`;
 
   async getOrGenerateSummary(
     userId: string,
+    workspaceId: string,
     type: SummaryType,
     periodStart: string,
     forceRegenerate = false
@@ -405,8 +423,9 @@ If asked about something you don't have data for, say so honestly.`;
     if (!forceRegenerate) {
       const existing = await this.prisma.aiSummary.findUnique({
         where: {
-          userId_type_periodStart: {
+          userId_workspaceId_type_periodStart: {
             userId,
+            workspaceId,
             type,
             periodStart: startDate,
           },
@@ -419,12 +438,13 @@ If asked about something you don't have data for, say so honestly.`;
     }
 
     // Generate new summary
-    const summary = await this.generateSummary(userId, type, startDate, periodEnd);
+    const summary = await this.generateSummary(userId, workspaceId, type, startDate, periodEnd);
     return { summary, isNew: true };
   }
 
   private async generateSummary(
     userId: string,
+    workspaceId: string,
     type: SummaryType,
     periodStart: Date,
     periodEnd: Date
@@ -434,15 +454,19 @@ If asked about something you don't have data for, say so honestly.`;
 
     switch (type) {
       case SummaryType.weekly:
-        data = await this.dataAggregator.getWeeklyData(userId, periodStart);
+        data = await this.dataAggregator.getWeeklyData(userId, workspaceId, periodStart);
         prompt = this.buildWeeklySummaryPrompt(data as WeeklyData);
         break;
       case SummaryType.monthly:
-        data = await this.dataAggregator.getMonthlyData(userId, periodStart);
+        data = await this.dataAggregator.getMonthlyData(userId, workspaceId, periodStart);
         prompt = this.buildMonthlySummaryPrompt(data as MonthlyData);
         break;
       case SummaryType.yearly:
-        data = await this.dataAggregator.getYearlyData(userId, periodStart.getFullYear());
+        data = await this.dataAggregator.getYearlyData(
+          userId,
+          workspaceId,
+          periodStart.getFullYear()
+        );
         prompt = this.buildYearlySummaryPrompt(data as YearlyData);
         break;
     }
@@ -469,8 +493,9 @@ If asked about something you don't have data for, say so honestly.`;
     // Save summary
     const summary = await this.prisma.aiSummary.upsert({
       where: {
-        userId_type_periodStart: {
+        userId_workspaceId_type_periodStart: {
           userId,
+          workspaceId,
           type,
           periodStart,
         },
@@ -482,6 +507,7 @@ If asked about something you don't have data for, say so honestly.`;
       },
       create: {
         userId,
+        workspaceId,
         type,
         periodStart,
         periodEnd,
@@ -607,12 +633,14 @@ Generate a comprehensive year in review celebrating achievements and identifying
 
   async getInsights(
     userId: string,
+    workspaceId: string,
     type?: InsightType,
     includeDismissed = false
   ): Promise<AiInsight[]> {
     return this.prisma.aiInsight.findMany({
       where: {
         userId,
+        workspaceId,
         ...(type ? { type } : {}),
         ...(includeDismissed ? {} : { dismissed: false }),
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
@@ -621,8 +649,12 @@ Generate a comprehensive year in review celebrating achievements and identifying
     });
   }
 
-  async generateInsights(userId: string, types?: InsightType[]): Promise<AiInsight[]> {
-    const userContext = await this.dataAggregator.getUserContext(userId);
+  async generateInsights(
+    userId: string,
+    workspaceId: string,
+    types?: InsightType[]
+  ): Promise<AiInsight[]> {
+    const userContext = await this.dataAggregator.getUserContext(userId, workspaceId);
 
     const prompt = `Analyze this user's data and generate insights:
 
@@ -677,6 +709,7 @@ ${types ? `Focus on these types: ${types.join(', ')}` : ''}`;
         this.prisma.aiInsight.create({
           data: {
             userId,
+            workspaceId,
             type: insight.type as InsightType,
             title: insight.title,
             content: insight.content,

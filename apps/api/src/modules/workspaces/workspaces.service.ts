@@ -27,10 +27,13 @@ export class WorkspacesService {
       },
     });
 
-    return memberships.map((m) => ({
-      ...m.workspace,
-      role: m.role,
-    }));
+    // Hide other people's personal workspaces; keep user's own personal + any shared non-personal workspaces.
+    return memberships
+      .filter((m) => m.workspace.type !== 'personal' || m.workspace.ownerId === userId)
+      .map((m) => ({
+        ...m.workspace,
+        role: m.role,
+      }));
   }
 
   async findById(id: string, userId: string): Promise<Workspace | null> {

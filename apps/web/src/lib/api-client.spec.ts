@@ -472,7 +472,7 @@ describe('ApiClient', () => {
         text: () => Promise.resolve(JSON.stringify([{ id: '1', messages: [] }])),
       });
 
-      const conversations = await apiClient.getAiConversations();
+      const conversations = await apiClient.getAiConversations('workspace-1');
       expect(conversations).toHaveLength(1);
     });
 
@@ -482,7 +482,7 @@ describe('ApiClient', () => {
         text: () => Promise.resolve(JSON.stringify({ id: '1', title: 'New Chat' })),
       });
 
-      const conversation = await apiClient.createAiConversation('New Chat');
+      const conversation = await apiClient.createAiConversation('workspace-1', 'New Chat');
       expect(conversation.title).toBe('New Chat');
     });
 
@@ -509,7 +509,7 @@ describe('ApiClient', () => {
         text: () => Promise.resolve(JSON.stringify([{ id: '1', type: 'weekly' }])),
       });
 
-      const summaries = await apiClient.getAiSummaries('weekly');
+      const summaries = await apiClient.getAiSummaries('workspace-1', 'weekly');
       expect(summaries).toHaveLength(1);
     });
 
@@ -519,7 +519,7 @@ describe('ApiClient', () => {
         text: () => Promise.resolve(JSON.stringify([{ id: '1', type: 'pattern' }])),
       });
 
-      const insights = await apiClient.getAiInsights();
+      const insights = await apiClient.getAiInsights('workspace-1');
       expect(insights).toHaveLength(1);
     });
 

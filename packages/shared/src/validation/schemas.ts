@@ -42,11 +42,24 @@ export const changePasswordSchema = z
     message: 'New password must be different from current password',
   });
 
+export const emailPreferencesSchema = z.object({
+  habitReminders: z.boolean().optional(),
+  taskDueReminders: z.boolean().optional(),
+  weeklySummary: z.boolean().optional(),
+  monthlySummary: z.boolean().optional(),
+  staleProjectAlerts: z.boolean().optional(),
+  reviewDueReminders: z.boolean().optional(),
+  streakMilestones: z.boolean().optional(),
+  aiInsights: z.boolean().optional(),
+  inactivityReminders: z.boolean().optional(),
+});
+
 export const updateUserSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   compactMode: z.boolean().optional(),
   showWelcomeOnLogin: z.boolean().optional(),
   timezone: z.string().optional(), // IANA timezone string (e.g., "America/New_York")
+  emailPreferences: emailPreferencesSchema.optional(),
 });
 
 // ============================================================
@@ -80,6 +93,7 @@ export const createProjectSchema = z.object({
   confidenceId: z.string().min(1, 'Confidence level is required'),
   failureCriteria: z.string().optional(),
   tagIds: z.array(z.string()).optional().default([]),
+  ownerId: z.string().uuid('Invalid owner ID').optional().nullable(),
 });
 
 export const updateProjectSchema = createProjectSchema.partial().omit({ workspaceId: true });

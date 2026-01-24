@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WorkspacesService } from './workspaces.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { EmailService } from '../email/email.service';
 
 describe('WorkspacesService', () => {
   let service: WorkspacesService;
@@ -46,13 +47,25 @@ describe('WorkspacesService', () => {
       workspaceConfig: {
         create: jest.fn(),
       },
+      workspaceInvite: {
+        findUnique: jest.fn(),
+        upsert: jest.fn(),
+      },
       user: {
         findUnique: jest.fn(),
       },
     };
 
+    const mockEmailService = {
+      sendWorkspaceInviteEmail: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [WorkspacesService, { provide: PrismaService, useValue: mockPrismaService }],
+      providers: [
+        WorkspacesService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: EmailService, useValue: mockEmailService },
+      ],
     }).compile();
 
     service = module.get<WorkspacesService>(WorkspacesService);
@@ -161,35 +174,23 @@ describe('WorkspacesService', () => {
   });
 
   describe('invite', () => {
-    beforeEach(() => {
-      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
-    });
-
     it('should invite user to workspace', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
       prisma.workspaceMember.findUnique
-        .mockResolvedValueOnce(mockMembership) // For verifyAccess
-        .mockResolvedValueOnce(null); // For existing check
-      prisma.workspaceMember.create.mockResolvedValue({
-        id: 'member-new',
-        workspaceId: 'workspace-1',
-        userId: 'user-2',
-        role: 'member',
-      });
+        .mockResolvedValueOnce(mockMembership) // verifyAccess
+        .mockResolvedValueOnce(null); // existing member check
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      prisma.workspaceInvite.findUnique.mockResolvedValue(null);
+      prisma.workspace.findUnique.mockResolvedValue(mockWorkspace);
+      prisma.workspaceInvite.upsert.mockResolvedValue({ id: 'invite-1', token: 't' });
 
       const result = await service.invite('workspace-1', 'test@example.com', 'user-1');
 
-      expect(prisma.workspaceMember.create).toHaveBeenCalledWith({
-        data: {
-          workspaceId: 'workspace-1',
-          userId: 'user-2',
-          role: 'member',
-        },
-      });
-      expect(result).toEqual({ message: 'User invited successfully' });
+      expect(prisma.workspaceInvite.upsert).toHaveBeenCalled();
+      expect(result).toEqual({ message: 'Invite sent successfully', inviteId: 'invite-1' });
     });
 
     it('should throw NotFoundException when user email not found', async () => {
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(
@@ -197,14 +198,14 @@ describe('WorkspacesService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw ForbiddenException when user is already a member', async () => {
+    it('should throw when user is already a member', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
       prisma.workspaceMember.findUnique
         .mockResolvedValueOnce(mockMembership) // For verifyAccess
         .mockResolvedValueOnce({ id: 'existing-member' }); // User already member
 
       await expect(service.invite('workspace-1', 'test@example.com', 'user-1')).rejects.toThrow(
-        ForbiddenException
+        'already a member'
       );
     });
 

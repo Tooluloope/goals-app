@@ -2,14 +2,27 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/store/auth-store';
 import { Task } from '@/types';
 import { projectKeys } from './use-projects';
 
 // Query keys
 export const taskKeys = {
   all: ['tasks'] as const,
+  workspace: (workspaceId: string) => [...taskKeys.all, 'workspace', workspaceId] as const,
   detail: (taskId: string) => [...taskKeys.all, 'detail', taskId] as const,
 };
+
+// Fetch tasks for current workspace
+export function useTasks() {
+  const { currentWorkspace } = useAuthStore();
+
+  return useQuery({
+    queryKey: taskKeys.workspace(currentWorkspace?.id ?? ''),
+    queryFn: () => apiClient.getTasks(currentWorkspace?.id ?? ''),
+    enabled: !!currentWorkspace,
+  });
+}
 
 // Fetch single task
 export function useTask(taskId: string) {

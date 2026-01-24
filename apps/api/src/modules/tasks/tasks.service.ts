@@ -260,8 +260,10 @@ export class TasksService {
     return task;
   }
 
-  async findAllForUser(userId: string): Promise<Task[]> {
-    const projects = await this.projectsService.findAllForUser(userId);
+  async findAllForUser(userId: string, workspaceId?: string): Promise<Task[]> {
+    const projects = workspaceId
+      ? await this.projectsService.findAllForWorkspace(workspaceId, userId)
+      : await this.projectsService.findAllForUser(userId);
     const projectIds = projects.map((p) => p.id);
 
     return this.prisma.task.findMany({

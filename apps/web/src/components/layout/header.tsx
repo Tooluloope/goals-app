@@ -23,6 +23,7 @@ import {
   Map,
   Bot,
   GitBranch,
+  Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -41,7 +42,8 @@ import { useUIStore } from '@/store/ui-store';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
 import { cn } from '@/lib/utils';
 
-const navigation = [
+// Navigation items for personal workspaces
+const personalNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AI Assistant', href: '/ai', icon: Bot },
   { name: 'Daily Rhythm', href: '/rhythm', icon: BookOpen },
@@ -53,6 +55,19 @@ const navigation = [
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Weekly Review', href: '/reviews/weekly', icon: CalendarCheck },
   { name: 'Monthly Review', href: '/reviews/monthly', icon: CalendarDays },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
+// Navigation items for family workspaces
+const familyNavigation = [
+  { name: 'Family Hub', href: '/family', icon: Home },
+  { name: 'AI Assistant', href: '/ai', icon: Bot },
+  { name: 'Goals', href: '/projects', icon: Folder },
+  { name: 'Board', href: '/board', icon: Kanban },
+  { name: 'Roadmap', href: '/roadmap', icon: Map },
+  { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
+  { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -145,25 +160,27 @@ export function Header({ title }: HeaderProps) {
             {/* Navigation */}
             <ScrollArea className="h-[calc(100vh-200px)]">
               <nav className="flex flex-col gap-1 p-4">
-                {navigation.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                  return (
-                    <Link key={item.name} href={item.href} onClick={() => setSheetOpen(false)}>
-                      <Button
-                        variant={isActive ? 'secondary' : 'ghost'}
-                        className={cn('w-full justify-start', isActive && 'bg-secondary')}
-                      >
-                        <item.icon className="mr-3 h-5 w-5" />
-                        {item.name}
-                        {item.name === 'Notifications' && (unreadCount ?? 0) > 0 && (
-                          <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                            {unreadCount! > 9 ? '9+' : unreadCount}
-                          </span>
-                        )}
-                      </Button>
-                    </Link>
-                  );
-                })}
+                {(currentWorkspace?.type === 'family' ? familyNavigation : personalNavigation).map(
+                  (item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    return (
+                      <Link key={item.name} href={item.href} onClick={() => setSheetOpen(false)}>
+                        <Button
+                          variant={isActive ? 'secondary' : 'ghost'}
+                          className={cn('w-full justify-start', isActive && 'bg-secondary')}
+                        >
+                          <item.icon className="mr-3 h-5 w-5" />
+                          {item.name}
+                          {item.name === 'Notifications' && (unreadCount ?? 0) > 0 && (
+                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                              {unreadCount! > 9 ? '9+' : unreadCount}
+                            </span>
+                          )}
+                        </Button>
+                      </Link>
+                    );
+                  }
+                )}
               </nav>
             </ScrollArea>
 
@@ -209,6 +226,19 @@ export function Header({ title }: HeaderProps) {
             <Search className="h-5 w-5" />
             <span className="sr-only">Search</span>
           </Button>
+
+          {/* Notifications */}
+          <Link href="/notifications">
+            <Button variant="ghost" size="icon" className="relative shrink-0">
+              <Bell className="h-5 w-5" />
+              {(unreadCount ?? 0) > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                  {unreadCount! > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+              <span className="sr-only">Notifications</span>
+            </Button>
+          </Link>
 
           {/* User Avatar */}
           <Avatar className="h-8 w-8">

@@ -42,6 +42,7 @@ interface AuthState {
   updateProfile: (data: { name?: string; avatar?: string }) => Promise<void>;
   changeEmail: (email: string, password: string) => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  deleteAccount: (password: string) => Promise<boolean>;
   refreshUser: () => Promise<void>;
   initializeAuth: () => Promise<void>;
 }
@@ -63,8 +64,11 @@ export const useAuthStore = create<AuthState>()(
             const user = transformUser(apiUser);
             const apiWorkspaces = await apiClient.getWorkspaces();
             const workspaces = apiWorkspaces.map(transformWorkspace);
+            const persistedCurrent = get().currentWorkspace;
             const defaultWorkspace =
-              workspaces.find((ws) => ws.id === user.defaultWorkspaceId) || workspaces[0];
+              workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
+              workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
+              workspaces[0];
 
             set({
               user,
@@ -91,8 +95,11 @@ export const useAuthStore = create<AuthState>()(
           const user = transformUser(apiUser);
           const apiWorkspaces = await apiClient.getWorkspaces();
           const workspaces = apiWorkspaces.map(transformWorkspace);
+          const persistedCurrent = get().currentWorkspace;
           const defaultWorkspace =
-            workspaces.find((ws) => ws.id === user.defaultWorkspaceId) || workspaces[0];
+            workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
+            workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
+            workspaces[0];
 
           set({
             user,
@@ -128,12 +135,17 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loadWorkspaces: async () => {
-        const { user } = get();
+        const { user, currentWorkspace } = get();
         if (!user) return;
 
         const apiWorkspaces = await apiClient.getWorkspaces();
         const workspaces = apiWorkspaces.map(transformWorkspace);
-        set({ workspaces });
+        const preferred =
+          workspaces.find((ws) => ws.id === currentWorkspace?.id) ||
+          workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
+          workspaces[0] ||
+          null;
+        set({ workspaces, currentWorkspace: preferred });
       },
 
       updateSettings: async (settings: Partial<User['settings']> & { timezone?: string }) => {
@@ -183,6 +195,21 @@ export const useAuthStore = create<AuthState>()(
         return true;
       },
 
+      deleteAccount: async (password: string) => {
+        const { user } = get();
+        if (!user) return false;
+
+        await apiClient.deleteAccount(password);
+        apiClient.clearTokens();
+        set({
+          user: null,
+          currentWorkspace: null,
+          workspaces: [],
+          isAuthenticated: false,
+        });
+        return true;
+      },
+
       refreshUser: async () => {
         const { user } = get();
         if (!user) return;
@@ -202,8 +229,11 @@ export const useAuthStore = create<AuthState>()(
               const user = transformUser(apiUser);
               const apiWorkspaces = await apiClient.getWorkspaces();
               const workspaces = apiWorkspaces.map(transformWorkspace);
+              const persistedCurrent = get().currentWorkspace;
               const defaultWorkspace =
-                workspaces.find((ws) => ws.id === user.defaultWorkspaceId) || workspaces[0];
+                workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
+                workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
+                workspaces[0];
 
               set({
                 user,

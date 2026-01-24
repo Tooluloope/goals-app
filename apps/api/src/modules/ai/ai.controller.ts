@@ -57,9 +57,10 @@ export class AiController {
 
   @Get('daily-text')
   getDailyText(
-    @CurrentUser() user: UserWithoutPassword
+    @CurrentUser() user: UserWithoutPassword,
+    @Query('workspaceId') workspaceId: string
   ): Promise<{ text: string; generatedAt: string; cached: boolean }> {
-    return this.aiService.getDailyText(user.id);
+    return this.aiService.getDailyText(user.id, workspaceId);
   }
 
   // ============================================================
@@ -69,9 +70,14 @@ export class AiController {
   @Get('conversations')
   getConversations(
     @CurrentUser() user: UserWithoutPassword,
+    @Query('workspaceId') workspaceId: string,
     @Query('limit') limit?: string
   ): Promise<Array<AiConversation & { messages: AiMessage[] }>> {
-    return this.aiService.getConversations(user.id, limit ? parseInt(limit, 10) : undefined);
+    return this.aiService.getConversations(
+      user.id,
+      workspaceId,
+      limit ? parseInt(limit, 10) : undefined
+    );
   }
 
   @Get('conversations/:id')
@@ -84,7 +90,7 @@ export class AiController {
 
   @Post('conversations')
   createConversation(@CurrentUser() user: UserWithoutPassword, @Body() dto: CreateConversationDto) {
-    return this.aiService.createConversation(user.id, dto.title);
+    return this.aiService.createConversation(user.id, dto.workspaceId, dto.title);
   }
 
   @Delete('conversations/:id')
@@ -111,12 +117,14 @@ export class AiController {
   @Get('summaries')
   getSummaries(
     @CurrentUser() user: UserWithoutPassword,
+    @Query('workspaceId') workspaceId: string,
     @Query('type') type?: SummaryTypeEnum,
     @Query('limit') limit?: string
   ): Promise<AiSummary[]> {
     const summaryType = type ? (type as unknown as SummaryType) : undefined;
     return this.aiService.getSummaries(
       user.id,
+      workspaceId,
       summaryType,
       limit ? parseInt(limit, 10) : undefined
     );
@@ -126,10 +134,12 @@ export class AiController {
   getWeeklySummary(
     @CurrentUser() user: UserWithoutPassword,
     @Param('weekStart') weekStart: string,
+    @Query('workspaceId') workspaceId: string,
     @Query('forceRegenerate') forceRegenerate?: string
   ): Promise<SummaryResponse> {
     return this.aiService.getOrGenerateSummary(
       user.id,
+      workspaceId,
       SummaryType.weekly,
       weekStart,
       forceRegenerate === 'true'
@@ -140,10 +150,12 @@ export class AiController {
   getMonthlySummary(
     @CurrentUser() user: UserWithoutPassword,
     @Param('month') month: string,
+    @Query('workspaceId') workspaceId: string,
     @Query('forceRegenerate') forceRegenerate?: string
   ): Promise<SummaryResponse> {
     return this.aiService.getOrGenerateSummary(
       user.id,
+      workspaceId,
       SummaryType.monthly,
       month,
       forceRegenerate === 'true'
@@ -154,12 +166,14 @@ export class AiController {
   getYearlySummary(
     @CurrentUser() user: UserWithoutPassword,
     @Param('year') year: string,
+    @Query('workspaceId') workspaceId: string,
     @Query('forceRegenerate') forceRegenerate?: string
   ): Promise<SummaryResponse> {
     // Convert year to start of year date
     const yearStart = `${year}-01-01`;
     return this.aiService.getOrGenerateSummary(
       user.id,
+      workspaceId,
       SummaryType.yearly,
       yearStart,
       forceRegenerate === 'true'
@@ -174,6 +188,7 @@ export class AiController {
     const summaryType = dto.type as unknown as SummaryType;
     return this.aiService.getOrGenerateSummary(
       user.id,
+      dto.workspaceId,
       summaryType,
       dto.periodStart,
       dto.forceRegenerate
@@ -187,20 +202,27 @@ export class AiController {
   @Get('insights')
   getInsights(
     @CurrentUser() user: UserWithoutPassword,
+    @Query('workspaceId') workspaceId: string,
     @Query('type') type?: string,
     @Query('includeDismissed') includeDismissed?: string
   ): Promise<AiInsight[]> {
     const insightType = type ? (type as InsightType) : undefined;
-    return this.aiService.getInsights(user.id, insightType, includeDismissed === 'true');
+    return this.aiService.getInsights(
+      user.id,
+      workspaceId,
+      insightType,
+      includeDismissed === 'true'
+    );
   }
 
   @Post('insights/generate')
   generateInsights(
     @CurrentUser() user: UserWithoutPassword,
+    @Query('workspaceId') workspaceId: string,
     @Query('types') types?: string
   ): Promise<AiInsight[]> {
     const insightTypes = types ? (types.split(',') as InsightType[]) : undefined;
-    return this.aiService.generateInsights(user.id, insightTypes);
+    return this.aiService.generateInsights(user.id, workspaceId, insightTypes);
   }
 
   @Patch('insights/:id/dismiss')

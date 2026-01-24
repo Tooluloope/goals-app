@@ -1,19 +1,24 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
 import { CreateProjectDto, UpdateProjectDto, AddReviewDto } from '@goals/shared';
 import { Project, ProjectDependency } from '@goals/database';
+import { differenceInDays } from 'date-fns';
 
 // Status IDs that indicate completion
 const COMPLETED_STATUS_IDS = ['status-done', 'status-completed'];
 
 @Injectable()
 export class ProjectsService {
+  private readonly logger = new Logger(ProjectsService.name);
+
   constructor(
     private prisma: PrismaService,
     private workspacesService: WorkspacesService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private emailService: EmailService
   ) {}
 
   async findAllForWorkspace(workspaceId: string, userId: string): Promise<Project[]> {
@@ -25,7 +30,11 @@ export class ProjectsService {
         checklistItems: { orderBy: { order: 'asc' } },
         tasks: { orderBy: { createdAt: 'desc' } },
         metrics: true,
-        reviewNotes: { orderBy: { date: 'desc' }, take: 5 },
+        reviewNotes: {
+          orderBy: { date: 'desc' },
+          take: 5,
+          include: { createdBy: { select: { id: true, name: true, avatar: true } } },
+        },
         blockedBy: {
           include: {
             blocker: { select: { id: true, name: true, statusId: true } },
@@ -51,7 +60,11 @@ export class ProjectsService {
         checklistItems: { orderBy: { order: 'asc' } },
         tasks: { orderBy: { createdAt: 'desc' } },
         metrics: true,
-        reviewNotes: { orderBy: { date: 'desc' }, take: 5 },
+        reviewNotes: {
+          orderBy: { date: 'desc' },
+          take: 5,
+          include: { createdBy: { select: { id: true, name: true, avatar: true } } },
+        },
         blockedBy: {
           include: {
             blocker: { select: { id: true, name: true, statusId: true } },
@@ -77,7 +90,10 @@ export class ProjectsService {
         metrics: true,
         reviewNotes: {
           orderBy: { date: 'desc' },
-          include: { images: true },
+          include: {
+            images: true,
+            createdBy: { select: { id: true, name: true, avatar: true } },
+          },
         },
         images: true,
         blockedBy: {
@@ -156,9 +172,47 @@ export class ProjectsService {
     if (!wasCompleted && isNowCompleted) {
       // Project just became completed - notify dependents
       await this.notifyBlockerResolved(id, project.name, userId);
+
+      // Send goal completed email (non-blocking)
+      this.sendGoalCompletedEmail(project, userId).catch((err) => {
+        this.logger.error(`Failed to send goal completed email: ${err.message}`);
+      });
     }
 
     return updatedProject;
+  }
+
+  private async sendGoalCompletedEmail(project: Project, userId: string): Promise<void> {
+    // Get user info
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true, settings: true },
+    });
+
+    if (!user) return;
+
+    // Check email preferences - default to true if not set
+    const settings = user.settings as Record<string, any> | null;
+    const _emailPrefs = settings?.emailPreferences;
+    // Note: There's no specific goalCompleted pref, so we'll send by default
+
+    // Calculate stats for the email
+    const completedTasks = await this.prisma.task.count({
+      where: { projectId: project.id, statusId: { in: ['completed', 'done'] } },
+    });
+
+    const totalDays = differenceInDays(new Date(), project.startDate);
+
+    await this.emailService.sendGoalCompletedEmail(
+      user.email,
+      user.name,
+      project.name,
+      undefined, // No parent project name
+      completedTasks,
+      totalDays > 0 ? totalDays : 1
+    );
+
+    this.logger.log(`Sent goal completed email to ${user.email} for "${project.name}"`);
   }
 
   private async notifyBlockerResolved(
@@ -296,6 +350,7 @@ export class ProjectsService {
       this.prisma.reviewNote.create({
         data: {
           projectId,
+          createdById: userId,
           date: new Date(),
           ...reviewData,
         },

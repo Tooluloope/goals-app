@@ -8,11 +8,15 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "codegen": "playwright codegen http://localhost:3008",
-    "install:browsers": "playwright install --with-deps"
+    "install:browsers": "playwright install --with-deps",
+    "lint": "eslint . --ext .ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
     "typescript": "^5.3.3"
   }
 }

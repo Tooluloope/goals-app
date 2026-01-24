@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -13,8 +24,11 @@ export class TasksController {
   constructor(private tasksService: TasksService) {}
 
   @Get()
-  findAll(@CurrentUser() user: UserWithoutPassword): Promise<Task[]> {
-    return this.tasksService.findAllForUser(user.id);
+  findAll(
+    @CurrentUser() user: UserWithoutPassword,
+    @Query('workspaceId') workspaceId?: string
+  ): Promise<Task[]> {
+    return this.tasksService.findAllForUser(user.id, workspaceId);
   }
 
   @Get(':id')

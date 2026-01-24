@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 // Mock bcrypt
 jest.mock('bcrypt', () => ({
@@ -48,9 +49,14 @@ describe('AuthService', () => {
       },
       workspaceMember: {
         create: jest.fn(),
+        findUnique: jest.fn(),
       },
       workspaceConfig: {
         create: jest.fn(),
+      },
+      workspaceInvite: {
+        findMany: jest.fn(),
+        update: jest.fn(),
       },
       refreshToken: {
         findUnique: jest.fn(),
@@ -72,6 +78,12 @@ describe('AuthService', () => {
       findById: jest.fn(),
     };
 
+    const mockEmailService = {
+      sendWelcomeEmail: jest.fn().mockResolvedValue({}),
+      sendPasswordResetEmail: jest.fn().mockResolvedValue({}),
+      sendPasswordChangedEmail: jest.fn().mockResolvedValue({}),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -79,6 +91,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: UsersService, useValue: mockUsersService },
+        { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();
 
@@ -86,6 +99,8 @@ describe('AuthService', () => {
     prismaService = module.get(PrismaService);
     jwtService = module.get(JwtService);
     _configService = module.get(ConfigService);
+    prismaService.workspaceInvite.findMany.mockResolvedValue([]);
+    prismaService.$transaction.mockImplementation(async (cb: any) => cb(prismaService));
   });
 
   afterEach(() => {

@@ -9,6 +9,9 @@ import {
 } from 'class-validator';
 
 export class CreateConversationDto {
+  @IsUUID()
+  workspaceId: string;
+
   @IsString()
   @IsOptional()
   @MaxLength(100)
@@ -29,6 +32,9 @@ export enum SummaryTypeEnum {
 }
 
 export class GenerateSummaryDto {
+  @IsUUID()
+  workspaceId: string;
+
   @IsEnum(SummaryTypeEnum)
   type: SummaryTypeEnum;
 
@@ -49,6 +55,9 @@ export enum InsightTypeEnum {
 }
 
 export class GenerateInsightsDto {
+  @IsUUID()
+  workspaceId: string;
+
   @IsEnum(InsightTypeEnum, { each: true })
   @IsOptional()
   types?: InsightTypeEnum[];
@@ -57,4 +66,10 @@ export class GenerateInsightsDto {
 export class DismissInsightDto {
   @IsUUID()
   insightId: string;
+}
+
+// Query params DTO for workspace-scoped endpoints
+export class WorkspaceQueryDto {
+  @IsUUID()
+  workspaceId: string;
 }

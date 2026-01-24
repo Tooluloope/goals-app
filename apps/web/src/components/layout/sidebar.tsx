@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Kanban,
@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Users,
   Folder,
+  ListChecks,
   Search,
   Keyboard,
   BookOpen,
@@ -23,6 +24,7 @@ import {
   Map,
   GitBranch,
   Bot,
+  Home,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -37,17 +39,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
 import { getModifierKey } from '@/hooks/use-keyboard-shortcuts';
+import { projectKeys } from '@/hooks/use-projects';
+import { taskKeys } from '@/hooks/use-tasks';
 
-const navigation = [
+// Navigation items for personal workspaces
+const personalNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AI Assistant', href: '/ai', icon: Bot },
   { name: 'Daily Rhythm', href: '/rhythm', icon: BookOpen },
   { name: 'Habit Manager', href: '/habits', icon: BarChart3 },
   { name: 'Projects', href: '/projects', icon: Folder },
+  { name: 'Tasks', href: '/tasks', icon: ListChecks },
   { name: 'Board', href: '/board', icon: Kanban },
   { name: 'Roadmap', href: '/roadmap', icon: Map },
   { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
@@ -58,12 +65,87 @@ const navigation = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
+// Navigation items for family workspaces
+const familyNavigation = [
+  { name: 'Family Hub', href: '/family', icon: Home },
+  { name: 'AI Assistant', href: '/ai', icon: Bot },
+  { name: 'Projects', href: '/projects', icon: Folder },
+  { name: 'Tasks', href: '/tasks', icon: ListChecks },
+  { name: 'Board', href: '/board', icon: Kanban },
+  { name: 'Roadmap', href: '/roadmap', icon: Map },
+  { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
+  { name: 'Calendar', href: '/calendar', icon: Calendar },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
+// Pages that only exist in personal workspaces
+const personalOnlyPaths = ['/dashboard', '/rhythm', '/habits', '/reviews'];
+// Pages that only exist in family workspaces
+const familyOnlyPaths = ['/family'];
+// Detail pages that contain workspace-specific data (should redirect on workspace switch)
+const workspaceDetailPaths = ['/project/', '/ai/'];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, currentWorkspace, workspaces, setCurrentWorkspace, logout } = useAuthStore();
   const { setCommandPaletteOpen, setShortcutsHelpOpen } = useUIStore();
   const { data: unreadCount } = useUnreadNotificationsCount();
   const modKey = useMemo(() => getModifierKey(), []);
+
+  const handleWorkspaceSwitch = useCallback(
+    (workspace: typeof currentWorkspace) => {
+      if (!workspace || workspace.id === currentWorkspace?.id) return;
+
+      const isCurrentlyPersonal = currentWorkspace?.type === 'personal';
+      const isSwitchingToFamily = workspace.type === 'family';
+      const isSwitchingToPersonal = workspace.type === 'personal';
+
+      // Update the current workspace
+      setCurrentWorkspace(workspace);
+
+      // Invalidate workspace-specific queries to force refetch with new workspace data
+      queryClient.invalidateQueries({ queryKey: projectKeys.workspace(workspace.id) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.workspace(workspace.id) });
+      // Also invalidate all projects/tasks to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      queryClient.invalidateQueries({ queryKey: taskKeys.all });
+
+      // Check if on a detail page with workspace-specific data (e.g., /project/[id])
+      const isOnDetailPage = workspaceDetailPaths.some((path) => pathname.startsWith(path));
+      if (isOnDetailPage) {
+        // Redirect to the list page for the new workspace
+        if (pathname.startsWith('/project/')) {
+          router.push('/projects');
+        } else if (pathname.startsWith('/ai/')) {
+          router.push('/ai');
+        }
+        return;
+      }
+
+      // Navigate if current page doesn't exist in the new workspace type
+      if (isCurrentlyPersonal && isSwitchingToFamily) {
+        // Switching from personal to family
+        const isOnPersonalOnlyPage = personalOnlyPaths.some(
+          (path) => pathname === path || pathname.startsWith(path + '/')
+        );
+        if (isOnPersonalOnlyPage) {
+          router.push('/family');
+        }
+      } else if (!isCurrentlyPersonal && isSwitchingToPersonal) {
+        // Switching from family to personal
+        const isOnFamilyOnlyPage = familyOnlyPaths.some(
+          (path) => pathname === path || pathname.startsWith(path + '/')
+        );
+        if (isOnFamilyOnlyPage) {
+          router.push('/dashboard');
+        }
+      }
+    },
+    [currentWorkspace, pathname, router, setCurrentWorkspace, queryClient]
+  );
 
   const getInitials = (name: string) => {
     return name
@@ -107,7 +189,7 @@ export function Sidebar() {
               {workspaces.map((workspace) => (
                 <DropdownMenuItem
                   key={workspace.id}
-                  onClick={() => setCurrentWorkspace(workspace)}
+                  onClick={() => handleWorkspaceSwitch(workspace)}
                   className={cn(currentWorkspace?.id === workspace.id && 'bg-accent')}
                 >
                   {workspace.type === 'family' ? (
@@ -142,25 +224,27 @@ export function Sidebar() {
         {/* Navigation */}
         <ScrollArea className="flex-1 px-3">
           <nav className="flex flex-col gap-1 py-2">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link key={item.name} href={item.href}>
-                  <Button
-                    variant={isActive ? 'secondary' : 'ghost'}
-                    className={cn('w-full justify-start', isActive && 'bg-secondary')}
-                  >
-                    <item.icon className="mr-3 h-5 w-5" />
-                    {item.name}
-                    {item.name === 'Notifications' && (unreadCount ?? 0) > 0 && (
-                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                        {unreadCount! > 9 ? '9+' : unreadCount}
-                      </span>
-                    )}
-                  </Button>
-                </Link>
-              );
-            })}
+            {(currentWorkspace?.type === 'family' ? familyNavigation : personalNavigation).map(
+              (item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <Button
+                      variant={isActive ? 'secondary' : 'ghost'}
+                      className={cn('w-full justify-start', isActive && 'bg-secondary')}
+                    >
+                      <item.icon className="mr-3 h-5 w-5" />
+                      {item.name}
+                      {item.name === 'Notifications' && (unreadCount ?? 0) > 0 && (
+                        <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                          {unreadCount! > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
+                    </Button>
+                  </Link>
+                );
+              }
+            )}
           </nav>
 
           {/* Keyboard Shortcuts Button */}

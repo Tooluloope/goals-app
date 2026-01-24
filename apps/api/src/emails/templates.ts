@@ -56,6 +56,20 @@ export type InactivityData = BaseEmailData & {
   lastActivity?: string;
 };
 
+export type StaleProjectData = BaseEmailData & {
+  projectName: string;
+  daysSinceUpdate: number;
+  lastActivity?: string;
+  projectStatus?: string;
+};
+
+export type ReviewDueData = BaseEmailData & {
+  projectName: string;
+  reviewType: 'weekly' | 'monthly' | 'cadence';
+  daysSinceLastReview: number;
+  cadence?: string;
+};
+
 export interface EmailTemplate<T extends BaseEmailData = BaseEmailData> {
   subject: (data: T) => string;
   html: (data: T) => string;
@@ -807,6 +821,91 @@ ${data.projectName ? `Project: ${data.projectName}` : ''}
 
 View task: ${data.actionUrl || ''}`,
   } satisfies EmailTemplate<GoalData>,
+
+  // ============================================
+  // STALE PROJECT & REVIEW DUE
+  // ============================================
+
+  staleProject: {
+    subject: ({ projectName }: StaleProjectData) => `📋 ${projectName} needs attention`,
+    html: (data: StaleProjectData) =>
+      renderLayout(
+        'Stale project',
+        `<h1 class="title">Project Needs Attention</h1>
+         <p class="subtitle">It's been a while since you updated this project.</p>
+
+         <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 20px; margin: 20px 0;">
+           <div style="font-weight: 600; color: #92400e; font-size: 18px;">${data.projectName}</div>
+           <div class="muted" style="margin-top: 8px;">
+             ${data.daysSinceUpdate} days since last activity
+           </div>
+           ${data.projectStatus ? `<div class="muted" style="margin-top: 4px;">Status: ${data.projectStatus}</div>` : ''}
+         </div>
+
+         <div class="highlight-box">
+           <p>💡 <strong>Quick wins:</strong> Even a small update helps keep momentum. Log a review, update a task, or adjust the timeline.</p>
+         </div>
+
+         ${actionButton(data, 'Review Project')}`,
+        data,
+        { icon: icons.alertTriangle, theme: 'warning' }
+      ),
+    text: (data: StaleProjectData) =>
+      `📋 ${data.projectName} needs attention
+
+It's been ${data.daysSinceUpdate} days since you last updated this project.
+${data.projectStatus ? `Status: ${data.projectStatus}` : ''}
+
+Review project: ${data.actionUrl || ''}`,
+  } satisfies EmailTemplate<StaleProjectData>,
+
+  reviewDue: {
+    subject: ({ projectName, reviewType }: ReviewDueData) =>
+      `📝 ${reviewType === 'weekly' ? 'Weekly' : reviewType === 'monthly' ? 'Monthly' : 'Scheduled'} review due: ${projectName}`,
+    html: (data: ReviewDueData) => {
+      const reviewTypeLabel =
+        data.reviewType === 'weekly'
+          ? 'weekly'
+          : data.reviewType === 'monthly'
+            ? 'monthly'
+            : data.cadence || 'scheduled';
+
+      return renderLayout(
+        'Review due',
+        `<h1 class="title">Review Due</h1>
+         <p class="subtitle">Time for your ${reviewTypeLabel} project review.</p>
+
+         <div style="background: #eff6ff; border: 1px solid #3b82f6; border-radius: 12px; padding: 20px; margin: 20px 0;">
+           <div style="font-weight: 600; color: #1e40af; font-size: 18px;">${data.projectName}</div>
+           <div class="muted" style="margin-top: 8px;">
+             ${data.daysSinceLastReview} days since last review
+           </div>
+         </div>
+
+         <div class="highlight-box">
+           <p>📊 <strong>Review checklist:</strong></p>
+           <ul>
+             <li>Check task progress</li>
+             <li>Update blockers</li>
+             <li>Adjust timeline if needed</li>
+             <li>Log any key decisions</li>
+           </ul>
+         </div>
+
+         ${actionButton(data, 'Start Review')}`,
+        data,
+        { icon: icons.calendar, theme: 'blue' }
+      );
+    },
+    text: (data: ReviewDueData) =>
+      `📝 Review due: ${data.projectName}
+
+Time for your ${data.reviewType === 'weekly' ? 'weekly' : data.reviewType === 'monthly' ? 'monthly' : data.cadence || 'scheduled'} review.
+
+It's been ${data.daysSinceLastReview} days since your last review.
+
+Start review: ${data.actionUrl || ''}`,
+  } satisfies EmailTemplate<ReviewDueData>,
 };
 
 export type EmailTemplateKey = keyof typeof emailTemplates;

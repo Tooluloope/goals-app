@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Image as ImageIcon, ChevronRight, GitBranch } from 'lucide-react';
+import { Plus, Trash2, Image as ImageIcon, ChevronRight, GitBranch, User } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageGallery } from '@/components/shared/image-gallery';
 import { CompactImageGallery } from '@/components/shared/image-gallery';
 import { TaskDependencyGraph } from '@/components/shared/task-dependency-graph';
@@ -31,6 +32,7 @@ import {
 import { formatDate, cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 
 interface ProjectSectionsProps {
   project: Project;
@@ -204,9 +206,16 @@ export function ProjectSections({ project }: ProjectSectionsProps) {
                     <Card key={review.id}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">
-                            {formatDate(review.date, 'MMMM d, yyyy')}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">
+                              {formatDate(review.date, 'MMMM d, yyyy')}
+                            </span>
+                            {review.createdBy && (
+                              <span className="text-sm text-muted-foreground">
+                                by {review.createdBy.name}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="space-y-2 text-sm">
                           <div>
@@ -438,11 +447,18 @@ function TasksSection({ projectId, tasks }: { projectId: string; tasks: Task[] }
   const deleteTask = useDeleteTask();
   const { currentWorkspace } = useAuthStore();
   const { getTaskStatusesForWorkspace } = useConfigStore();
+  const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
 
   const taskStatuses = currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : [];
   const nextActionStatusId = taskStatuses.find((s) => s.name === 'Next Action')?.id || 'task-next';
   const doneStatusId = taskStatuses.find((s) => s.name === 'Done')?.id || 'task-done';
   const backlogStatusId = taskStatuses.find((s) => s.name === 'Backlog')?.id || 'task-backlog';
+
+  // Helper to get member info from workspace members
+  const getMemberInfo = (userId: string | null | undefined) => {
+    if (!userId) return null;
+    return workspaceMembers.find((m) => m.userId === userId);
+  };
 
   const handleAdd = async () => {
     if (!newTask.trim()) return;
@@ -467,45 +483,57 @@ function TasksSection({ projectId, tasks }: { projectId: string; tasks: Task[] }
   const backlog = tasks.filter((t) => t.statusId === backlogStatusId);
   const done = tasks.filter((t) => t.statusId === doneStatusId);
 
-  const TaskItem = ({ task }: { task: Task }) => (
-    <div className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/50 group">
-      <Checkbox
-        checked={task.statusId === doneStatusId}
-        onCheckedChange={(checked) =>
-          handleStatusChange(task.id, checked ? doneStatusId : nextActionStatusId)
-        }
-        className="h-5 w-5"
-        onClick={(e) => e.stopPropagation()}
-      />
-      <button
-        className={cn(
-          'flex-1 text-left hover:text-primary transition-colors cursor-pointer',
-          task.statusId === doneStatusId && 'line-through text-muted-foreground'
+  const TaskItem = ({ task }: { task: Task }) => {
+    const assignee = getMemberInfo(task.assignedToId);
+
+    return (
+      <div className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/50 group">
+        <Checkbox
+          checked={task.statusId === doneStatusId}
+          onCheckedChange={(checked) =>
+            handleStatusChange(task.id, checked ? doneStatusId : nextActionStatusId)
+          }
+          className="h-5 w-5"
+          onClick={(e) => e.stopPropagation()}
+        />
+        <button
+          className={cn(
+            'flex-1 text-left hover:text-primary transition-colors cursor-pointer',
+            task.statusId === doneStatusId && 'line-through text-muted-foreground'
+          )}
+          onClick={() => router.push(`/project/${projectId}/task/${task.id}`)}
+        >
+          {task.title}
+        </button>
+        {assignee && (
+          <Avatar className="h-5 w-5" title={`Assigned to ${assignee.name}`}>
+            <AvatarImage src={assignee.avatar || undefined} />
+            <AvatarFallback className="text-[10px]">
+              {assignee.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         )}
-        onClick={() => router.push(`/project/${projectId}/task/${task.id}`)}
-      >
-        {task.title}
-      </button>
-      {task.dueDate && (
-        <span className="text-xs text-muted-foreground">{formatDate(task.dueDate, 'MMM d')}</span>
-      )}
-      <ChevronRight
-        className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-pointer hover:text-primary transition-all"
-        onClick={() => router.push(`/project/${projectId}/task/${task.id}`)}
-      />
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="opacity-0 group-hover:opacity-100"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDelete(task.id);
-        }}
-      >
-        <Trash2 className="h-3 w-3" />
-      </Button>
-    </div>
-  );
+        {task.dueDate && (
+          <span className="text-xs text-muted-foreground">{formatDate(task.dueDate, 'MMM d')}</span>
+        )}
+        <ChevronRight
+          className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-pointer hover:text-primary transition-all"
+          onClick={() => router.push(`/project/${projectId}/task/${task.id}`)}
+        />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="opacity-0 group-hover:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete(task.id);
+          }}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">

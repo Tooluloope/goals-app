@@ -4,12 +4,14 @@ import { ProjectsService } from './projects.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
 
 describe('ProjectsService', () => {
   let service: ProjectsService;
   let prismaService: any;
   let workspacesService: any;
   let notificationsService: any;
+  let _emailService: any;
 
   const mockProject = {
     id: 'project-1',
@@ -82,12 +84,17 @@ describe('ProjectsService', () => {
       create: jest.fn(),
     };
 
+    const mockEmailService = {
+      sendGoalCompletedEmail: jest.fn().mockResolvedValue({ success: true }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProjectsService,
         { provide: PrismaService, useValue: mockPrismaService } as any,
         { provide: WorkspacesService, useValue: mockWorkspacesService } as any,
         { provide: NotificationsService, useValue: mockNotificationsService } as any,
+        { provide: EmailService, useValue: mockEmailService } as any,
       ],
     }).compile();
 
@@ -95,6 +102,7 @@ describe('ProjectsService', () => {
     prismaService = module.get(PrismaService);
     workspacesService = module.get(WorkspacesService);
     notificationsService = module.get(NotificationsService);
+    _emailService = module.get(EmailService);
   });
 
   afterEach(() => {

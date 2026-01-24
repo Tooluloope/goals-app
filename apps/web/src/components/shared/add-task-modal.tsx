@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Repeat, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Repeat, ChevronDown, ChevronUp, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,9 @@ import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useCreateTask, useProject } from '@/hooks/use-projects';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getColorClasses, TaskStatusConfig } from '@/types/config';
 import { LocalImageAttachment, RecurrenceType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -48,6 +50,7 @@ const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   statusId: z.string().min(1, 'Status is required'),
   dueDate: z.string().optional(),
+  assignedToId: z.string().optional(),
   isRecurring: z.boolean().optional(),
   recurrenceType: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom']).optional(),
   recurrenceInterval: z.number().min(1).optional(),
@@ -58,13 +61,17 @@ type TaskFormData = z.infer<typeof taskSchema>;
 
 export function AddTaskModal() {
   const { addTaskModalOpen, addTaskProjectId, closeAddTaskModal } = useUIStore();
-  const { currentWorkspace } = useAuthStore();
+  const { currentWorkspace, user } = useAuthStore();
   const { getTaskStatusesForWorkspace } = useConfigStore();
   const { data: project } = useProject(addTaskProjectId || '');
+  const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const createTask = useCreateTask();
   const { toast } = useToast();
   const [images, setImages] = useState<LocalImageAttachment[]>([]);
   const [showRecurrence, setShowRecurrence] = useState(false);
+
+  // Check if workspace has multiple members (show assignee selector only then)
+  const hasMultipleMembers = workspaceMembers.length > 1;
 
   const taskStatuses = useMemo(
     () => (currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : []),
@@ -99,6 +106,7 @@ export function AddTaskModal() {
       title: '',
       statusId: defaultStatusId,
       dueDate: '',
+      assignedToId: '',
       isRecurring: false,
       recurrenceType: 'none',
       recurrenceInterval: 1,
@@ -133,6 +141,7 @@ export function AddTaskModal() {
         title: data.title,
         statusId: data.statusId,
         dueDate: data.dueDate || undefined,
+        assignedToId: data.assignedToId || undefined,
         images: images.length > 0 ? (images as any) : undefined,
         isRecurring: data.isRecurring,
         recurrenceType: data.isRecurring ? data.recurrenceType : 'none',
@@ -216,6 +225,75 @@ export function AddTaskModal() {
               <Label htmlFor="dueDate">Due date (optional)</Label>
               <Input id="dueDate" type="date" {...register('dueDate')} />
             </div>
+
+            {/* Assignee Selector - only show for workspaces with multiple members */}
+            {hasMultipleMembers && (
+              <div className="space-y-2">
+                <Label htmlFor="assignee">Assign to (optional)</Label>
+                <Select
+                  value={watch('assignedToId') || ''}
+                  onValueChange={(value) =>
+                    setValue('assignedToId', value === 'unassigned' ? '' : value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unassigned">
+                      {watch('assignedToId') ? (
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const member = workspaceMembers.find(
+                              (m) => m.userId === watch('assignedToId')
+                            );
+                            return member ? (
+                              <>
+                                <Avatar className="h-5 w-5">
+                                  <AvatarImage src={member.avatar || undefined} />
+                                  <AvatarFallback className="text-xs">
+                                    {member.name.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{member.name}</span>
+                              </>
+                            ) : (
+                              'Unassigned'
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <User className="h-4 w-4" />
+                          <span>Unassigned</span>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>Unassigned</span>
+                      </div>
+                    </SelectItem>
+                    {workspaceMembers.map((member) => (
+                      <SelectItem key={member.userId} value={member.userId}>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={member.avatar || undefined} />
+                            <AvatarFallback className="text-xs">
+                              {member.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{member.name}</span>
+                          {member.userId === user?.id && (
+                            <span className="text-xs text-muted-foreground">(you)</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Recurrence Toggle */}
             <div className="space-y-2">

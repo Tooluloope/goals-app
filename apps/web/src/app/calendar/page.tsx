@@ -40,9 +40,11 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProjects } from '@/hooks/use-projects';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getColorClasses } from '@/types/config';
 import type { Project, Task } from '@goals/shared';
 import { cn, isReviewDue, toDate } from '@/lib/utils';
@@ -114,7 +116,14 @@ export default function CalendarPage() {
     getCadencesForWorkspace,
     getStatusesForWorkspace,
   } = useConfigStore();
+  const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Helper to get member info
+  const getMemberInfo = (userId: string | null | undefined) => {
+    if (!userId) return null;
+    return workspaceMembers.find((m) => m.userId === userId);
+  };
 
   const taskStatuses = useMemo(
     () => (currentWorkspace ? getTaskStatusesForWorkspace(currentWorkspace.id) : []),
@@ -557,6 +566,10 @@ export default function CalendarPage() {
                         const area = currentWorkspace
                           ? getAreaById(currentWorkspace.id, event.project.areaId)
                           : null;
+                        const assignee =
+                          event.type === 'task' && event.task
+                            ? getMemberInfo(event.task.assignedToId)
+                            : null;
 
                         return (
                           <button
@@ -612,7 +625,17 @@ export default function CalendarPage() {
                                 </p>
                               </div>
                             </div>
-                            <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="flex items-center gap-2">
+                              {assignee && (
+                                <Avatar className="h-5 w-5" title={`Assigned to ${assignee.name}`}>
+                                  <AvatarImage src={assignee.avatar || undefined} />
+                                  <AvatarFallback className="text-[10px]">
+                                    {assignee.name.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
                           </button>
                         );
                       })}

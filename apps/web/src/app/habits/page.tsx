@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { format, subDays, startOfDay, eachDayOfInterval } from 'date-fns';
 import { AppLayout } from '@/components/layout/app-layout';
+import { useAuthStore } from '@/store/auth-store';
 import { useHabits, useToggleHabitLog, useDeleteHabit } from '@/hooks/use-habits';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,10 +62,19 @@ function getColorClass(colorName: string) {
 }
 
 export default function HabitManagerPage() {
+  const router = useRouter();
+  const { currentWorkspace } = useAuthStore();
   const { data: habitsData, isLoading } = useHabits();
   const habits = useMemo(() => (Array.isArray(habitsData) ? habitsData : []), [habitsData]);
   const deleteHabit = useDeleteHabit();
   const toggleLog = useToggleHabitLog();
+
+  // Redirect to Family Hub if in family workspace (this is a personal-only page)
+  useEffect(() => {
+    if (currentWorkspace?.type === 'family') {
+      router.replace('/family');
+    }
+  }, [currentWorkspace, router]);
 
   // Store only the ID, derive the habit from the array to stay in sync with cache updates
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,10 +25,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TagSelect } from '@/components/ui/tag-select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useCreateProject } from '@/hooks/use-projects';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useToast } from '@/hooks/use-toast';
 import {
   getColorClasses,
@@ -50,13 +52,14 @@ const projectSchema = z.object({
   startDate: z.string(),
   targetDate: z.string(),
   successMetric: z.string(),
+  ownerId: z.string().optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
 
 export function AddProjectModal() {
   const { addProjectModalOpen, setAddProjectModalOpen } = useUIStore();
-  const { currentWorkspace } = useAuthStore();
+  const { currentWorkspace, user } = useAuthStore();
   const {
     getAreasForWorkspace,
     getStatusesForWorkspace,
@@ -66,7 +69,11 @@ export function AddProjectModal() {
     getActiveTags,
   } = useConfigStore();
   const createProject = useCreateProject();
+  const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const { toast } = useToast();
+
+  // Check if workspace has multiple members (show owner selector only then)
+  const hasMultipleMembers = workspaceMembers.length > 1;
 
   const areas = useMemo(
     () => (currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : []),
@@ -127,6 +134,7 @@ export function AddProjectModal() {
       startDate: today,
       targetDate: endOfYear,
       successMetric: '',
+      ownerId: '',
     },
   });
 
@@ -169,6 +177,7 @@ export function AddProjectModal() {
         targetDate: data.targetDate,
         successMetric: data.successMetric,
         tagIds: selectedTagIds,
+        ownerId: data.ownerId || undefined,
       });
 
       toast({
@@ -355,6 +364,75 @@ export function AddProjectModal() {
                 placeholder="Select tags..."
               />
             </div>
+
+            {/* Owner Selector - only show for workspaces with multiple members */}
+            {hasMultipleMembers && (
+              <div className="space-y-2">
+                <Label htmlFor="owner">Owner (optional)</Label>
+                <Select
+                  value={watch('ownerId') || ''}
+                  onValueChange={(value) =>
+                    setValue('ownerId', value === 'unassigned' ? '' : value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unassigned">
+                      {watch('ownerId') ? (
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const member = workspaceMembers.find(
+                              (m) => m.userId === watch('ownerId')
+                            );
+                            return member ? (
+                              <>
+                                <Avatar className="h-5 w-5">
+                                  <AvatarImage src={member.avatar || undefined} />
+                                  <AvatarFallback className="text-xs">
+                                    {member.name.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{member.name}</span>
+                              </>
+                            ) : (
+                              'Unassigned'
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <User className="h-4 w-4" />
+                          <span>Unassigned</span>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>Unassigned</span>
+                      </div>
+                    </SelectItem>
+                    {workspaceMembers.map((member) => (
+                      <SelectItem key={member.userId} value={member.userId}>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={member.avatar || undefined} />
+                            <AvatarFallback className="text-xs">
+                              {member.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{member.name}</span>
+                          {member.userId === user?.id && (
+                            <span className="text-xs text-muted-foreground">(you)</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="successMetric">Success metric</Label>

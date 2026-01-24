@@ -1,6 +1,11 @@
 // Re-export everything from shared package (includes config types)
 export * from '@goals/shared';
 
+// Extended web-only helpers
+export type TaskWithProject = import('@goals/shared').Task & {
+  project?: { id: string; name: string; workspaceId: string };
+};
+
 // ============================================================
 // WEB-SPECIFIC TYPES (not in shared)
 // ============================================================
@@ -26,6 +31,7 @@ export interface CreateProjectData {
   successMetric: string;
   confidenceId: string;
   tagIds?: string[];
+  ownerId?: string;
 }
 
 export interface CreateTaskData {
@@ -33,7 +39,7 @@ export interface CreateTaskData {
   title: string;
   statusId: string;
   dueDate?: string;
-  assignedTo?: string;
+  assignedToId?: string;
   images?: import('@goals/shared').ImageAttachment[];
   // Recurrence fields
   isRecurring?: boolean;

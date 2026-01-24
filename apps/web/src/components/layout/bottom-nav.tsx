@@ -2,21 +2,35 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, Calendar, Bell, BookOpen, Bot } from 'lucide-react';
+import { LayoutDashboard, Kanban, BookOpen, Bot, Settings, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
+import { useAuthStore } from '@/store/auth-store';
 
-const navigation = [
+// Personal workspace navigation
+const personalNavigation = [
   { name: 'Today', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AI', href: '/ai', icon: Bot },
   { name: 'Rhythm', href: '/rhythm', icon: BookOpen },
   { name: 'Board', href: '/board', icon: Kanban },
-  { name: 'Alerts', href: '/notifications', icon: Bell },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
+// Family workspace navigation
+const familyNavigation = [
+  { name: 'Home', href: '/family', icon: Home },
+  { name: 'AI', href: '/ai', icon: Bot },
+  { name: 'Projects', href: '/projects', icon: LayoutDashboard },
+  { name: 'Board', href: '/board', icon: Kanban },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
   const { data: unreadCount } = useUnreadNotificationsCount();
+  const { currentWorkspace } = useAuthStore();
+
+  const navigation = currentWorkspace?.type === 'family' ? familyNavigation : personalNavigation;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden pb-safe">

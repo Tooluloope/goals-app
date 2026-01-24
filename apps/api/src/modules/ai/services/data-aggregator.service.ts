@@ -84,9 +84,9 @@ export class DataAggregatorService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Get current user context for chat
+   * Get current user context for chat (scoped to workspace)
    */
-  async getUserContext(userId: string): Promise<UserContext> {
+  async getUserContext(userId: string, workspaceId: string): Promise<UserContext> {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const last30Days = subDays(today, 30);
@@ -108,15 +108,18 @@ export class DataAggregatorService {
             gratitude: true,
           },
         }),
+        // Filter tasks by workspace
         this.prisma.task.count({
           where: {
-            project: { workspace: { ownerId: userId } },
+            project: { workspaceId },
+            OR: [{ assignedToId: userId }, { project: { ownerId: userId } }],
             completedAt: null,
           },
         }),
+        // Filter projects by workspace
         this.prisma.project.count({
           where: {
-            workspace: { ownerId: userId },
+            workspaceId,
             statusId: { not: 'done' },
           },
         }),
@@ -146,9 +149,9 @@ export class DataAggregatorService {
   }
 
   /**
-   * Get weekly data for summary generation
+   * Get weekly data for summary generation (scoped to workspace)
    */
-  async getWeeklyData(userId: string, weekStart: Date): Promise<WeeklyData> {
+  async getWeeklyData(userId: string, workspaceId: string, weekStart: Date): Promise<WeeklyData> {
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     const weekStartStr = weekStart.toISOString().split('T')[0];
 
@@ -169,9 +172,10 @@ export class DataAggregatorService {
         },
       }),
       this.getHabitsWithStats(userId, weekStartStr),
+      // Filter tasks by workspace
       this.prisma.task.findMany({
         where: {
-          project: { workspace: { ownerId: userId } },
+          project: { workspaceId },
           updatedAt: { gte: weekStart, lte: weekEnd },
         },
         select: { completedAt: true },
@@ -220,9 +224,13 @@ export class DataAggregatorService {
   }
 
   /**
-   * Get monthly data for summary generation
+   * Get monthly data for summary generation (scoped to workspace)
    */
-  async getMonthlyData(userId: string, monthStart: Date): Promise<MonthlyData> {
+  async getMonthlyData(
+    userId: string,
+    workspaceId: string,
+    monthStart: Date
+  ): Promise<MonthlyData> {
     const monthEnd = endOfMonth(monthStart);
     const monthStr = monthStart.toISOString().split('T')[0];
 
@@ -259,9 +267,10 @@ export class DataAggregatorService {
           rating: true,
         },
       }),
+      // Filter tasks by workspace
       this.prisma.task.findMany({
         where: {
-          project: { workspace: { ownerId: userId } },
+          project: { workspaceId },
           updatedAt: { gte: monthStart, lte: monthEnd },
         },
         select: { completedAt: true },
@@ -321,9 +330,9 @@ export class DataAggregatorService {
   }
 
   /**
-   * Get yearly data for summary generation
+   * Get yearly data for summary generation (scoped to workspace)
    */
-  async getYearlyData(userId: string, year: number): Promise<YearlyData> {
+  async getYearlyData(userId: string, workspaceId: string, year: number): Promise<YearlyData> {
     const yearStart = startOfYear(new Date(year, 0, 1));
     const yearEnd = endOfYear(yearStart);
 
@@ -353,9 +362,10 @@ export class DataAggregatorService {
           rating: true,
         },
       }),
+      // Filter tasks by workspace
       this.prisma.task.findMany({
         where: {
-          project: { workspace: { ownerId: userId } },
+          project: { workspaceId },
           completedAt: { gte: yearStart, lte: yearEnd },
         },
         select: { id: true },

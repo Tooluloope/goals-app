@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { addDays, format, isFuture, isToday, parseISO, subDays } from 'date-fns';
 import { BookOpen, CalendarDays, ChevronLeft, ChevronRight, Flame, Sparkles } from 'lucide-react';
 
@@ -10,13 +11,23 @@ import { HabitTracker } from '@/components/rhythm/habit-tracker';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/auth-store';
 import { useJournalStreak } from '@/hooks/use-journal';
 import { useHabitsForDate, useTodayHabits } from '@/hooks/use-habits';
 import { useDailyText } from '@/hooks/use-ai';
 
 export default function Rhythm2Page() {
+  const router = useRouter();
+  const { currentWorkspace } = useAuthStore();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Redirect to Family Hub if in family workspace (this is a personal-only page)
+  useEffect(() => {
+    if (currentWorkspace?.type === 'family') {
+      router.replace('/family');
+    }
+  }, [currentWorkspace, router]);
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const isViewingToday = isToday(selectedDate);

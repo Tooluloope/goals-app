@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const credsPath = path.resolve(__dirname, '../storageStates/creds.json');
 
 const hasCreds = fs.existsSync(credsPath);
-const creds = hasCreds ? JSON.parse(fs.readFileSync(credsPath, 'utf-8')) : null;
+// const creds = hasCreds ? JSON.parse(fs.readFileSync(credsPath, 'utf-8')) : null;
 
 // Basic public checks - run without authentication
 

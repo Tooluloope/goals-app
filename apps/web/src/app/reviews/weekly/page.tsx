@@ -1,10 +1,25 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { format, startOfWeek, endOfWeek, isSaturday, isSunday, isAfter } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  isSaturday,
+  isSunday,
+  isAfter,
+  addWeeks,
+  subWeeks,
+  isFuture,
+  parseISO,
+  isSameWeek,
+} from 'date-fns';
 import { AppLayout } from '@/components/layout/app-layout';
+import { useAuthStore } from '@/store/auth-store';
 import {
   useCurrentWeekReview,
+  useWeeklyReviewByDate,
   useUpsertWeeklyReview,
   useWeeklyReviewStats,
   useWeeklyReviewPrompts,
@@ -12,7 +27,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,16 +55,39 @@ import {
   Lock,
   Send,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function WeeklyReviewPage() {
+  const router = useRouter();
+  const { currentWorkspace } = useAuthStore();
   const { toast } = useToast();
   const today = new Date();
-  const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-  const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const { data: existingReview, isLoading: isLoadingReview } = useCurrentWeekReview();
+  const selectedWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
+  const selectedWeekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+  const selectedWeekStartStr = format(selectedWeekStart, 'yyyy-MM-dd');
+  const isViewingCurrentWeek = isSameWeek(selectedDate, today, { weekStartsOn: 1 });
+  const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+
+  // Redirect to Family Hub if in family workspace (this is a personal-only page)
+  useEffect(() => {
+    if (currentWorkspace?.type === 'family') {
+      router.replace('/family');
+    }
+  }, [currentWorkspace, router]);
+
+  const { data: currentReview, isLoading: isLoadingCurrentReview } = useCurrentWeekReview();
+  const { data: dateReview, isLoading: isLoadingDateReview } = useWeeklyReviewByDate(
+    isViewingCurrentWeek ? '' : selectedWeekStartStr
+  );
+  const existingReview = isViewingCurrentWeek ? currentReview : dateReview;
+  const isLoadingReview = isViewingCurrentWeek ? isLoadingCurrentReview : isLoadingDateReview;
   const { data: stats } = useWeeklyReviewStats();
   const { data: prompts } = useWeeklyReviewPrompts();
   const upsertReview = useUpsertWeeklyReview();
@@ -64,9 +102,29 @@ export default function WeeklyReviewPage() {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
   // Check if it's end of week (Saturday, Sunday, or past the week)
-  const isEndOfWeek = isSaturday(today) || isSunday(today) || isAfter(today, weekEnd);
+  const isEndOfWeek =
+    isViewingCurrentWeek &&
+    (isSaturday(today) || isSunday(today) || isAfter(today, currentWeekEnd));
   const isSubmitted = existingReview?.submitted === true;
-  const canEdit = !isSubmitted;
+  const canEdit = isViewingCurrentWeek && !isSubmitted;
+
+  const goToPreviousWeek = () => setSelectedDate(subWeeks(selectedDate, 1));
+  const goToNextWeek = () => {
+    const nextWeek = addWeeks(selectedDate, 1);
+    if (!isFuture(nextWeek)) setSelectedDate(nextWeek);
+  };
+  const goToCurrentWeek = () => setSelectedDate(today);
+
+  // Reset form when switching weeks
+  useEffect(() => {
+    setWentWell('');
+    setToImprove('');
+    setFocusNextWeek('');
+    setLessonsLearned('');
+    setGratitude('');
+    setRating(undefined);
+    setIsSaved(true);
+  }, [selectedWeekStartStr]);
 
   // Load existing review data
   useEffect(() => {
@@ -101,11 +159,9 @@ export default function WeeklyReviewPage() {
     async (submit = false) => {
       if (!canEdit && !submit) return;
 
-      const weekStartStr = format(weekStart, 'yyyy-MM-dd');
-
       try {
         await upsertReview.mutateAsync({
-          weekStart: weekStartStr,
+          weekStart: selectedWeekStartStr,
           wentWell: wentWell || undefined,
           toImprove: toImprove || undefined,
           focusNextWeek: focusNextWeek || undefined,
@@ -137,10 +193,10 @@ export default function WeeklyReviewPage() {
       lessonsLearned,
       gratitude,
       rating,
-      weekStart,
       upsertReview,
       toast,
       canEdit,
+      selectedWeekStartStr,
     ]
   );
 
@@ -167,18 +223,120 @@ export default function WeeklyReviewPage() {
     <AppLayout title="Weekly Review">
       <div className="container max-w-4xl px-4 py-6 md:py-8">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span className="text-sm">
-              {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span className="text-sm">
+                {format(selectedWeekStart, 'MMM d')} - {format(selectedWeekEnd, 'MMM d, yyyy')}
+              </span>
+            </div>
+            <h1 className="mt-2 text-2xl font-bold md:text-3xl">Weekly Review</h1>
+            <p className="mt-1 text-muted-foreground">
+              Reflect on your week and plan for the next one
+            </p>
+          </div>
+
+          {/* Week Picker */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goToPreviousWeek}
+              className="h-9 w-9 shrink-0"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'min-w-[140px] justify-center gap-2 font-medium',
+                    isViewingCurrentWeek && 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  )}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  {isViewingCurrentWeek ? 'This week' : format(selectedWeekStart, 'MMM d')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <div className="p-4 space-y-4">
+                  {/* Quick Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant={isViewingCurrentWeek ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        goToCurrentWeek();
+                        setCalendarOpen(false);
+                      }}
+                    >
+                      This week
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedDate(subWeeks(today, 1));
+                        setCalendarOpen(false);
+                      }}
+                    >
+                      Last week
+                    </Button>
+                  </div>
+
+                  {/* Date Input */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Jump to Date
+                    </p>
+                    <input
+                      type="date"
+                      value={format(selectedDate, 'yyyy-MM-dd')}
+                      max={format(today, 'yyyy-MM-dd')}
+                      onChange={(e) => {
+                        const date = parseISO(e.target.value);
+                        if (!isNaN(date.getTime()) && !isFuture(date)) {
+                          setSelectedDate(date);
+                          setCalendarOpen(false);
+                        }
+                      }}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goToNextWeek}
+              disabled={isViewingCurrentWeek}
+              className="h-9 w-9 shrink-0"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Locked Banner for Past Weeks or Submitted Review */}
+        {!canEdit && (
+          <div className="mb-6 flex items-center justify-center gap-2 rounded-lg bg-muted p-4 text-muted-foreground">
+            <Lock className="h-5 w-5" />
+            <span className="font-medium">
+              {isViewingCurrentWeek
+                ? 'This review has been submitted and cannot be edited'
+                : existingReview
+                  ? 'This review is from a past week and is read-only'
+                  : 'No review found for this week'}
             </span>
           </div>
-          <h1 className="mt-2 text-2xl font-bold md:text-3xl">Weekly Review</h1>
-          <p className="mt-1 text-muted-foreground">
-            Reflect on your week and plan for the next one
-          </p>
-        </div>
+        )}
 
         {/* Stats Row */}
         {stats && (
@@ -379,15 +537,8 @@ export default function WeeklyReviewPage() {
         </div>
 
         {/* Save/Submit Buttons - bottom-20 on mobile to clear bottom nav, bottom-4 on desktop */}
-        <div className="sticky bottom-20 z-20 mt-8 md:bottom-4">
-          {isSubmitted ? (
-            <div className="flex items-center justify-center gap-2 rounded-lg bg-green-500/10 p-4 text-green-700">
-              <Lock className="h-5 w-5" />
-              <span className="font-medium">
-                This review has been submitted and cannot be edited
-              </span>
-            </div>
-          ) : (
+        {canEdit && (
+          <div className="sticky bottom-20 z-20 mt-8 md:bottom-4">
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 size="lg"
@@ -433,8 +584,8 @@ export default function WeeklyReviewPage() {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Submit Confirmation Dialog */}

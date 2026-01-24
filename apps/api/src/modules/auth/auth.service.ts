@@ -127,6 +127,43 @@ export class AuthService {
     });
 
     const { passwordHash: _hash, ...userWithoutPassword } = result;
+
+    // Auto-join any pending workspace invites for this email
+    const pendingInvites = await this.prisma.workspaceInvite.findMany({
+      where: {
+        email: result.email,
+        status: 'pending',
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (pendingInvites.length > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        for (const invite of pendingInvites) {
+          const exists = await tx.workspaceMember.findUnique({
+            where: {
+              workspaceId_userId: { workspaceId: invite.workspaceId, userId: result.id },
+            },
+          });
+
+          if (!exists) {
+            await tx.workspaceMember.create({
+              data: {
+                workspaceId: invite.workspaceId,
+                userId: result.id,
+                role: invite.role,
+              },
+            });
+          }
+
+          await tx.workspaceInvite.update({
+            where: { id: invite.id },
+            data: { status: 'accepted', acceptedAt: new Date() },
+          });
+        }
+      });
+    }
+
     const tokens = await this.generateTokens(result.id, result.email);
     await this.saveRefreshToken(result.id, tokens.refreshToken);
 
@@ -329,5 +366,57 @@ export class AuthService {
       );
 
     return { message: 'Password updated successfully. Please log in again.' };
+  }
+
+  async deleteAccount(userId: string, password: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatch) {
+      throw new ForbiddenException('Incorrect password');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // Get all workspaces owned by this user
+      const ownedWorkspaces = await tx.workspace.findMany({
+        where: { ownerId: userId },
+        include: { members: true },
+      });
+
+      for (const workspace of ownedWorkspaces) {
+        if (workspace.type === 'personal') {
+          // Delete personal workspaces entirely
+          await tx.workspace.delete({ where: { id: workspace.id } });
+        } else {
+          // For family/shared workspaces, transfer ownership or delete
+          const otherMembers = workspace.members.filter((m) => m.userId !== userId);
+          if (otherMembers.length > 0) {
+            // Transfer ownership to the first other member
+            const newOwner = otherMembers[0];
+            await tx.workspace.update({
+              where: { id: workspace.id },
+              data: { ownerId: newOwner.userId },
+            });
+            // Update their role to owner
+            await tx.workspaceMember.update({
+              where: { id: newOwner.id },
+              data: { role: 'owner' },
+            });
+          } else {
+            // No other members, delete the workspace
+            await tx.workspace.delete({ where: { id: workspace.id } });
+          }
+        }
+      }
+
+      // Delete the user (cascade will handle most related data)
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    this.logger.log(`Account deleted for user ${user.email}`);
+
+    return { message: 'Account deleted successfully' };
   }
 }

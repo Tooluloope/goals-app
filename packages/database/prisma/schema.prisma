@@ -19,12 +19,13 @@ model User {
   avatar             String?
   defaultWorkspaceId String?
   timezone           String    @default("UTC") // IANA timezone string (e.g., "America/New_York")
-  settings           Json      @default("{\"theme\": \"light\", \"compactMode\": false, \"showWelcomeOnLogin\": true}")
+  settings           Json      @default("{\"theme\": \"light\", \"compactMode\": false, \"showWelcomeOnLogin\": true, \"emailPreferences\": {\"habitReminders\": true, \"taskDueReminders\": true, \"weeklySummary\": true, \"monthlySummary\": true, \"staleProjectAlerts\": true, \"reviewDueReminders\": true, \"streakMilestones\": true, \"aiInsights\": true, \"inactivityReminders\": false}}")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
   // Relations
   ownedWorkspaces      Workspace[]           @relation("WorkspaceOwner")
+  ownedProjects        Project[]             @relation("OwnedProjects")
   workspaceMemberships WorkspaceMember[]
   sentInvites          WorkspaceInvite[]     @relation("SentInvites")
   notifications        Notification[]
@@ -40,6 +41,8 @@ model User {
   aiConversations      AiConversation[]
   aiInsights           AiInsight[]
   aiDailyTexts         AiDailyText[]
+  // Review notes
+  createdReviewNotes   ReviewNote[]      @relation("CreatedReviewNotes")
 
   @@index([email])
 }
@@ -168,11 +171,13 @@ model Project {
   objective       String    @db.Text
   failureCriteria String?   @db.Text
   tagIds          String[]  @default([])
+  ownerId         String?   // Owner of the goal (for multi-member workspaces)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   // Relations
   workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner          User?             @relation("OwnedProjects", fields: [ownerId], references: [id], onDelete: SetNull)
   checklistItems ChecklistItem[]
   keyDecisions   KeyDecision[]
   tasks          Task[]
@@ -187,6 +192,7 @@ model Project {
   @@index([workspaceId])
   @@index([statusId])
   @@index([areaId])
+  @@index([ownerId])
 }
 
 model ChecklistItem {
@@ -225,20 +231,23 @@ model KeyDecision {
 }
 
 model ReviewNote {
-  id        String   @id @default(uuid())
-  projectId String
-  date      DateTime
-  notes     String   @db.Text
-  progress  String   @db.Text
-  blockers  String   @db.Text
-  changes   String   @db.Text
-  nextStep  String   @db.Text
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  projectId   String
+  createdById String?
+  date        DateTime
+  notes       String   @db.Text
+  progress    String   @db.Text
+  blockers    String   @db.Text
+  changes     String   @db.Text
+  nextStep    String   @db.Text
+  createdAt   DateTime @default(now())
 
-  project Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  images  ImageAttachment[] @relation("ReviewImages")
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?             @relation("CreatedReviewNotes", fields: [createdById], references: [id], onDelete: SetNull)
+  images    ImageAttachment[] @relation("ReviewImages")
 
   @@index([projectId])
+  @@index([createdById])
 }
 
 model ProjectMetrics {
@@ -549,6 +558,7 @@ model MonthlyReview {
 model AiSummary {
   id          String      @id @default(uuid())
   userId      String
+  workspaceId String
   type        SummaryType
   periodStart DateTime    @db.Date
   periodEnd   DateTime    @db.Date
@@ -559,8 +569,9 @@ model AiSummary {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, type, periodStart])
+  @@unique([userId, workspaceId, type, periodStart])
   @@index([userId])
+  @@index([workspaceId])
   @@index([type])
   @@index([periodStart])
 }
@@ -572,16 +583,18 @@ enum SummaryType {
 }
 
 model AiConversation {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  userId      String
+  workspaceId String
+  title       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages AiMessage[]
 
   @@index([userId])
+  @@index([workspaceId])
   @@index([createdAt])
 }
 
@@ -605,21 +618,23 @@ enum MessageRole {
 }
 
 model AiInsight {
-  id         String      @id @default(uuid())
-  userId     String
-  type       InsightType
-  title      String
-  content    String      @db.Text
-  confidence Float
-  actionable Boolean     @default(true)
-  dismissed  Boolean     @default(false)
-  metadata   Json        @default("{}")
-  createdAt  DateTime    @default(now())
-  expiresAt  DateTime?
+  id          String      @id @default(uuid())
+  userId      String
+  workspaceId String
+  type        InsightType
+  title       String
+  content     String      @db.Text
+  confidence  Float
+  actionable  Boolean     @default(true)
+  dismissed   Boolean     @default(false)
+  metadata    Json        @default("{}")
+  createdAt   DateTime    @default(now())
+  expiresAt   DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([workspaceId])
   @@index([type])
   @@index([dismissed])
   @@index([createdAt])
@@ -633,17 +648,19 @@ enum InsightType {
   milestone
 }
 
-// Daily motivational text - cached per user per day
+// Daily motivational text - cached per user per workspace per day
 model AiDailyText {
-  id        String   @id @default(uuid())
-  userId    String
-  date      DateTime @db.Date
-  content   String   @db.Text
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String
+  workspaceId String
+  date        DateTime @db.Date
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, date])
+  @@unique([userId, workspaceId, date])
   @@index([userId])
+  @@index([workspaceId])
   @@index([date])
 }

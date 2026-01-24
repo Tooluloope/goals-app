@@ -1,4 +1,4 @@
-import { chromium, type FullConfig } from '@playwright/test';
+import { chromium } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -13,7 +13,7 @@ function ensureDirs() {
 }
 
 // Create a throwaway user via the signup flow using random creds, store auth + creds to disk for tests.
-export default async function globalSetup(config: FullConfig) {
+export default async function globalSetup() {
   ensureDirs();
 
   // Align with local dev port; can override with E2E_BASE_URL
