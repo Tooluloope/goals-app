@@ -46,3 +46,5 @@ packages/database/prisma/*.db
 packages/database/prisma/*.db-journal
 **/test-results
 **/playwright-report
+
+.env.prod

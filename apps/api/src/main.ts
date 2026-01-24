@@ -1,6 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import * as nodeCrypto from 'node:crypto';
 import { AppModule } from './app.module';
+
+// Ensure global crypto exists for libraries expecting Web Crypto.
+if (!('crypto' in globalThis)) {
+  (globalThis as unknown as { crypto: typeof nodeCrypto }).crypto = nodeCrypto;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

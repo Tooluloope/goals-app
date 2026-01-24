@@ -14,6 +14,10 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { AiModule } from './modules/ai/ai.module';
 import { EmailModule } from './modules/email/email.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { HealthModule } from './modules/health/health.module';
+
+// Conditionally include scheduler (default: enabled for backward compatibility)
+const schedulerEnabled = process.env.ENABLE_SCHEDULER !== 'false';
 
 @Module({
   imports: [
@@ -34,7 +38,8 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     HabitsModule,
     ReviewsModule,
     AiModule,
-    SchedulerModule,
+    ...(schedulerEnabled ? [SchedulerModule] : []),
+    HealthModule,
   ],
 })
 export class AppModule {}

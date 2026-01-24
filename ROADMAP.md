@@ -51,6 +51,7 @@ Features that keep users engaged and motivated.
 ### 2.2 Goal Completion Celebration
 
 - [ ] Confetti animation when project marked done
+- [x] Goal completed email with stats (tasks completed, days taken)
 - [ ] Summary modal: time spent, tasks completed, reviews logged
 - [ ] Option to share achievement
 - [ ] Archive with completion stats preserved
@@ -165,10 +166,10 @@ Infrastructure improvements and platform features.
 
 ### 5.2 Push Notifications
 
-- [ ] Deadline reminders
-- [ ] Review due notifications
-- [ ] Weekly review prompt
-- [ ] Configurable notification preferences
+- [x] Deadline reminders (via email)
+- [x] Review due notifications (via email)
+- [x] Weekly review prompt (via email)
+- [x] Configurable notification preferences
 - **Why:** Keeps users engaged even when not in app
 
 ### 5.3 Calendar Integration
@@ -193,9 +194,9 @@ Nice-to-haves for later.
 
 ### 6.1 Project Dependencies
 
-- [ ] "Blocked by" relationships
+- [x] "Blocked by" relationships
 - [ ] Visual dependency graph
-- [ ] Auto-surface when blocker is resolved
+- [x] Auto-surface when blocker is resolved
 - **Why:** Complex project management
 
 ### 6.2 Activity Timeline
@@ -215,7 +216,9 @@ Nice-to-haves for later.
 
 ### 6.4 AI-Powered Suggestions
 
-- [ ] Suggest next actions based on patterns
+- [x] AI Chat for personalized advice
+- [x] AI Summaries (weekly, monthly, yearly)
+- [x] AI Insights and pattern detection
 - [ ] Smart deadline recommendations
 - [ ] "You usually work on X on Mondays" insights
 - **Why:** Differentiator, but complex to implement well
@@ -251,7 +254,7 @@ Nice-to-haves for later.
 | Keyboard Shortcuts     | P1       | Done        | D/B/P/C/N/S/R/W/M nav, Shift+N new project, ? help |
 | Recurring Tasks        | P1       | Done        | Daily/weekly/monthly/yearly + streaks              |
 | Progress Charts        | P2       | Not Started |                                                    |
-| Completion Celebration | P2       | Not Started |                                                    |
+| Completion Celebration | P2       | Partial     | Email on completion, needs UI celebration          |
 | Weekly Review Flow     | P2       | Done        | Guided prompts, rating, history, stats             |
 | Monthly Review Cycles  | P2       | Done        | Full monthly reflection and goal setting           |
 | Daily Journal          | P2       | Done        | Mood picker, prompts, wins/challenges/gratitude    |
@@ -264,10 +267,12 @@ Nice-to-haves for later.
 | Bulk Operations        | P4       | Not Started |                                                    |
 | Project Templates      | P4       | Not Started |                                                    |
 | Offline PWA            | P5       | Not Started |                                                    |
-| Push Notifications     | P5       | Not Started |                                                    |
-| Calendar Integration   | P5       | Not Started |                                                    |
+| Push Notifications     | P5       | Done        | Email notifications with scheduler service         |
+| Calendar Integration   | P5       | Partial     | Calendar view exists, no external sync yet         |
 | Data Export            | P5       | Not Started |                                                    |
-| Project Dependencies   | P6       | Not Started |                                                    |
+| Project Dependencies   | P6       | Done        | Blocked-by relationships, auto-notifications       |
 | Activity Timeline      | P6       | Not Started |                                                    |
 | Archive View           | P6       | Not Started |                                                    |
-| AI Suggestions         | P6       | Not Started |                                                    |
+| AI Suggestions         | P6       | Done        | AI Chat, Summaries, Insights with Claude           |
+| Docker Production      | -        | Done        | Health checks, migrations, scheduler separation    |
+| Email Service          | -        | Done        | Resend integration, templates, scheduler           |
