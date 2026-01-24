@@ -13,7 +13,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
   build-and-push:
@@ -36,6 +35,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set lowercase image name
+        id: image_name
+        run: echo "IMAGE_PREFIX=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -51,7 +54,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.name }}
+          images: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_PREFIX }}-${{ matrix.name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -81,17 +84,16 @@ jobs:
     steps:
       - name: Deployment Summary
         run: |
+          IMAGE_PREFIX="${GITHUB_REPOSITORY,,}"
           echo "## Docker Images Built Successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The following images are available on GitHub Container Registry:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ env.REGISTRY }}/${{ github.repository }}-api:latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ env.REGISTRY }}/${{ github.repository }}-web:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${IMAGE_PREFIX}-api:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${IMAGE_PREFIX}-web:latest\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Slipplane Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Use these image URLs in Slipplane to deploy your services." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Note:** The scheduler uses the same image as the API with \`ENABLE_SCHEDULER=true\`" >> $GITHUB_STEP_SUMMARY
-        env:
-          REGISTRY: ghcr.io

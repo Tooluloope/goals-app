@@ -42,7 +42,7 @@ jobs:
   e2e:
     needs: build-and-checks
     runs-on: ubuntu-latest
-    if: ${{ secrets.E2E_BASE_URL != '' }}
+    if: ${{ vars.RUN_E2E_TESTS == 'true' }}
     env:
       PNPM_CACHE_DIR: ~/.pnpm-store
       E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
