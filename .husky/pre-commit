@@ -8,5 +8,10 @@ echo "Running type checks..."
 pnpm typecheck
 
 # Run tests related to changed files (no coverage)
-echo "Running tests..."
-npx jest --passWithNoTests --bail --coverage=false --findRelatedTests $(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' | tr '\n' ' ')
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' | tr '\n' ' ')
+if [ -n "$STAGED_TS_FILES" ]; then
+  echo "Running tests for changed files..."
+  npx jest --passWithNoTests --bail --coverage=false --findRelatedTests $STAGED_TS_FILES
+else
+  echo "No TypeScript files staged, skipping tests."
+fi
