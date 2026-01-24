@@ -4,7 +4,6 @@ export type BaseEmailData = {
   actionUrl?: string;
   supportUrl?: string;
   unsubscribeUrl?: string;
-  logoUrl?: string;
 };
 
 export type SummaryData = BaseEmailData & {
@@ -76,8 +75,7 @@ export interface EmailTemplate<T extends BaseEmailData = BaseEmailData> {
   text: (data: T) => string;
 }
 
-const defaultApp = 'Goals';
-const defaultLogoUrl = 'https://goals-app.com/logo.png'; // Replace with actual logo URL
+const defaultApp = 'Alignia';
 
 // SVG Icons as inline data URIs for better email compatibility
 const icons = {
@@ -114,8 +112,6 @@ function renderLayout(
   options: { icon?: string; theme?: keyof typeof themes; headerBg?: boolean } = {}
 ): string {
   const appName = data.appName || defaultApp;
-  // logoUrl available for future use in email templates
-  const _logoUrl = data.logoUrl || defaultLogoUrl;
   const theme = themes[options.theme || 'primary'];
 
   return `<!doctype html>
@@ -132,7 +128,7 @@ function renderLayout(
         .header { background: ${options.headerBg ? `linear-gradient(135deg, ${theme.bg} 0%, ${theme.bg}dd 100%)` : '#ffffff'}; padding: 28px; text-align: center; ${options.headerBg ? 'color: #ffffff;' : ''} }
         .logo { width: 48px; height: 48px; margin-bottom: 12px; }
         .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; ${options.headerBg ? 'color: #ffffff;' : `color: ${theme.bg};`} }
-        .icon-wrapper { width: 64px; height: 64px; margin: 0 auto 16px; background: ${options.headerBg ? 'rgba(255,255,255,0.15)' : theme.light}; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+        .icon-wrapper { width: 64px; height: 64px; margin: 0 auto 16px; background: ${options.headerBg ? 'rgba(255,255,255,0.15)' : theme.light}; border-radius: 16px; text-align: center; line-height: 64px; }
         .icon-wrapper svg { color: ${options.headerBg ? '#ffffff' : theme.bg}; width: 32px; height: 32px; }
         .content { padding: 32px 28px; }
         .title { font-size: 24px; font-weight: 700; margin: 0 0 8px; color: #0f172a; letter-spacing: -0.5px; }
@@ -311,6 +307,33 @@ Click here to verify: ${data.actionUrl || ''}
 This link expires in 30 minutes.
 
 If you didn't create an account, you can safely ignore this email.`,
+  } satisfies EmailTemplate,
+
+  magicLink: {
+    subject: () => 'Sign in to Alignia ✨',
+    html: (data: BaseEmailData) =>
+      renderLayout(
+        'Magic Link',
+        `<h1 class="title">Sign in with one click</h1>
+         <p class="subtitle">Click the button below to securely sign in to your account. No password needed!</p>
+
+         ${actionButton(data, 'Sign In to Alignia')}
+
+         <div class="divider"></div>
+         <div class="highlight-box">
+           <p>⏱️ This link expires in <strong>15 minutes</strong> for your security.</p>
+         </div>
+         <p class="muted" style="text-align: center;">If you didn't request this link, you can safely ignore this email.</p>`,
+        data,
+        { icon: icons.sparkles, theme: 'primary', headerBg: true }
+      ),
+    text: (data: BaseEmailData) => `Sign in to Alignia
+
+Click here to sign in: ${data.actionUrl || ''}
+
+This link expires in 15 minutes.
+
+If you didn't request this link, you can safely ignore this email.`,
   } satisfies EmailTemplate,
 
   resetPassword: {

@@ -35,6 +35,7 @@ interface AuthState {
   // Actions
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string, timezone?: string) => Promise<boolean>;
+  setUser: (apiUser: any) => Promise<void>;
   logout: () => Promise<void>;
   setCurrentWorkspace: (workspace: Workspace) => void;
   loadWorkspaces: () => Promise<void>;
@@ -114,6 +115,25 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false });
           return false;
         }
+      },
+
+      setUser: async (apiUser: any) => {
+        // Used for magic link authentication where tokens are already set
+        const user = transformUser(apiUser);
+        const apiWorkspaces = await apiClient.getWorkspaces();
+        const workspaces = apiWorkspaces.map(transformWorkspace);
+        const persistedCurrent = get().currentWorkspace;
+        const defaultWorkspace =
+          workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
+          workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
+          workspaces[0];
+
+        set({
+          user,
+          workspaces,
+          currentWorkspace: defaultWorkspace,
+          isAuthenticated: true,
+        });
       },
 
       logout: async () => {

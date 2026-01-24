@@ -164,7 +164,7 @@ export function Sidebar() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
             <Target className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold">2026 Goals</span>
+          <span className="text-lg font-semibold">Alignia</span>
         </div>
 
         {/* Workspace Selector */}

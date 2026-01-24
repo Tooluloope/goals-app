@@ -16,7 +16,7 @@ export function AppLoading({ message = 'Loading...' }: AppLoadingProps) {
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <Target className="h-7 w-7 text-primary-foreground" />
           </div>
-          <span className="text-2xl font-bold">Goals</span>
+          <span className="text-2xl font-bold">Alignia</span>
         </div>
 
         {/* Spinner */}

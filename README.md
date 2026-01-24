@@ -1,6 +1,6 @@
-# Goals App - Monorepo
+# Alignia - Monorepo
 
-A full-stack goals tracking application built with Next.js, NestJS, PostgreSQL, and Prisma.
+A full-stack family goals and vision tracking application built with Next.js, NestJS, PostgreSQL, and Prisma.
 
 ## Features
 
@@ -218,7 +218,7 @@ All domain types are centralized in the shared package:
 - **Configuration types**: `Status`, `Priority`, `Confidence`, `Cadence`, `Area`
 - **DTOs**: `CreateProjectDTO`, `UpdateTaskDTO`, etc.
 
-The web app re-exports these from `@goals/shared` in `apps/web/src/types/index.ts`.
+The web app re-exports these from `@alignia/shared` in `apps/web/src/types/index.ts`.
 
 ### Date Handling
 

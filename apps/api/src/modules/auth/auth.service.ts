@@ -284,6 +284,177 @@ export class AuthService {
     return { message: 'Password has been reset successfully' };
   }
 
+  async requestMagicLink(email: string, name?: string): Promise<{ message: string }> {
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    // Invalidate any existing magic link tokens for this email
+    await this.prisma.magicLinkToken.updateMany({
+      where: { email, used: false },
+      data: { used: true },
+    });
+
+    // Generate a secure random token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // Token expires in 15 minutes
+
+    // Save the magic link token (include name for new user signup)
+    await this.prisma.magicLinkToken.create({
+      data: {
+        token,
+        email,
+        name: user ? null : name, // Only store name if user doesn't exist
+        userId: user?.id || null,
+        expiresAt,
+      },
+    });
+
+    // Send magic link email (non-blocking)
+    this.emailService.sendMagicLinkEmail(email, user?.name || name || null, token).catch((err) => {
+      this.logger.error(`Failed to send magic link email to ${email}:`, err);
+    });
+
+    return { message: 'If an account exists with this email, a magic link will be sent.' };
+  }
+
+  async verifyMagicLink(token: string): Promise<AuthResponse> {
+    const magicLinkToken = await this.prisma.magicLinkToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!magicLinkToken || magicLinkToken.used || magicLinkToken.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired magic link');
+    }
+
+    // Mark token as used
+    await this.prisma.magicLinkToken.update({
+      where: { id: magicLinkToken.id },
+      data: { used: true },
+    });
+
+    // If user exists, log them in
+    if (magicLinkToken.user) {
+      const { passwordHash: _passwordHash, ...userWithoutPassword } = magicLinkToken.user;
+      const tokens = await this.generateTokens(magicLinkToken.user.id, magicLinkToken.user.email);
+      await this.saveRefreshToken(magicLinkToken.user.id, tokens.refreshToken);
+
+      return {
+        user: userWithoutPassword,
+        ...tokens,
+      };
+    }
+
+    // If user doesn't exist, we need to create an account
+    // For magic link, we'll create a user with a random password (they can set it later)
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const passwordHash = await bcrypt.hash(randomPassword, 10);
+    // Use the name provided during magic link request, or fall back to email prefix
+    const userName = magicLinkToken.name || magicLinkToken.email.split('@')[0];
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Create user
+      const newUser = await tx.user.create({
+        data: {
+          email: magicLinkToken.email,
+          name: userName,
+          passwordHash,
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+          },
+        },
+      });
+
+      // Create personal workspace
+      const workspace = await tx.workspace.create({
+        data: {
+          name: `${userName}'s Goals`,
+          type: 'personal',
+          ownerId: newUser.id,
+        },
+      });
+
+      // Add user as workspace member
+      await tx.workspaceMember.create({
+        data: {
+          workspaceId: workspace.id,
+          userId: newUser.id,
+          role: 'owner',
+        },
+      });
+
+      // Create workspace config with defaults
+      await tx.workspaceConfig.create({
+        data: {
+          workspaceId: workspace.id,
+          config: DEFAULT_WORKSPACE_CONFIG as any,
+        },
+      });
+
+      // Update user with default workspace
+      const updatedUser = await tx.user.update({
+        where: { id: newUser.id },
+        data: { defaultWorkspaceId: workspace.id },
+      });
+
+      return updatedUser;
+    });
+
+    const { passwordHash: _hash, ...userWithoutPassword } = result;
+
+    // Auto-join any pending workspace invites for this email
+    const pendingInvites = await this.prisma.workspaceInvite.findMany({
+      where: {
+        email: result.email,
+        status: 'pending',
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (pendingInvites.length > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        for (const invite of pendingInvites) {
+          const exists = await tx.workspaceMember.findUnique({
+            where: {
+              workspaceId_userId: { workspaceId: invite.workspaceId, userId: result.id },
+            },
+          });
+
+          if (!exists) {
+            await tx.workspaceMember.create({
+              data: {
+                workspaceId: invite.workspaceId,
+                userId: result.id,
+                role: invite.role,
+              },
+            });
+          }
+
+          await tx.workspaceInvite.update({
+            where: { id: invite.id },
+            data: { status: 'accepted', acceptedAt: new Date() },
+          });
+        }
+      });
+    }
+
+    const tokens = await this.generateTokens(result.id, result.email);
+    await this.saveRefreshToken(result.id, tokens.refreshToken);
+
+    // Send welcome email (non-blocking)
+    this.emailService.sendWelcomeEmail(result.email, result.name).catch((err) => {
+      this.logger.error(`Failed to send welcome email to ${result.email}:`, err);
+    });
+
+    return {
+      user: userWithoutPassword,
+      ...tokens,
+    };
+  }
+
   private async generateTokens(userId: string, email: string): Promise<AuthTokens> {
     const payload = { sub: userId, email };
 

@@ -1,10 +1,10 @@
 # Slipplane Deployment Guide
 
-This guide explains how to deploy the Goals App to Slipplane using GitHub Container Registry.
+This guide explains how to deploy Alignia to Slipplane using GitHub Container Registry.
 
 ## Prerequisites
 
-1. GitHub repository with the Goals App code
+1. GitHub repository with the Alignia code
 2. Slipplane account
 3. PostgreSQL database (can be provisioned via Slipplane or external)
 
@@ -27,8 +27,8 @@ Or, add Slipplane's registry credentials in Slipplane dashboard.
 After the first successful build, your images will be available at:
 
 ```
-ghcr.io/<your-username>/goals-app-api:latest
-ghcr.io/<your-username>/goals-app-web:latest
+ghcr.io/<your-username>/alignia-api:latest
+ghcr.io/<your-username>/alignia-web:latest
 ```
 
 The scheduler uses the same API image with different environment variables.
@@ -44,12 +44,12 @@ Note the connection string: `postgresql://user:password@host:5432/dbname`
 
 ### Service 2: API Service
 
-| Setting      | Value                                          |
-| ------------ | ---------------------------------------------- |
-| Image        | `ghcr.io/<your-username>/goals-app-api:latest` |
-| Port         | `3001`                                         |
-| Health Check | `/api/health/live`                             |
-| Replicas     | 1-2                                            |
+| Setting      | Value                                        |
+| ------------ | -------------------------------------------- |
+| Image        | `ghcr.io/<your-username>/alignia-api:latest` |
+| Port         | `3001`                                       |
+| Health Check | `/api/health/live`                           |
+| Replicas     | 1-2                                          |
 
 **Environment Variables:**
 
@@ -66,18 +66,18 @@ CORS_ORIGIN=https://your-web-domain.com
 ENABLE_SCHEDULER=false
 RESEND_API_KEY=<optional>
 EMAIL_FROM=noreply@yourdomain.com
-EMAIL_FROM_NAME=Goals App
+EMAIL_FROM_NAME=Alignia
 ANTHROPIC_API_KEY=<optional-for-ai-features>
 ```
 
 ### Service 3: Scheduler Service
 
-| Setting      | Value                                          |
-| ------------ | ---------------------------------------------- |
-| Image        | `ghcr.io/<your-username>/goals-app-api:latest` |
-| Port         | `3001` (internal only)                         |
-| Health Check | `/api/health/live`                             |
-| Replicas     | **1** (important: only 1 replica)              |
+| Setting      | Value                                        |
+| ------------ | -------------------------------------------- |
+| Image        | `ghcr.io/<your-username>/alignia-api:latest` |
+| Port         | `3001` (internal only)                       |
+| Health Check | `/api/health/live`                           |
+| Replicas     | **1** (important: only 1 replica)            |
 
 **Environment Variables:**
 
@@ -89,12 +89,12 @@ ENABLE_SCHEDULER=true
 
 ### Service 4: Web Service
 
-| Setting      | Value                                          |
-| ------------ | ---------------------------------------------- |
-| Image        | `ghcr.io/<your-username>/goals-app-web:latest` |
-| Port         | `3000`                                         |
-| Health Check | `/`                                            |
-| Replicas     | 1-2                                            |
+| Setting      | Value                                        |
+| ------------ | -------------------------------------------- |
+| Image        | `ghcr.io/<your-username>/alignia-web:latest` |
+| Port         | `3000`                                       |
+| Health Check | `/`                                          |
+| Replicas     | 1-2                                          |
 
 **Environment Variables:**
 

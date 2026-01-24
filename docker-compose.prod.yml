@@ -1,4 +1,4 @@
-# Production Docker Compose for Goals App
+# Production Docker Compose for Alignia
 #
 # Usage:
 #   docker compose -f docker-compose.prod.yml up --build
@@ -56,8 +56,8 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       CORS_ALLOW_ALL: ${CORS_ALLOW_ALL:-false}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@goals-app.com}
-      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Goals App}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@alignia.app}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Alignia}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
     depends_on:
@@ -96,8 +96,8 @@ services:
       ENABLE_SCHEDULER: 'true'
       JWT_SECRET: ${JWT_SECRET}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@goals-app.com}
-      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Goals App}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@alignia.app}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Alignia}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
     depends_on:
       postgres:

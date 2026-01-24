@@ -7,13 +7,13 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: '2026 Goals Tracker',
-  description: 'Track and achieve your 2026 goals with your family',
+  title: 'Alignia',
+  description: 'Track and achieve your goals with your family',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Goals',
+    title: 'Alignia',
   },
 };
 

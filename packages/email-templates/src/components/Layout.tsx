@@ -12,8 +12,8 @@ import {
 } from '@react-email/components';
 import { BaseProps, CTA, ThemeType } from '../types';
 
-const defaultApp = 'Goals';
-const defaultLogoUrl = 'https://goals-app.com/logo.png';
+const defaultApp = 'Alignia';
+const defaultLogoUrl = 'https://alignia.app/logo.png';
 
 // Theme colors
 const themes: Record<ThemeType, { bg: string; light: string; text: string }> = {

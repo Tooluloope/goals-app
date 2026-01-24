@@ -114,7 +114,7 @@ export function Header({ title }: HeaderProps) {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                   <Target className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <span>2026 Goals</span>
+                <span>Alignia</span>
               </SheetTitle>
             </SheetHeader>
 
@@ -211,7 +211,7 @@ export function Header({ title }: HeaderProps) {
 
         {/* Title / Workspace */}
         <span className="font-semibold truncate max-w-[140px]">
-          {title || currentWorkspace?.name || '2026 Goals'}
+          {title || currentWorkspace?.name || 'Alignia'}
         </span>
 
         {/* Right side actions */}

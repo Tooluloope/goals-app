@@ -32,6 +32,7 @@ model User {
   assignedTasks        Task[]                @relation("AssignedTasks")
   refreshTokens        RefreshToken[]
   passwordResetTokens  PasswordResetToken[]
+  magicLinkTokens      MagicLinkToken[]
   journalEntries       JournalEntry[]
   habits               Habit[]
   weeklyReviews        WeeklyReview[]
@@ -71,6 +72,22 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([token])
+}
+
+model MagicLinkToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  email     String   // Email to send the link to (may not have account yet)
+  name      String?  // Optional - name for new user signup
+  userId    String?  // Optional - null if user doesn't exist yet
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
   @@index([token])
 }
 

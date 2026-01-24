@@ -80,6 +80,21 @@ export class AuthController {
     return this.authService.resetPassword(token, password);
   }
 
+  @Post('magic-link/request')
+  @HttpCode(HttpStatus.OK)
+  async requestMagicLink(
+    @Body('email') email: string,
+    @Body('name') name?: string
+  ): Promise<{ message: string }> {
+    return this.authService.requestMagicLink(email, name);
+  }
+
+  @Post('magic-link/verify')
+  @HttpCode(HttpStatus.OK)
+  async verifyMagicLink(@Body('token') token: string): Promise<AuthResponse> {
+    return this.authService.verifyMagicLink(token);
+  }
+
   @Delete('account')
   @UseGuards(JwtAuthGuard)
   async deleteAccount(

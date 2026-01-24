@@ -1,4 +1,4 @@
-# Goals App - Feature Roadmap
+# Alignia - Feature Roadmap
 
 This document outlines planned features, prioritized by impact and implementation complexity.
 

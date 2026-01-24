@@ -16,8 +16,8 @@ describe('EmailService', () => {
   beforeEach(async () => {
     // Set environment variables for testing
     process.env.RESEND_API_KEY = 'test-api-key';
-    process.env.EMAIL_FROM = 'test@goals-app.com';
-    process.env.EMAIL_FROM_NAME = 'Goals App Test';
+    process.env.EMAIL_FROM = 'test@alignia.app';
+    process.env.EMAIL_FROM_NAME = 'Alignia Test';
     process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 
     const module: TestingModule = await Test.createTestingModule({

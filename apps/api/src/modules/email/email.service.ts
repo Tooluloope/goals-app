@@ -46,8 +46,8 @@ export class EmailService {
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;
-    this.fromEmail = process.env.EMAIL_FROM || 'noreply@goals-app.com';
-    this.fromName = process.env.EMAIL_FROM_NAME || 'Goals App';
+    this.fromEmail = process.env.EMAIL_FROM || 'noreply@alignia.app';
+    this.fromName = process.env.EMAIL_FROM_NAME || 'Alignia';
     this.appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     if (apiKey) {
@@ -75,7 +75,6 @@ export class EmailService {
       appName: this.fromName,
       supportUrl: `${this.appUrl}/support`,
       unsubscribeUrl: `${this.appUrl}/settings/notifications`,
-      logoUrl: `${this.appUrl}/logo.png`,
       ...data,
     };
 
@@ -154,6 +153,17 @@ export class EmailService {
     return this.sendEmail<BaseEmailData>(to, 'passwordChanged', {
       toName: name,
       actionUrl: `${this.appUrl}/settings/security`,
+    });
+  }
+
+  async sendMagicLinkEmail(
+    to: string,
+    name: string | null,
+    token: string
+  ): Promise<SendEmailResult> {
+    return this.sendEmail<BaseEmailData>(to, 'magicLink', {
+      toName: name || undefined,
+      actionUrl: `${this.appUrl}/auth/magic-link/verify?token=${token}`,
     });
   }
 
