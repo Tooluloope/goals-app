@@ -16,7 +16,7 @@ export function MagicLinkVerify() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setUser } = useAuthStore();
-  const { setShowNotificationSummary } = useUIStore();
+  const { setShowNotificationSummary, setShowOnboardingModal } = useUIStore();
   const [state, setState] = useState<VerifyState>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const verificationAttempted = useRef(false);
@@ -36,12 +36,14 @@ export function MagicLinkVerify() {
 
     const verifyToken = async () => {
       try {
-        const user = await apiClient.verifyMagicLink(token);
+        const { user, isNewUser } = await apiClient.verifyMagicLink(token);
         await setUser(user);
         setState('success');
 
-        // Show notification summary for new users
-        setShowNotificationSummary(true);
+        // Show notification summary for returning users (new users will see it after onboarding)
+        if (!isNewUser) {
+          setShowNotificationSummary(true);
+        }
 
         // Redirect after a short delay to show success message
         setTimeout(() => {
@@ -50,6 +52,10 @@ export function MagicLinkVerify() {
             sessionStorage.removeItem('redirectAfterLogin');
             router.push(redirectUrl);
           } else {
+            // New users will see onboarding modal on dashboard
+            if (isNewUser) {
+              setShowOnboardingModal(true);
+            }
             router.push('/dashboard');
           }
         }, 1500);
@@ -64,7 +70,7 @@ export function MagicLinkVerify() {
     };
 
     verifyToken();
-  }, [searchParams, setUser, setShowNotificationSummary, router]);
+  }, [searchParams, setUser, setShowNotificationSummary, setShowOnboardingModal, router]);
 
   return (
     <div className="relative flex min-h-screen w-full flex-row overflow-hidden">

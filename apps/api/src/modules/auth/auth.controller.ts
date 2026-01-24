@@ -15,6 +15,10 @@ interface AuthResponse {
   refreshToken: string;
 }
 
+interface MagicLinkAuthResponse extends AuthResponse {
+  isNewUser: boolean;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -91,7 +95,7 @@ export class AuthController {
 
   @Post('magic-link/verify')
   @HttpCode(HttpStatus.OK)
-  async verifyMagicLink(@Body('token') token: string): Promise<AuthResponse> {
+  async verifyMagicLink(@Body('token') token: string): Promise<MagicLinkAuthResponse> {
     return this.authService.verifyMagicLink(token);
   }
 

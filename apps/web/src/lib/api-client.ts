@@ -236,14 +236,19 @@ class ApiClient {
     });
   }
 
-  async verifyMagicLink(token: string): Promise<AuthResponse['user']> {
-    const data = await this.fetch<AuthResponse>('/auth/magic-link/verify', {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-      requiresAuth: false,
-    });
+  async verifyMagicLink(
+    token: string
+  ): Promise<{ user: AuthResponse['user']; isNewUser: boolean }> {
+    const data = await this.fetch<AuthResponse & { isNewUser: boolean }>(
+      '/auth/magic-link/verify',
+      {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+        requiresAuth: false,
+      }
+    );
     this.setTokens(data.accessToken, data.refreshToken);
-    return data.user;
+    return { user: data.user, isNewUser: data.isNewUser };
   }
 
   // ============================================================

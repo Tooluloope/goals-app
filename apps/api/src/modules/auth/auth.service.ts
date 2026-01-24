@@ -27,6 +27,10 @@ interface AuthResponse {
   refreshToken: string;
 }
 
+interface MagicLinkAuthResponse extends AuthResponse {
+  isNewUser: boolean;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -318,7 +322,7 @@ export class AuthService {
     return { message: 'If an account exists with this email, a magic link will be sent.' };
   }
 
-  async verifyMagicLink(token: string): Promise<AuthResponse> {
+  async verifyMagicLink(token: string): Promise<MagicLinkAuthResponse> {
     const magicLinkToken = await this.prisma.magicLinkToken.findUnique({
       where: { token },
       include: { user: true },
@@ -343,6 +347,7 @@ export class AuthService {
       return {
         user: userWithoutPassword,
         ...tokens,
+        isNewUser: false,
       };
     }
 
@@ -452,6 +457,7 @@ export class AuthService {
     return {
       user: userWithoutPassword,
       ...tokens,
+      isNewUser: true,
     };
   }
 

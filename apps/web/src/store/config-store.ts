@@ -43,6 +43,7 @@ interface ConfigState {
   updateArea: (workspaceId: string, areaId: string, updates: Partial<AreaConfig>) => void;
   deleteArea: (workspaceId: string, areaId: string) => void;
   reorderAreas: (workspaceId: string, areaIds: string[]) => void;
+  setAreasForWorkspace: (workspaceId: string, areas: AreaConfig[]) => void;
 
   // Priority CRUD
   addPriority: (workspaceId: string, priority: Omit<PriorityConfig, 'id' | 'order'>) => void;
@@ -282,6 +283,27 @@ export const useConfigStore = create<ConfigState>()(
             [workspaceId]: {
               ...config,
               areas: reordered,
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }));
+      },
+
+      setAreasForWorkspace: (workspaceId, areas) => {
+        const config = get().getConfig(workspaceId);
+        const normalized = areas
+          .map((area, index) => ({
+            ...area,
+            order: area.order ?? index + 1,
+          }))
+          .sort((a, b) => a.order - b.order);
+
+        set((state) => ({
+          configs: {
+            ...state.configs,
+            [workspaceId]: {
+              ...config,
+              areas: normalized,
               updatedAt: new Date().toISOString(),
             },
           },

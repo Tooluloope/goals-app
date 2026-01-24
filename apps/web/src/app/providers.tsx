@@ -9,11 +9,18 @@ import { AppLoading } from '@/components/ui/app-loading';
 import { NavigationProgress } from '@/components/ui/navigation-progress';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { CommandPalette, ShortcutsHelp } from '@/components/command-palette';
+import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 
 function GlobalComponents() {
-  const { commandPaletteOpen, setCommandPaletteOpen, shortcutsHelpOpen, setShortcutsHelpOpen } =
-    useUIStore();
+  const {
+    commandPaletteOpen,
+    setCommandPaletteOpen,
+    shortcutsHelpOpen,
+    setShortcutsHelpOpen,
+    showOnboardingModal,
+    setShowOnboardingModal,
+  } = useUIStore();
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
@@ -22,6 +29,7 @@ function GlobalComponents() {
     <>
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
       <ShortcutsHelp open={shortcutsHelpOpen} onOpenChange={setShortcutsHelpOpen} />
+      <OnboardingModal open={showOnboardingModal} onOpenChange={setShowOnboardingModal} />
     </>
   );
 }

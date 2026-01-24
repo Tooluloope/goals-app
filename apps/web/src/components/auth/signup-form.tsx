@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/store/auth-store';
+import { useUIStore } from '@/store/ui-store';
 import { useToast } from '@/hooks/use-toast';
 
 const signupSchema = z
@@ -31,6 +32,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export function SignupForm() {
   const router = useRouter();
   const { signup, isLoading } = useAuthStore();
+  const { setShowOnboardingModal } = useUIStore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,6 +62,8 @@ export function SignupForm() {
           sessionStorage.removeItem('redirectAfterLogin');
           router.push(redirectUrl);
         } else {
+          // Show onboarding modal on dashboard for new users
+          setShowOnboardingModal(true);
           router.push('/dashboard');
         }
       } else {
