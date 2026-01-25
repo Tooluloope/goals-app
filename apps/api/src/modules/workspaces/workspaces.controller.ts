@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { WorkspacesService } from './workspaces.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -32,6 +42,15 @@ export class WorkspacesController {
     @Body() data: { name: string; type: 'personal' | 'family' }
   ): Promise<Workspace> {
     return this.workspacesService.create(user.id, data);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @CurrentUser() user: UserWithoutPassword,
+    @Body() data: { name?: string }
+  ): Promise<Workspace> {
+    return this.workspacesService.update(id, user.id, data);
   }
 
   @Post(':id/invite')

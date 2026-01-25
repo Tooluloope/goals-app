@@ -79,6 +79,7 @@ export function useWeeklyReviewStats() {
   return useQuery({
     queryKey: reviewKeys.weekly.stats(),
     queryFn: () => apiClient.getWeeklyReviewStats(),
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes (stats only change on new reviews)
   });
 }
 

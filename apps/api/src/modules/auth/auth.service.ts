@@ -359,12 +359,13 @@ export class AuthService {
     const userName = magicLinkToken.name || magicLinkToken.email.split('@')[0];
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // Create user
+      // Create user (with hasSetPassword: false since they signed up via magic link)
       const newUser = await tx.user.create({
         data: {
           email: magicLinkToken.email,
           name: userName,
           passwordHash,
+          hasSetPassword: false,
           settings: {
             theme: 'light',
             compactMode: false,
@@ -531,7 +532,10 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(data.newPassword, 10);
 
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash, hasSetPassword: true },
+      }),
       this.prisma.refreshToken.deleteMany({ where: { userId } }),
     ]);
 
@@ -543,6 +547,40 @@ export class AuthService {
       );
 
     return { message: 'Password updated successfully. Please log in again.' };
+  }
+
+  // Set password for users who signed up via magic link (no current password required)
+  async setPassword(userId: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    // Only allow if user hasn't set a password yet (magic link signup)
+    if (user.hasSetPassword) {
+      throw new BadRequestException('Password already set. Use change password instead.');
+    }
+
+    if (newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash, hasSetPassword: true },
+      }),
+      this.prisma.refreshToken.deleteMany({ where: { userId } }),
+    ]);
+
+    // Send password set confirmation email (non-blocking)
+    this.emailService
+      .sendPasswordChangedEmail(user.email, user.name)
+      .catch((err) =>
+        this.logger.error(`Failed to send password set email to ${user.email}:`, err)
+      );
+
+    return { message: 'Password set successfully. Please log in again.' };
   }
 
   async deleteAccount(userId: string, password: string): Promise<{ message: string }> {

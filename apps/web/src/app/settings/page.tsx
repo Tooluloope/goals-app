@@ -24,6 +24,7 @@ import {
   KeyRound,
   Trash2,
   AlertTriangle,
+  Pencil,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
@@ -167,6 +168,7 @@ export default function SettingsPage() {
     updateProfile,
     changeEmail,
     changePassword,
+    setPassword,
     deleteAccount,
   } = useAuthStore();
   const { getConfig, initializeConfig, updateNotificationSettings, updateDashboardSettings } =
@@ -216,6 +218,13 @@ export default function SettingsPage() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  // Workspace rename state
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [workspaceToRename, setWorkspaceToRename] = useState<{ id: string; name: string } | null>(
+    null
+  );
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
 
   // Get family workspace
   const familyWorkspace = workspaces.find((w) => w.type === 'family');
@@ -353,6 +362,35 @@ export default function SettingsPage() {
   };
 
   const handlePasswordChange = async () => {
+    // For users who haven't set a password (magic link signup), only require new password
+    if (!user?.hasSetPassword) {
+      if (!newPassword) {
+        toast({ title: 'Password is required', variant: 'destructive' });
+        return;
+      }
+      if (newPassword.length < 8) {
+        toast({ title: 'Password must be at least 8 characters', variant: 'destructive' });
+        return;
+      }
+      setIsChangingPassword(true);
+      try {
+        await setPassword(newPassword);
+        toast({
+          title: 'Password set successfully',
+          description: 'Log in again with your new password.',
+          variant: 'success',
+        });
+        router.push('/auth/login');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to set password';
+        toast({ title: 'Error', description: message, variant: 'destructive' });
+      } finally {
+        setIsChangingPassword(false);
+      }
+      return;
+    }
+
+    // For users who have a password, require both current and new password
     if (!currentPassword || !newPassword) {
       toast({ title: 'Both password fields are required', variant: 'destructive' });
       return;
@@ -390,6 +428,38 @@ export default function SettingsPage() {
       title: 'Settings updated',
       variant: 'success',
     });
+  };
+
+  const openRenameDialog = (workspace: { id: string; name: string }) => {
+    setWorkspaceToRename(workspace);
+    setNewWorkspaceName(workspace.name);
+    setIsRenameDialogOpen(true);
+  };
+
+  const handleRenameWorkspace = async () => {
+    if (!workspaceToRename || !newWorkspaceName.trim()) {
+      toast({ title: 'Workspace name is required', variant: 'destructive' });
+      return;
+    }
+
+    setIsRenamingWorkspace(true);
+    try {
+      await apiClient.updateWorkspace(workspaceToRename.id, { name: newWorkspaceName.trim() });
+      await loadWorkspaces();
+      toast({
+        title: 'Workspace renamed',
+        description: `Workspace renamed to "${newWorkspaceName.trim()}"`,
+        variant: 'success',
+      });
+      setIsRenameDialogOpen(false);
+      setWorkspaceToRename(null);
+      setNewWorkspaceName('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to rename workspace';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setIsRenamingWorkspace(false);
+    }
   };
 
   const handleCancelInvite = async (inviteId: string) => {
@@ -662,71 +732,90 @@ export default function SettingsPage() {
           id="email"
           icon={<Mail className="h-5 w-5" />}
           title="Email"
-          description="Update your login email. Requires current password."
+          description={
+            user?.hasSetPassword
+              ? 'Update your login email. Requires current password.'
+              : 'Set a password first to change your email.'
+          }
           isExpanded={expandedSections.has('email')}
           onToggle={() => toggleSection('email')}
         >
-          <div className="space-y-4">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-email">New email</Label>
-                <Input
-                  id="new-email"
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
+          {user?.hasSetPassword ? (
+            <div className="space-y-4">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-email">New email</Label>
+                  <Input
+                    id="new-email"
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email-password">Current password</Label>
+                  <Input
+                    id="email-password"
+                    type="password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email-password">Current password</Label>
-                <Input
-                  id="email-password"
-                  type="password"
-                  value={emailPassword}
-                  onChange={(e) => setEmailPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
+              <Button
+                onClick={handleEmailChange}
+                disabled={isChangingEmail}
+                className="w-full sm:w-auto"
+              >
+                {isChangingEmail ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <KeyRound className="mr-2 h-4 w-4" />
+                )}
+                Update email
+              </Button>
             </div>
-            <Button
-              onClick={handleEmailChange}
-              disabled={isChangingEmail}
-              className="w-full sm:w-auto"
-            >
-              {isChangingEmail ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <KeyRound className="mr-2 h-4 w-4" />
-              )}
-              Update email
-            </Button>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              You signed up with a magic link and don&apos;t have a password set yet. Please set a
+              password in the Password section below before you can change your email.
+            </p>
+          )}
         </CollapsibleCard>
 
         {/* Password Change */}
         <CollapsibleCard
           id="password"
           icon={<Lock className="h-5 w-5" />}
-          title="Password"
-          description="Set a new password. You will need to sign in again."
+          title={user?.hasSetPassword ? 'Change Password' : 'Set Password'}
+          description={
+            user?.hasSetPassword
+              ? 'Change your password. You will need to sign in again.'
+              : 'You signed up with a magic link. Set a password to enable password login.'
+          }
           isExpanded={expandedSections.has('password')}
           onToggle={() => toggleSection('password')}
         >
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className={`grid gap-4 ${user?.hasSetPassword ? 'sm:grid-cols-2' : ''}`}>
+              {user?.hasSetPassword && (
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Current password</Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="current-password">Current password</Label>
-                <Input
-                  id="current-password"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New password</Label>
+                <Label htmlFor="new-password">
+                  {user?.hasSetPassword ? 'New password' : 'Password'}
+                </Label>
                 <Input
                   id="new-password"
                   type="password"
@@ -747,7 +836,7 @@ export default function SettingsPage() {
               ) : (
                 <Shield className="mr-2 h-4 w-4" />
               )}
-              Update password
+              {user?.hasSetPassword ? 'Update password' : 'Set password'}
             </Button>
           </div>
         </CollapsibleCard>
@@ -819,9 +908,19 @@ export default function SettingsPage() {
                     </p>
                   </div>
                 </div>
-                {currentWorkspace?.id === workspace.id && (
-                  <Badge variant="secondary">Current</Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openRenameDialog(workspace)}
+                    title="Rename workspace"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  {currentWorkspace?.id === workspace.id && (
+                    <Badge variant="secondary">Current</Badge>
+                  )}
+                </div>
               </div>
             ))}
 
@@ -904,6 +1003,49 @@ export default function SettingsPage() {
             )}
           </div>
         </CollapsibleCard>
+
+        {/* Rename Workspace Dialog */}
+        <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename Workspace</DialogTitle>
+              <DialogDescription>Enter a new name for your workspace</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="workspace-name">Workspace name</Label>
+              <Input
+                id="workspace-name"
+                placeholder="My Workspace"
+                value={newWorkspaceName}
+                onChange={(e) => setNewWorkspaceName(e.target.value)}
+                className="mt-2"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRenameWorkspace();
+                  }
+                }}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRenameWorkspace}
+                disabled={!newWorkspaceName.trim() || isRenamingWorkspace}
+              >
+                {isRenamingWorkspace ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Renaming...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Family Members & Invites */}
         {familyWorkspace && (

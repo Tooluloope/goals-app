@@ -15,6 +15,7 @@ model User {
   id                 String    @id @default(uuid())
   email              String    @unique
   passwordHash       String
+  hasSetPassword     Boolean   @default(true) // false for users who signed up via magic link
   name               String
   avatar             String?
   defaultWorkspaceId String?

@@ -61,6 +61,7 @@ export function useJournalStreak() {
   return useQuery({
     queryKey: journalKeys.streak(),
     queryFn: () => apiClient.getJournalStreak(),
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes (streak only changes on new entries)
   });
 }
 

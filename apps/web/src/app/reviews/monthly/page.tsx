@@ -26,7 +26,8 @@ import {
 } from '@/hooks/use-reviews';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
@@ -433,16 +434,23 @@ export default function MonthlyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What were the best moments of this month?' : ''}
-                value={highlights}
-                onChange={(e) => canEdit && setHighlights(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[120px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What were the best moments of this month?"
+                  value={highlights}
+                  onChange={setHighlights}
+                  minHeight="120px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[120px]">
+                  {highlights ? (
+                    <RichTextContent>{highlights}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -458,16 +466,23 @@ export default function MonthlyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What obstacles did you overcome or struggle with?' : ''}
-                value={challenges}
-                onChange={(e) => canEdit && setChallenges(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[120px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What obstacles did you overcome or struggle with?"
+                  value={challenges}
+                  onChange={setChallenges}
+                  minHeight="120px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[120px]">
+                  {challenges ? (
+                    <RichTextContent>{challenges}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -483,16 +498,23 @@ export default function MonthlyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What goals did you accomplish this month?' : ''}
-                value={goalsAchieved}
-                onChange={(e) => canEdit && setGoalsAchieved(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[120px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What goals did you accomplish this month?"
+                  value={goalsAchieved}
+                  onChange={setGoalsAchieved}
+                  minHeight="120px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[120px]">
+                  {goalsAchieved ? (
+                    <RichTextContent>{goalsAchieved}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -508,16 +530,23 @@ export default function MonthlyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What do you want to achieve next month?' : ''}
-                value={goalsForNextMonth}
-                onChange={(e) => canEdit && setGoalsForNextMonth(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[120px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What do you want to achieve next month?"
+                  value={goalsForNextMonth}
+                  onChange={setGoalsForNextMonth}
+                  minHeight="120px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[120px]">
+                  {goalsForNextMonth ? (
+                    <RichTextContent>{goalsForNextMonth}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -533,16 +562,23 @@ export default function MonthlyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What key insights did you gain this month?' : ''}
-                value={lessonsLearned}
-                onChange={(e) => canEdit && setLessonsLearned(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[100px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What key insights did you gain this month?"
+                  value={lessonsLearned}
+                  onChange={setLessonsLearned}
+                  minHeight="100px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[100px]">
+                  {lessonsLearned ? (
+                    <RichTextContent>{lessonsLearned}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -558,16 +594,23 @@ export default function MonthlyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What are you most grateful for this month?' : ''}
-                value={gratitude}
-                onChange={(e) => canEdit && setGratitude(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[100px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What are you most grateful for this month?"
+                  value={gratitude}
+                  onChange={setGratitude}
+                  minHeight="100px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[100px]">
+                  {gratitude ? (
+                    <RichTextContent>{gratitude}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -69,6 +69,15 @@ export class AuthController {
     return this.authService.changePassword(user.id, body);
   }
 
+  @Post('set-password')
+  @UseGuards(JwtAuthGuard)
+  async setPassword(
+    @CurrentUser() user: UserWithoutPassword,
+    @Body('password') password: string
+  ): Promise<{ message: string }> {
+    return this.authService.setPassword(user.id, password);
+  }
+
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body('email') email: string): Promise<{ message: string }> {

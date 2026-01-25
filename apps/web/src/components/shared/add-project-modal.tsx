@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -222,10 +222,12 @@ export function AddProjectModal() {
 
             <div className="space-y-2">
               <Label htmlFor="objective">Objective *</Label>
-              <Textarea
-                id="objective"
+              <RichTextEditor
                 placeholder="What do you want to achieve?"
-                {...register('objective')}
+                value={watch('objective') || ''}
+                onChange={(value) => setValue('objective', value)}
+                minHeight="100px"
+                showToolbar={true}
               />
               {errors.objective && (
                 <p className="text-sm text-destructive">{errors.objective.message}</p>
@@ -436,10 +438,12 @@ export function AddProjectModal() {
 
             <div className="space-y-2">
               <Label htmlFor="successMetric">Success metric</Label>
-              <Textarea
-                id="successMetric"
+              <RichTextEditor
                 placeholder="How will you measure success?"
-                {...register('successMetric')}
+                value={watch('successMetric') || ''}
+                onChange={(value) => setValue('successMetric', value)}
+                minHeight="100px"
+                showToolbar={true}
               />
             </div>
           </div>

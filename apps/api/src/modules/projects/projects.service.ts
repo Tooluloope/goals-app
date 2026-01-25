@@ -10,6 +10,21 @@ import { differenceInDays } from 'date-fns';
 // Status IDs that indicate completion
 const COMPLETED_STATUS_IDS = ['status-done', 'status-completed'];
 
+// Helper to transform checklistItems into requirements and definitionOfDone
+function transformProjectChecklist(project: any): any {
+  if (!project) return project;
+  const checklistItems = project.checklistItems || [];
+  return {
+    ...project,
+    requirements: checklistItems.filter((item: any) => item.type === 'requirement'),
+    definitionOfDone: checklistItems.filter((item: any) => item.type === 'definition_of_done'),
+  };
+}
+
+function transformProjectsChecklist(projects: any[]): any[] {
+  return projects.map(transformProjectChecklist);
+}
+
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
@@ -24,7 +39,7 @@ export class ProjectsService {
   async findAllForWorkspace(workspaceId: string, userId: string): Promise<Project[]> {
     await this.workspacesService.verifyAccess(workspaceId, userId);
 
-    return this.prisma.project.findMany({
+    const projects = await this.prisma.project.findMany({
       where: { workspaceId },
       include: {
         checklistItems: { orderBy: { order: 'asc' } },
@@ -48,13 +63,14 @@ export class ProjectsService {
       },
       orderBy: { updatedAt: 'desc' },
     });
+    return transformProjectsChecklist(projects);
   }
 
   async findAllForUser(userId: string): Promise<Project[]> {
     const workspaces = await this.workspacesService.findAllForUser(userId);
     const workspaceIds = workspaces.map((w) => w.id);
 
-    return this.prisma.project.findMany({
+    const projects = await this.prisma.project.findMany({
       where: { workspaceId: { in: workspaceIds } },
       include: {
         checklistItems: { orderBy: { order: 'asc' } },
@@ -78,6 +94,7 @@ export class ProjectsService {
       },
       orderBy: { updatedAt: 'desc' },
     });
+    return transformProjectsChecklist(projects);
   }
 
   async findById(id: string, userId: string): Promise<Project> {
@@ -114,13 +131,13 @@ export class ProjectsService {
     }
 
     await this.workspacesService.verifyAccess(project.workspaceId, userId);
-    return project;
+    return transformProjectChecklist(project);
   }
 
   async create(data: CreateProjectDto, userId: string): Promise<Project> {
     await this.workspacesService.verifyAccess(data.workspaceId, userId);
 
-    return this.prisma.project.create({
+    const project = await this.prisma.project.create({
       data: {
         ...data,
         startDate: new Date(data.startDate),
@@ -134,6 +151,7 @@ export class ProjectsService {
         reviewNotes: true,
       },
     });
+    return transformProjectChecklist(project);
   }
 
   async update(id: string, data: UpdateProjectDto, userId: string): Promise<Project> {
@@ -144,7 +162,7 @@ export class ProjectsService {
     if (data.startDate) updateData.startDate = new Date(data.startDate);
     if (data.targetDate) updateData.targetDate = new Date(data.targetDate);
 
-    return this.prisma.project.update({
+    const project = await this.prisma.project.update({
       where: { id },
       data: updateData,
       include: {
@@ -154,6 +172,7 @@ export class ProjectsService {
         reviewNotes: { orderBy: { date: 'desc' } },
       },
     });
+    return transformProjectChecklist(project);
   }
 
   async updateStatus(id: string, statusId: string, userId: string): Promise<Project> {

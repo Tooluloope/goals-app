@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Input } from '@/components/ui/input';
 // TODO: Re-enable when backend supports images
 // import { ImageUpload, ImageThumbnail } from '@/components/shared/image-upload';
@@ -63,7 +63,6 @@ export function AddReviewModal() {
   const [newTaskText, setNewTaskText] = useState('');
 
   const {
-    register,
     handleSubmit,
     watch,
     setValue,
@@ -346,10 +345,12 @@ export function AddReviewModal() {
                         <TrendingUp className="w-5 h-5 text-green-600" />
                         What went well?
                       </label>
-                      <Textarea
-                        {...register('progress')}
+                      <RichTextEditor
                         placeholder="e.g., Finished the budget draft ahead of schedule..."
-                        className="min-h-[160px] resize-none"
+                        value={watch('progress') || ''}
+                        onChange={(value) => setValue('progress', value)}
+                        minHeight="160px"
+                        showToolbar={true}
                       />
                       {errors.progress && (
                         <p className="text-sm text-destructive">{errors.progress.message}</p>
@@ -362,10 +363,12 @@ export function AddReviewModal() {
                         <AlertTriangle className="w-5 h-5 text-orange-500" />
                         Challenges faced
                       </label>
-                      <Textarea
-                        {...register('blockers')}
+                      <RichTextEditor
                         placeholder="e.g., Unexpected delays took up most of Tuesday..."
-                        className="min-h-[160px] resize-none"
+                        value={watch('blockers') || ''}
+                        onChange={(value) => setValue('blockers', value)}
+                        minHeight="160px"
+                        showToolbar={true}
                       />
                     </div>
                   </div>

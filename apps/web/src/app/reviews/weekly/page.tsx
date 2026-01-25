@@ -26,7 +26,8 @@ import {
 } from '@/hooks/use-reviews';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
@@ -422,16 +423,23 @@ export default function WeeklyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'Celebrate your wins...' : ''}
-                value={wentWell}
-                onChange={(e) => canEdit && setWentWell(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[120px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="Celebrate your wins..."
+                  value={wentWell}
+                  onChange={setWentWell}
+                  minHeight="120px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[120px]">
+                  {wentWell ? (
+                    <RichTextContent>{wentWell}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -447,16 +455,23 @@ export default function WeeklyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What could have been better?' : ''}
-                value={toImprove}
-                onChange={(e) => canEdit && setToImprove(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[120px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What could have been better?"
+                  value={toImprove}
+                  onChange={setToImprove}
+                  minHeight="120px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[120px]">
+                  {toImprove ? (
+                    <RichTextContent>{toImprove}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -472,16 +487,23 @@ export default function WeeklyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What are your priorities for next week?' : ''}
-                value={focusNextWeek}
-                onChange={(e) => canEdit && setFocusNextWeek(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[120px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What are your priorities for next week?"
+                  value={focusNextWeek}
+                  onChange={setFocusNextWeek}
+                  minHeight="120px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[120px]">
+                  {focusNextWeek ? (
+                    <RichTextContent>{focusNextWeek}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -497,16 +519,23 @@ export default function WeeklyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What did you learn this week?' : ''}
-                value={lessonsLearned}
-                onChange={(e) => canEdit && setLessonsLearned(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[100px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What did you learn this week?"
+                  value={lessonsLearned}
+                  onChange={setLessonsLearned}
+                  minHeight="100px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[100px]">
+                  {lessonsLearned ? (
+                    <RichTextContent>{lessonsLearned}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -522,16 +551,23 @@ export default function WeeklyReviewPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder={canEdit ? 'What are you grateful for this week?' : ''}
-                value={gratitude}
-                onChange={(e) => canEdit && setGratitude(e.target.value)}
-                readOnly={!canEdit}
-                className={cn(
-                  'min-h-[100px] resize-none',
-                  !canEdit && 'cursor-not-allowed opacity-80'
-                )}
-              />
+              {canEdit ? (
+                <RichTextEditor
+                  placeholder="What are you grateful for this week?"
+                  value={gratitude}
+                  onChange={setGratitude}
+                  minHeight="100px"
+                  showToolbar={true}
+                />
+              ) : (
+                <div className="min-h-[100px]">
+                  {gratitude ? (
+                    <RichTextContent>{gratitude}</RichTextContent>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No entry</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

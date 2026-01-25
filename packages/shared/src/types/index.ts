@@ -12,6 +12,7 @@ export interface User {
   avatar?: string | null;
   defaultWorkspaceId: string;
   timezone: string; // IANA timezone string (e.g., "America/New_York")
+  hasSetPassword: boolean; // false for users who signed up via magic link
   settings: UserSettings;
   createdAt: Date;
   updatedAt: Date;

@@ -293,6 +293,13 @@ class ApiClient {
     });
   }
 
+  setPassword(password: string): Promise<{ message: string }> {
+    return this.fetch('/auth/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+  }
+
   deleteAccount(password: string): Promise<{ message: string }> {
     return this.fetch('/auth/account', {
       method: 'DELETE',
@@ -315,6 +322,13 @@ class ApiClient {
   createWorkspace(data: { name: string; type: 'personal' | 'family' }): Promise<Workspace> {
     return this.fetch<Workspace>('/workspaces', {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateWorkspace(workspaceId: string, data: { name?: string }): Promise<Workspace> {
+    return this.fetch<Workspace>(`/workspaces/${workspaceId}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   }

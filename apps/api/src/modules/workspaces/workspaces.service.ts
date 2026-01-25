@@ -87,6 +87,20 @@ export class WorkspacesService {
     return workspace;
   }
 
+  async update(workspaceId: string, userId: string, data: { name?: string }): Promise<Workspace> {
+    // Only owner or admin can update workspace
+    await this.verifyAccess(workspaceId, userId, ['owner', 'admin']);
+
+    if (!data.name || data.name.trim().length === 0) {
+      throw new BadRequestException('Workspace name is required');
+    }
+
+    return this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: { name: data.name.trim() },
+    });
+  }
+
   async invite(
     workspaceId: string,
     email: string,

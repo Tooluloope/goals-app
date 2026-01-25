@@ -11,6 +11,7 @@ const transformUser = (apiUser: any): User => ({
   avatar: apiUser.avatar ?? undefined,
   defaultWorkspaceId: apiUser.defaultWorkspaceId,
   timezone: apiUser.timezone ?? 'UTC',
+  hasSetPassword: apiUser.hasSetPassword ?? true, // Default to true for backwards compat
   settings: apiUser.settings,
   createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
   updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date(),
@@ -43,6 +44,7 @@ interface AuthState {
   updateProfile: (data: { name?: string; avatar?: string }) => Promise<void>;
   changeEmail: (email: string, password: string) => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  setPassword: (newPassword: string) => Promise<boolean>;
   deleteAccount: (password: string) => Promise<boolean>;
   refreshUser: () => Promise<void>;
   initializeAuth: () => Promise<void>;
@@ -205,6 +207,21 @@ export const useAuthStore = create<AuthState>()(
         if (!user) return false;
 
         await apiClient.changePassword({ currentPassword, newPassword });
+        apiClient.clearTokens();
+        set({
+          user: null,
+          currentWorkspace: null,
+          workspaces: [],
+          isAuthenticated: false,
+        });
+        return true;
+      },
+
+      setPassword: async (newPassword: string) => {
+        const { user } = get();
+        if (!user) return false;
+
+        await apiClient.setPassword(newPassword);
         apiClient.clearTokens();
         set({
           user: null,

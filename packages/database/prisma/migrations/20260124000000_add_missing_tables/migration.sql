@@ -1,5 +1,10 @@
--- CreateEnum
-CREATE TYPE "InviteStatus" AS ENUM ('pending', 'accepted', 'expired', 'cancelled');
+-- CreateEnum (if not exists)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'InviteStatus') THEN
+        CREATE TYPE "InviteStatus" AS ENUM ('pending', 'accepted', 'expired', 'cancelled');
+    END IF;
+END $$;
 
 -- CreateTable
 CREATE TABLE "PasswordResetToken" (
@@ -88,6 +93,14 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AiSummary' AND column_name = 'workspaceId') THEN
         ALTER TABLE "AiSummary" ADD COLUMN "workspaceId" TEXT NOT NULL DEFAULT '';
+    END IF;
+END $$;
+
+-- Add hasSetPassword column to User table (for magic link users)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'hasSetPassword') THEN
+        ALTER TABLE "User" ADD COLUMN "hasSetPassword" BOOLEAN NOT NULL DEFAULT true;
     END IF;
 END $$;
 

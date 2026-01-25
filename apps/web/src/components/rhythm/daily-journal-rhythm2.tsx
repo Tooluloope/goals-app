@@ -10,7 +10,8 @@ import {
 } from '@/hooks/use-journal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
@@ -502,20 +503,23 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
       {/* Main Journal Entry */}
       <Card>
         <CardContent className="p-4 sm:p-6">
-          <Textarea
-            placeholder={
-              canEdit
-                ? 'Start writing here... Let your thoughts flow freely.'
-                : 'No entry for this day'
-            }
-            value={content}
-            onChange={(e) => canEdit && setContent(e.target.value)}
-            readOnly={!canEdit}
-            className={cn(
-              'min-h-[200px] resize-none border-0 bg-transparent p-0 text-lg leading-relaxed focus-visible:ring-0',
-              !canEdit && 'cursor-not-allowed opacity-80'
-            )}
-          />
+          {canEdit ? (
+            <RichTextEditor
+              placeholder="Start writing here... Let your thoughts flow freely."
+              value={content}
+              onChange={setContent}
+              minHeight="200px"
+              showToolbar={true}
+            />
+          ) : (
+            <div className="min-h-[200px]">
+              {content ? (
+                <RichTextContent>{content}</RichTextContent>
+              ) : (
+                <p className="text-muted-foreground text-sm">No entry for this day</p>
+              )}
+            </div>
+          )}
           <div className="mt-4 flex items-center justify-between border-t pt-4 text-xs text-muted-foreground">
             <span>
               {isSaved ? (
@@ -546,16 +550,23 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea
-              placeholder={canEdit ? 'What went well today?' : ''}
-              value={wins}
-              onChange={(e) => canEdit && setWins(e.target.value)}
-              readOnly={!canEdit}
-              className={cn(
-                'min-h-[120px] resize-none',
-                !canEdit && 'cursor-not-allowed opacity-80'
-              )}
-            />
+            {canEdit ? (
+              <RichTextEditor
+                placeholder="What went well today?"
+                value={wins}
+                onChange={setWins}
+                minHeight="120px"
+                showToolbar={true}
+              />
+            ) : (
+              <div className="min-h-[120px]">
+                {wins ? (
+                  <RichTextContent>{wins}</RichTextContent>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No entry</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -568,16 +579,23 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea
-              placeholder={canEdit ? 'What challenges did you face?' : ''}
-              value={challenges}
-              onChange={(e) => canEdit && setChallenges(e.target.value)}
-              readOnly={!canEdit}
-              className={cn(
-                'min-h-[120px] resize-none',
-                !canEdit && 'cursor-not-allowed opacity-80'
-              )}
-            />
+            {canEdit ? (
+              <RichTextEditor
+                placeholder="What challenges did you face?"
+                value={challenges}
+                onChange={setChallenges}
+                minHeight="120px"
+                showToolbar={true}
+              />
+            ) : (
+              <div className="min-h-[120px]">
+                {challenges ? (
+                  <RichTextContent>{challenges}</RichTextContent>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No entry</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -591,13 +609,23 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
-            placeholder={canEdit ? 'What are you grateful for today?' : ''}
-            value={gratitude}
-            onChange={(e) => canEdit && setGratitude(e.target.value)}
-            readOnly={!canEdit}
-            className={cn('min-h-[100px] resize-none', !canEdit && 'cursor-not-allowed opacity-80')}
-          />
+          {canEdit ? (
+            <RichTextEditor
+              placeholder="What are you grateful for today?"
+              value={gratitude}
+              onChange={setGratitude}
+              minHeight="100px"
+              showToolbar={true}
+            />
+          ) : (
+            <div className="min-h-[100px]">
+              {gratitude ? (
+                <RichTextContent>{gratitude}</RichTextContent>
+              ) : (
+                <p className="text-muted-foreground text-sm">No entry</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -194,11 +194,13 @@ export class JournalService {
     // Get user's timezone for accurate "today" calculation
     const userTimezone = await this.getUserTimezone(userId);
 
-    // Get all journal entries for the user ordered by date descending
+    // Get recent journal entries for the user ordered by date descending
+    // Limit to 400 entries (enough for 365-day streak calculation with buffer)
     const entries = await this.prisma.journalEntry.findMany({
       where: { userId },
       orderBy: { date: 'desc' },
       select: { date: true },
+      take: 400,
     });
 
     if (entries.length === 0) return { currentStreak: 0, longestStreak: 0 };
