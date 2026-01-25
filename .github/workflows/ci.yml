@@ -30,6 +30,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @goals/database db:generate
+        env:
+          DATABASE_URL: 'postgresql://user:password@localhost:5432/db'
 
       - name: Lint
         run: pnpm lint
