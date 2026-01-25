@@ -110,6 +110,7 @@ interface CollapsibleCardProps {
 }
 
 function CollapsibleCard({
+  id,
   icon,
   title,
   description,
@@ -118,7 +119,7 @@ function CollapsibleCard({
   children,
 }: CollapsibleCardProps) {
   return (
-    <Card className="mb-4">
+    <Card id={`section-${id}`} className="mb-4 scroll-mt-20">
       <CardHeader className="cursor-pointer select-none" onClick={onToggle}>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -157,6 +158,22 @@ type SectionId =
   | 'emailPrefs'
   | 'danger';
 
+// Map URL hash values to section IDs
+const HASH_TO_SECTION: Record<string, SectionId> = {
+  profile: 'profile',
+  email: 'email',
+  password: 'password',
+  security: 'password', // Alias for password section
+  regional: 'regional',
+  timezone: 'regional', // Alias for regional section
+  workspaces: 'workspaces',
+  family: 'family',
+  notifications: 'notifications',
+  'email-preferences': 'emailPrefs',
+  emailPrefs: 'emailPrefs',
+  danger: 'danger',
+};
+
 export default function SettingsPage() {
   const router = useRouter();
   const {
@@ -180,6 +197,32 @@ export default function SettingsPage() {
   const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(
     new Set<SectionId>(['profile'])
   );
+
+  // Handle URL hash to scroll to and expand specific section
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1); // Remove the # symbol
+      if (hash && HASH_TO_SECTION[hash]) {
+        const sectionId = HASH_TO_SECTION[hash];
+        // Expand the section
+        setExpandedSections((prev) => new Set([...Array.from(prev), sectionId]));
+        // Scroll to the section after a brief delay to allow expansion
+        setTimeout(() => {
+          const element = document.getElementById(`section-${sectionId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    };
+
+    // Handle initial hash on mount
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const toggleSection = (section: SectionId) => {
     setExpandedSections((prev) => {

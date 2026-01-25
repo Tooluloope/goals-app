@@ -152,7 +152,7 @@ export class EmailService {
   async sendPasswordChangedEmail(to: string, name: string): Promise<SendEmailResult> {
     return this.sendEmail<BaseEmailData>(to, 'passwordChanged', {
       toName: name,
-      actionUrl: `${this.appUrl}/settings/security`,
+      actionUrl: `${this.appUrl}/settings#password`,
     });
   }
 
@@ -181,7 +181,7 @@ export class EmailService {
       location: details.location || 'Unknown',
       device: details.device || 'Unknown device',
       time: details.time || new Date().toISOString(),
-      actionUrl: `${this.appUrl}/settings/security`,
+      actionUrl: `${this.appUrl}/settings#security`,
     });
   }
 

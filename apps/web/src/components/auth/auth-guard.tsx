@@ -27,13 +27,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     // Redirect to login if not authenticated and trying to access protected route
     if (!isAuthenticated && !isPublicRoute) {
+      // Save the current URL (including hash) to redirect back after login
+      if (typeof window !== 'undefined') {
+        const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+        sessionStorage.setItem('redirectAfterLogin', currentUrl);
+      }
       router.replace('/auth/login');
     }
 
-    // Redirect to dashboard if authenticated and trying to access auth routes
-    if (isAuthenticated && pathname.startsWith('/auth/')) {
-      router.replace('/dashboard');
-    }
+    // Note: We don't redirect authenticated users away from auth routes here
+    // because the login/signup forms handle their own redirects after success.
+    // Redirecting here would cause a race condition with the form's redirect.
   }, [isAuthenticated, isLoading, isPublicRoute, pathname, router]);
 
   // Show loading while checking auth for protected routes

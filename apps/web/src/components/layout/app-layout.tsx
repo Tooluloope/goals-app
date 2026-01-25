@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Sidebar } from './sidebar';
 import { BottomNav } from './bottom-nav';
@@ -19,16 +17,10 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title, showHeader = true }: AppLayoutProps) {
-  const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
-  useEffect(() => {
-    if (!isAuthenticated && !isLoading) {
-      router.push('/auth/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  // Show loading while checking auth
+  // AuthGuard handles redirect to login and saves return URL
+  // Show loading while auth is being checked
   if (!isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">

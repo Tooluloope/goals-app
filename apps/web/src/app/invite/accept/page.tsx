@@ -83,7 +83,8 @@ export default function AcceptInvitePage() {
   const handleLogin = () => {
     // Store the invite URL to redirect back after login
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('redirectAfterLogin', window.location.href);
+      const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+      sessionStorage.setItem('redirectAfterLogin', currentUrl);
     }
     router.push('/auth/login');
   };
@@ -91,7 +92,8 @@ export default function AcceptInvitePage() {
   const handleSignup = () => {
     // Store the invite URL to redirect back after signup
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('redirectAfterLogin', window.location.href);
+      const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+      sessionStorage.setItem('redirectAfterLogin', currentUrl);
     }
     router.push('/auth/signup');
   };
@@ -209,6 +211,12 @@ export default function AcceptInvitePage() {
                   variant="outline"
                   className="w-full"
                   onClick={() => {
+                    // Store the invite URL to redirect back after login with different account
+                    if (typeof window !== 'undefined') {
+                      const currentUrl =
+                        window.location.pathname + window.location.search + window.location.hash;
+                      sessionStorage.setItem('redirectAfterLogin', currentUrl);
+                    }
                     useAuthStore.getState().logout();
                     router.push('/auth/login');
                   }}
