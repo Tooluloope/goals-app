@@ -30,6 +30,9 @@ jobs:
           - name: web
             dockerfile: apps/web/Dockerfile
             context: .
+          - name: marketing
+            dockerfile: apps/marketing/Dockerfile
+            context: .
 
     steps:
       - name: Checkout repository
@@ -74,7 +77,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://api.example.com' }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://api.alignia.io' }}
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL || 'https://app.alignia.io' }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL || 'https://alignia.io' }}
 
   # Summary job to provide deployment info
   deployment-info:
@@ -91,6 +96,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- \`ghcr.io/${IMAGE_PREFIX}-api:latest\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`ghcr.io/${IMAGE_PREFIX}-web:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${IMAGE_PREFIX}-marketing:latest\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Slipplane Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
