@@ -111,14 +111,16 @@ export function useAiStream(conversationId: string) {
           }
         }
 
-        // Mark streaming as complete
-        setState((prev) => ({
-          ...prev,
+        // Mark streaming as complete and clear content
+        // Content will be fetched from server with updated messages list
+        setState({
+          content: '',
           isStreaming: false,
-        }));
+          error: null,
+        });
 
         // Invalidate conversation cache to fetch updated messages
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: aiKeys.conversationDetail(conversationId),
         });
         queryClient.invalidateQueries({

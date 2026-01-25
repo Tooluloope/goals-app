@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageGallery } from '@/components/shared/image-gallery';
 import { CompactImageGallery } from '@/components/shared/image-gallery';
 import { TaskDependencyGraph } from '@/components/shared/task-dependency-graph';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 import { Project, ChecklistItem, Task, LocalImageAttachment } from '@/types';
 import {
   useAddRequirement,
@@ -219,16 +220,17 @@ export function ProjectSections({ project }: ProjectSectionsProps) {
                         </div>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Progress:</span>{' '}
-                            {review.progress}
+                            <span className="text-muted-foreground">Progress:</span>
+                            <RichTextContent>{review.progress}</RichTextContent>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Notes:</span> {review.notes}
+                            <span className="text-muted-foreground">Notes:</span>
+                            <RichTextContent>{review.notes || ''}</RichTextContent>
                           </div>
                           {review.blockers && (
                             <div>
-                              <span className="text-muted-foreground">Blockers:</span>{' '}
-                              {review.blockers}
+                              <span className="text-muted-foreground">Blockers:</span>
+                              <RichTextContent>{review.blockers}</RichTextContent>
                             </div>
                           )}
                           {review.nextStep && (
@@ -291,7 +293,9 @@ export function ProjectSections({ project }: ProjectSectionsProps) {
               <span className="font-semibold text-red-600">Failure Criteria</span>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <p className="text-sm text-muted-foreground">{project.failureCriteria}</p>
+              <div className="text-sm text-muted-foreground">
+                <RichTextContent>{project.failureCriteria}</RichTextContent>
+              </div>
             </AccordionContent>
           </AccordionItem>
         )}
@@ -359,11 +363,15 @@ function ObjectiveSection({ project }: { project: Project }) {
         <CardTitle className="text-base">Objective</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">{project.objective}</p>
+        <div className="text-muted-foreground">
+          <RichTextContent>{project.objective}</RichTextContent>
+        </div>
         {project.successMetric && (
           <div className="mt-4 rounded-lg bg-muted p-3">
             <p className="text-xs text-muted-foreground">Success Metric</p>
-            <p className="font-medium mt-1">{project.successMetric}</p>
+            <div className="font-medium mt-1">
+              <RichTextContent>{project.successMetric}</RichTextContent>
+            </div>
           </div>
         )}
       </CardContent>

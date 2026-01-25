@@ -180,14 +180,14 @@ export function AddTaskModal() {
 
   return (
     <Dialog open={addTaskModalOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-md max-h-[80vh] sm:max-h-[90vh] flex flex-col overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Task</DialogTitle>
           <DialogDescription>{project && `Adding task to "${project.name}"`}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-          <div className="space-y-4 py-4 overflow-y-auto flex-1">
+          <div className="space-y-4 py-4 pb-6 overflow-y-auto flex-1">
             <div className="space-y-2">
               <Label htmlFor="title">Task title</Label>
               <Input

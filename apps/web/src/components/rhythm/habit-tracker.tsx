@@ -213,8 +213,8 @@ export function HabitTracker({ selectedDate }: HabitTrackerProps) {
   return (
     <div className="space-y-4">
       {/* Habit Cards - Responsive Grid on desktop, Horizontal Scroll on mobile */}
-      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent sm:overflow-x-visible">
-        <div className="flex gap-3 min-w-min sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:min-w-0">
+      <div className="overflow-x-auto overflow-y-visible pb-2 pt-2 -mt-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent sm:overflow-visible sm:pt-0 sm:-mt-0">
+        <div className="flex gap-3 min-w-min pl-1 pr-2 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:min-w-0 sm:pl-0 sm:pr-0">
           {habits.map((habit) => {
             const isExpected = isExpectedDay(
               selectedDate,

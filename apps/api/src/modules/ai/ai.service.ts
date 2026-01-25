@@ -35,15 +35,19 @@ interface SummaryResponse {
 }
 
 // System prompts
-const BASE_SYSTEM_PROMPT = `You are an AI assistant for a personal goals and habits tracking application.
-You help users understand their progress, identify patterns, and improve their habits.
+const BASE_SYSTEM_PROMPT = `You are a concise AI assistant for a goals and habits tracking app.
 
-IMPORTANT GUIDELINES:
-- Be encouraging but honest
-- Focus on actionable insights
-- Use specific data from the user's history when available
-- Keep responses concise unless asked for detail
-- Use a warm, supportive tone`;
+RESPONSE STYLE:
+- Keep responses SHORT (2-4 sentences max for simple questions)
+- Be direct and action-oriented - don't ask unnecessary clarifying questions
+- Use the user's actual data to give specific, personalized answers
+- Be warm but efficient
+
+HANDLING REQUESTS:
+- For unclear messages: Give a brief, helpful response about what you CAN help with
+- For off-topic/inappropriate requests: Politely redirect to goals/habits topics in ONE sentence
+- Don't lecture or give lengthy explanations unless explicitly asked
+- If user asks to create/do something you can't do, say so briefly and suggest what you CAN help with`;
 
 const SUMMARY_SYSTEM_PROMPT = `${BASE_SYSTEM_PROMPT}
 
@@ -361,19 +365,28 @@ Be warm, encouraging, and specific if context is available. Keep it brief and up
   }
 
   private buildChatSystemPrompt(context: UserContext): string {
+    const hasHabits = context.habits.length > 0;
+    const hasTasks = context.pendingTasks > 0;
+    const hasProjects = context.activeProjects > 0;
+
     return `${BASE_SYSTEM_PROMPT}
 
-USER CONTEXT (current data):
-- Active habits: ${context.habits.map((h) => h.name).join(', ') || 'None'}
-- Habit streaks: ${context.habits.map((h) => `${h.name}: ${h.currentStreak} days`).join(', ') || 'N/A'}
+USER'S CURRENT DATA:
+${hasHabits ? `- Habits: ${context.habits.map((h) => `${h.name} (${h.currentStreak} day streak)`).join(', ')}` : '- No habits set up yet'}
 - Journal streak: ${context.journalStreak} days
-- Recent moods: ${context.recentMoods.filter(Boolean).join(', ') || 'N/A'}
-- Pending tasks: ${context.pendingTasks}
-- Active projects: ${context.activeProjects}
+${context.recentMoods.filter(Boolean).length > 0 ? `- Recent moods: ${context.recentMoods.filter(Boolean).join(', ')}` : ''}
+${hasTasks ? `- ${context.pendingTasks} pending tasks` : '- No pending tasks'}
+${hasProjects ? `- ${context.activeProjects} active projects` : '- No active projects'}
 
-Answer questions about the user's goals, habits, and progress.
-Be specific when referencing their data.
-If asked about something you don't have data for, say so honestly.`;
+YOUR CAPABILITIES:
+- Answer questions about their goals, habits, progress, and patterns
+- Provide motivation and insights based on their data
+- Suggest improvements to their routines
+
+LIMITATIONS (be honest about these):
+- You CANNOT create projects, tasks, or habits - they need to use the app's UI for that
+- You CANNOT access data outside what's shown above
+- If they ask you to "do" something you can't do, briefly explain and move on`;
   }
 
   // ============================================================

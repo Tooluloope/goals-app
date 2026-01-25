@@ -118,7 +118,9 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
 
           <div className="min-w-0 flex-1">
             {/* Title */}
-            <h3 className="font-medium leading-tight">{project.name}</h3>
+            <h3 className="font-medium leading-tight truncate" title={project.name}>
+              {project.name}
+            </h3>
 
             {/* Badges */}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">

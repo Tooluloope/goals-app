@@ -574,12 +574,12 @@ export default function WeeklyReviewPage() {
 
         {/* Save/Submit Buttons - bottom-20 on mobile to clear bottom nav, bottom-4 on desktop */}
         {canEdit && (
-          <div className="sticky bottom-20 z-20 mt-8 md:bottom-4">
+          <div className="mt-8 md:sticky md:bottom-4 z-20">
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 size="lg"
                 variant="outline"
-                className="flex-1 shadow-lg"
+                className="w-full sm:flex-1 shadow-lg"
                 onClick={() => handleSave(false)}
                 disabled={upsertReview.isPending || isSaved}
               >
@@ -604,7 +604,7 @@ export default function WeeklyReviewPage() {
               {isEndOfWeek && (
                 <Button
                   size="lg"
-                  className="flex-1 shadow-lg"
+                  className="w-full sm:flex-1 shadow-lg"
                   onClick={handleSubmit}
                   disabled={upsertReview.isPending}
                 >
@@ -614,8 +614,8 @@ export default function WeeklyReviewPage() {
               )}
 
               {!isEndOfWeek && (
-                <div className="flex items-center justify-center gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground sm:flex-1">
-                  <AlertTriangle className="h-4 w-4" />
+                <div className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted px-4 text-sm text-muted-foreground sm:flex-1">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
                   <span>Submit available on Saturday/Sunday</span>
                 </div>
               )}

@@ -11,13 +11,16 @@ import { Separator } from '@/components/ui/separator';
 import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
+import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { getColorClasses } from '@/types/config';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function BoardFilters() {
   const { boardFilters, setBoardFilters, resetBoardFilters } = useUIStore();
   const { currentWorkspace } = useAuthStore();
   const { getAreasForWorkspace, getPrioritiesForWorkspace, getActiveTags } = useConfigStore();
+  const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const [isOpen, setIsOpen] = useState(false);
 
   const areas = currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : [];
@@ -28,6 +31,7 @@ export function BoardFilters() {
     boardFilters.areaIds.length +
     boardFilters.priorityIds.length +
     boardFilters.tagIds.length +
+    boardFilters.assignedTo.length +
     (boardFilters.dueSoon ? 1 : 0) +
     (boardFilters.reviewDue ? 1 : 0);
 
@@ -50,6 +54,22 @@ export function BoardFilters() {
       ? boardFilters.tagIds.filter((t) => t !== tagId)
       : [...boardFilters.tagIds, tagId];
     setBoardFilters({ tagIds: newTagIds });
+  };
+
+  const toggleAssignee = (userId: string) => {
+    const newAssignedTo = boardFilters.assignedTo.includes(userId)
+      ? boardFilters.assignedTo.filter((id) => id !== userId)
+      : [...boardFilters.assignedTo, userId];
+    setBoardFilters({ assignedTo: newAssignedTo });
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -158,6 +178,42 @@ export function BoardFilters() {
                         )}
                       >
                         {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {members.length > 1 && (
+            <>
+              <Separator />
+
+              {/* Assignee */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Assignee</Label>
+                <div className="flex flex-wrap gap-2">
+                  {members.map((member) => {
+                    const isSelected = boardFilters.assignedTo.includes(member.userId);
+                    return (
+                      <button
+                        key={member.userId}
+                        onClick={() => toggleAssignee(member.userId)}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-all',
+                          isSelected
+                            ? 'bg-primary text-primary-foreground ring-2 ring-offset-1 ring-primary'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        )}
+                      >
+                        <Avatar className="h-4 w-4">
+                          <AvatarImage src={member.avatar || undefined} />
+                          <AvatarFallback className="text-[8px]">
+                            {getInitials(member.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {member.name.split(' ')[0]}
                       </button>
                     );
                   })}

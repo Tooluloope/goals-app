@@ -428,4 +428,48 @@ export class ReviewsService {
       'What are you grateful for?',
     ];
   }
+
+  async getWeeklyReviewStats(userId: string): Promise<{
+    totalReviews: number;
+    averageRating: number;
+    currentStreak: number;
+  }> {
+    // Use user's timezone for accurate "current week" calculation
+    const userTimezone = await this.getUserTimezone(userId);
+    const nowInTz = this.getNowInTimezone(userTimezone);
+
+    // Get total count and average rating in a single aggregation query
+    const aggregation = await this.prisma.weeklyReview.aggregate({
+      where: { userId },
+      _count: true,
+      _avg: { rating: true },
+    });
+
+    // Calculate weekly review streak - only fetch what we need
+    const weeklyReviews = await this.prisma.weeklyReview.findMany({
+      where: { userId },
+      orderBy: { weekStart: 'desc' },
+      take: 52, // Max 1 year of weeks
+      select: { weekStart: true },
+    });
+
+    let streak = 0;
+    let expectedWeek = startOfWeek(nowInTz, { weekStartsOn: 1 });
+
+    for (const review of weeklyReviews) {
+      const reviewWeek = startOfDay(review.weekStart);
+      if (reviewWeek.getTime() === expectedWeek.getTime()) {
+        streak++;
+        expectedWeek = subWeeks(expectedWeek, 1);
+      } else if (reviewWeek.getTime() < expectedWeek.getTime()) {
+        break;
+      }
+    }
+
+    return {
+      totalReviews: aggregation._count,
+      averageRating: aggregation._avg.rating || 0,
+      currentStreak: streak,
+    };
+  }
 }

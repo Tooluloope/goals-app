@@ -527,7 +527,7 @@ export function DailyJournal({ selectedDate }: DailyJournalProps) {
 
       {/* Save Button - only shown for today's entry */}
       {canEdit && (
-        <div className="sticky bottom-20 z-20 md:bottom-4">
+        <div className="mt-6 md:sticky md:bottom-4 z-20">
           <Button
             size="lg"
             className="w-full shadow-lg"

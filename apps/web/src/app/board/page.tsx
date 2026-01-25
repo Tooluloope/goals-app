@@ -98,6 +98,14 @@ export default function BoardPage() {
         return false;
       }
 
+      // Assignee filter (by goal owner)
+      if (
+        boardFilters.assignedTo.length > 0 &&
+        !boardFilters.assignedTo.includes(project.ownerId || '')
+      ) {
+        return false;
+      }
+
       return true;
     }) || [];
 

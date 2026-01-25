@@ -72,7 +72,7 @@ export default function Rhythm2Page() {
 
         <div className="container max-w-6xl px-4 py-5 sm:py-6 md:py-10">
           <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
-            <section className="order-2 space-y-6 lg:order-1">
+            <section className="order-2 space-y-6 lg:order-1 min-w-0">
               <div className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-background via-background to-muted/40 p-4 shadow-sm sm:p-6 md:p-8 animate-slide-up">
                 <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -262,7 +262,7 @@ export default function Rhythm2Page() {
               </div>
             </section>
 
-            <aside className="order-1 space-y-5 sm:space-y-6 lg:order-2">
+            <aside className="order-1 space-y-5 sm:space-y-6 lg:order-2 min-w-0">
               <div className="rounded-3xl border bg-card p-4 shadow-sm sm:p-6 animate-slide-up">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Today at a glance
@@ -293,11 +293,11 @@ export default function Rhythm2Page() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border bg-card p-4 shadow-sm sm:p-6 animate-slide-up">
+              <div className="rounded-3xl border bg-card p-4 shadow-sm sm:p-6 animate-slide-up overflow-hidden">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Week rhythm
                 </p>
-                <div className="mt-4 grid grid-cols-7 gap-2">
+                <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 sm:grid sm:grid-cols-7 sm:gap-2 sm:overflow-visible sm:pb-0">
                   {weekDates.map((date) => {
                     const dateStr = format(date, 'yyyy-MM-dd');
                     const isSelected = dateStr === selectedDateStr;
@@ -312,7 +312,7 @@ export default function Rhythm2Page() {
                         }}
                         disabled={isFutureDate}
                         className={cn(
-                          'flex flex-col items-center justify-center rounded-2xl border px-2 py-3 text-xs transition-all',
+                          'flex shrink-0 flex-col items-center justify-center rounded-2xl border px-3 py-3 text-xs transition-all sm:px-2',
                           isSelected && 'border-primary bg-primary text-primary-foreground',
                           !isSelected && isDateToday && 'border-primary/40 bg-primary/10',
                           !isSelected && !isDateToday && !isFutureDate && 'hover:border-primary/40',

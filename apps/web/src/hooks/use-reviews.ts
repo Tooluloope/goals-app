@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import type {
   WeeklyReview,
@@ -79,7 +79,8 @@ export function useWeeklyReviewStats() {
   return useQuery({
     queryKey: reviewKeys.weekly.stats(),
     queryFn: () => apiClient.getWeeklyReviewStats(),
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes (stats only change on new reviews)
+    staleTime: 1000 * 60 * 10, // Cache for 10 minutes (stats only change on new reviews)
+    placeholderData: keepPreviousData, // Keep showing previous data while refetching
   });
 }
 

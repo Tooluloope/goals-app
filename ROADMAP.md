@@ -276,3 +276,55 @@ Nice-to-haves for later.
 | AI Suggestions         | P6       | Done        | AI Chat, Summaries, Insights with Claude           |
 | Docker Production      | -        | Done        | Health checks, migrations, scheduler separation    |
 | Email Service          | -        | Done        | Resend integration, templates, scheduler           |
+| Subscription Tiers     | -        | Not Started | See Monetization section below                     |
+
+---
+
+## Monetization: Subscription Tiers
+
+### Free Tier ($0)
+
+Core experience to get users engaged:
+
+| Feature               | Limit     |
+| --------------------- | --------- |
+| Habits                | Up to 5   |
+| Projects/Goals        | Up to 3   |
+| Daily Journal         | Unlimited |
+| Basic Dashboard Stats | Yes       |
+| Personal Workspace    | 1         |
+| Email Reminders       | Yes       |
+
+### Pro Tier ($5-8/month)
+
+For serious goal-setters:
+
+| Feature                 | Access      |
+| ----------------------- | ----------- |
+| Habits                  | Unlimited   |
+| Projects/Goals          | Unlimited   |
+| AI Chat                 | Full access |
+| AI Summaries & Insights | Full access |
+| Weekly/Monthly Reviews  | Full access |
+| Advanced Analytics      | Yes         |
+| Data Export             | Yes         |
+| Priority Support        | Yes         |
+
+### Family Tier ($12-15/month)
+
+For households working together:
+
+| Feature                   | Access          |
+| ------------------------- | --------------- |
+| Everything in Pro         | Yes             |
+| Family/Team Workspace     | Up to 6 members |
+| Shared Goals              | Yes             |
+| Member Invites            | Yes             |
+| Family Progress Dashboard | Yes             |
+
+### Implementation Notes
+
+1. **Gate by limits, not features** - easier to implement (check counts before create)
+2. **AI features are natural paywall** - they cost money per API call
+3. **Keep free tier genuinely useful** - users who love free become paid
+4. **Workspace invites = upgrade trigger** - wanting to add family is high intent

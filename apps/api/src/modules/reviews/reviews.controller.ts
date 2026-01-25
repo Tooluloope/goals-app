@@ -51,6 +51,15 @@ export class ReviewsController {
     return this.reviewsService.findWeeklyReviewByWeek(weekStart, user.id);
   }
 
+  @Get('weekly/stats')
+  getWeeklyStats(@CurrentUser() user: UserWithoutPassword): Promise<{
+    totalReviews: number;
+    averageRating: number;
+    currentStreak: number;
+  }> {
+    return this.reviewsService.getWeeklyReviewStats(user.id);
+  }
+
   @Get('weekly/:id')
   findWeeklyById(@Param('id') id: string): Promise<WeeklyReview> {
     return this.reviewsService.findWeeklyReviewById(id);

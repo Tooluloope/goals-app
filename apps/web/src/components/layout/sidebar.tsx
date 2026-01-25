@@ -172,15 +172,15 @@ export function Sidebar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full justify-between" size="sm">
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   {currentWorkspace?.type === 'family' ? (
-                    <Users className="h-4 w-4" />
+                    <Users className="h-4 w-4 shrink-0" />
                   ) : (
-                    <Target className="h-4 w-4" />
+                    <Target className="h-4 w-4 shrink-0" />
                   )}
                   <span className="truncate">{currentWorkspace?.name || 'Select workspace'}</span>
                 </div>
-                <ChevronDown className="h-4 w-4 opacity-50" />
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
@@ -190,14 +190,14 @@ export function Sidebar() {
                 <DropdownMenuItem
                   key={workspace.id}
                   onClick={() => handleWorkspaceSwitch(workspace)}
-                  className={cn(currentWorkspace?.id === workspace.id && 'bg-accent')}
+                  className={cn('min-w-0', currentWorkspace?.id === workspace.id && 'bg-accent')}
                 >
                   {workspace.type === 'family' ? (
-                    <Users className="mr-2 h-4 w-4" />
+                    <Users className="mr-2 h-4 w-4 shrink-0" />
                   ) : (
-                    <Target className="mr-2 h-4 w-4" />
+                    <Target className="mr-2 h-4 w-4 shrink-0" />
                   )}
-                  {workspace.name}
+                  <span className="truncate">{workspace.name}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

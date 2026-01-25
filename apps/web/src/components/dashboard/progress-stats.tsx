@@ -72,7 +72,8 @@ export function ProgressStats() {
     };
   }, [habits]);
 
-  const isLoading = habitsLoading || journalLoading || weeklyLoading;
+  // Only block on essential data (habits/journal), let weekly stats load independently
+  const isLoading = habitsLoading || journalLoading;
 
   if (isLoading) {
     return (
@@ -135,7 +136,7 @@ export function ProgressStats() {
           </CardContent>
         </Card>
 
-        {/* Weekly Reviews */}
+        {/* Weekly Reviews - loads independently */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -143,8 +144,17 @@ export function ProgressStats() {
                 <Calendar className="h-4 w-4 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{weeklyStats?.currentStreak || 0}</p>
-                <p className="text-xs text-muted-foreground">Review Streak</p>
+                {weeklyLoading ? (
+                  <>
+                    <div className="h-8 w-8 animate-pulse rounded bg-muted" />
+                    <p className="text-xs text-muted-foreground">Review Streak</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-bold">{weeklyStats?.currentStreak || 0}</p>
+                    <p className="text-xs text-muted-foreground">Review Streak</p>
+                  </>
+                )}
               </div>
             </div>
           </CardContent>

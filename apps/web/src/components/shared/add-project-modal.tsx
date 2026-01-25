@@ -206,14 +206,14 @@ export function AddProjectModal() {
 
   return (
     <Dialog open={addProjectModalOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-h-[90vh] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Create New Goal</DialogTitle>
           <DialogDescription>Add a new goal to track in {currentWorkspace?.name}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 pb-6">
             <div className="space-y-2">
               <Label htmlFor="name">Goal name *</Label>
               <Input id="name" placeholder="e.g., Learn Spanish" {...register('name')} autoFocus />

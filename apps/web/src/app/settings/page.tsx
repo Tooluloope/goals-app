@@ -25,6 +25,8 @@ import {
   Trash2,
   AlertTriangle,
   Pencil,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
@@ -153,7 +155,6 @@ type SectionId =
   | 'family'
   | 'notifications'
   | 'emailPrefs'
-  | 'about'
   | 'danger';
 
 export default function SettingsPage() {
@@ -213,9 +214,13 @@ export default function SettingsPage() {
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showEmailPassword, setShowEmailPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   // Workspace rename state
@@ -303,22 +308,47 @@ export default function SettingsPage() {
       return;
     }
     return new Promise<void>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result?.toString() || '';
-        setAvatarUrl(result);
+      const objectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        const cropSize = Math.min(image.width, image.height);
+        const canvasSize = 320;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          toast({
+            title: 'Upload failed',
+            description: 'Could not process the selected image.',
+            variant: 'destructive',
+          });
+          reject(new Error('Canvas not supported'));
+          return;
+        }
+
+        const sx = (image.width - cropSize) / 2;
+        const sy = (image.height - cropSize) / 2;
+        ctx.drawImage(image, sx, sy, cropSize, cropSize, 0, 0, canvasSize, canvasSize);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.86);
+        setAvatarUrl(dataUrl);
         setAvatarFileName(file.name);
+        URL.revokeObjectURL(objectUrl);
         resolve();
       };
-      reader.onerror = () => {
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
         toast({
           title: 'Upload failed',
           description: 'Could not read the selected image.',
           variant: 'destructive',
         });
-        reject(reader.error);
+        reject(new Error('Image load failed'));
       };
-      reader.readAsDataURL(file);
+      image.src = objectUrl;
     });
   };
 
@@ -669,14 +699,14 @@ export default function SettingsPage() {
           onToggle={() => toggleSection('profile')}
         >
           <div className="space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <Avatar className="h-16 w-16">
                 {avatarUrl ? <AvatarImage src={avatarUrl} alt="Avatar" /> : null}
                 <AvatarFallback className="bg-primary text-primary-foreground text-xl">
                   {user?.name ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="space-y-2 flex-1">
+              <div className="flex-1 space-y-2">
                 <div>
                   <Label htmlFor="name">Full name</Label>
                   <Input
@@ -687,16 +717,17 @@ export default function SettingsPage() {
                     className="mt-1"
                   />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Input
                     type="url"
                     placeholder="Avatar image URL"
                     value={avatarUrl}
                     onChange={(e) => setAvatarUrl(e.target.value)}
+                    className="w-full"
                   />
                   <Label
                     htmlFor="avatar-upload"
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+                    className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted sm:w-auto"
                   >
                     <ImageIcon className="h-4 w-4" />
                     Upload
@@ -714,12 +745,18 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold">{user?.email}</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold truncate" title={user?.email}>
+                  {user?.email}
+                </p>
                 <p className="text-sm text-muted-foreground">Email (change below)</p>
               </div>
-              <Button onClick={handleProfileSave} disabled={isSavingProfile}>
+              <Button
+                onClick={handleProfileSave}
+                disabled={isSavingProfile}
+                className="w-full sm:w-auto"
+              >
                 {isSavingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Save profile
               </Button>
@@ -755,13 +792,28 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-password">Current password</Label>
-                  <Input
-                    id="email-password"
-                    type="password"
-                    value={emailPassword}
-                    onChange={(e) => setEmailPassword(e.target.value)}
-                    placeholder="••••••••"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="email-password"
+                      type={showEmailPassword ? 'text' : 'password'}
+                      value={emailPassword}
+                      onChange={(e) => setEmailPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      aria-label={showEmailPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showEmailPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
               <Button
@@ -803,26 +855,52 @@ export default function SettingsPage() {
               {user?.hasSetPassword && (
                 <div className="space-y-2">
                   <Label htmlFor="current-password">Current password</Label>
-                  <Input
-                    id="current-password"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="••••••••"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="current-password"
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="space-y-2">
                 <Label htmlFor="new-password">
                   {user?.hasSetPassword ? 'New password' : 'Password'}
                 </Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                />
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    className="pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
             <Button
@@ -1067,8 +1145,8 @@ export default function SettingsPage() {
                       key={member.id}
                       className="flex items-center justify-between rounded-lg border p-3"
                     >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <Avatar className="h-8 w-8 shrink-0">
                           <AvatarFallback className="bg-primary/10 text-primary text-sm">
                             {member.name
                               .split(' ')
@@ -1078,9 +1156,14 @@ export default function SettingsPage() {
                               .slice(0, 2)}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{member.name}</p>
-                          <p className="text-xs text-muted-foreground">{member.email}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{member.name}</p>
+                          <p
+                            className="text-xs text-muted-foreground truncate"
+                            title={member.email}
+                          >
+                            {member.email}
+                          </p>
                         </div>
                       </div>
                       <Badge variant="secondary" className="capitalize">
@@ -1100,12 +1183,14 @@ export default function SettingsPage() {
                       key={invite.id}
                       className="flex items-center justify-between rounded-lg border border-dashed p-3"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">{invite.email}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate" title={invite.email}>
+                            {invite.email}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Expires {invite.expiresAt.toLocaleDateString()}
                           </p>
@@ -1342,26 +1427,6 @@ export default function SettingsPage() {
           </div>
         </CollapsibleCard>
 
-        {/* App Info */}
-        <CollapsibleCard
-          id="about"
-          icon={<Shield className="h-5 w-5" />}
-          title="About"
-          isExpanded={expandedSections.has('about')}
-          onToggle={() => toggleSection('about')}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Version</span>
-              <span className="font-medium">1.0.0</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Built with</span>
-              <span className="font-medium">Next.js + TypeScript</span>
-            </div>
-          </div>
-        </CollapsibleCard>
-
         {/* Danger Zone */}
         <CollapsibleCard
           id="danger"
@@ -1400,13 +1465,28 @@ export default function SettingsPage() {
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
                       <Label htmlFor="delete-password">Enter your password to confirm</Label>
-                      <Input
-                        id="delete-password"
-                        type="password"
-                        value={deletePassword}
-                        onChange={(e) => setDeletePassword(e.target.value)}
-                        placeholder="Your password"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="delete-password"
+                          type={showDeletePassword ? 'text' : 'password'}
+                          value={deletePassword}
+                          onChange={(e) => setDeletePassword(e.target.value)}
+                          placeholder="Your password"
+                          className="pr-12"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowDeletePassword((prev) => !prev)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          aria-label={showDeletePassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showDeletePassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="delete-confirm">

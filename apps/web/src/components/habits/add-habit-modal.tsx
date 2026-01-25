@@ -149,11 +149,11 @@ export function AddHabitModal({ trigger, onSuccess }: AddHabitModalProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-h-[90vh] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Habit</DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 pt-4">
+        <div className="space-y-5 pt-4 pb-6">
           {/* Habit Name */}
           <div className="space-y-2">
             <Label htmlFor="habit-name">Habit Name</Label>

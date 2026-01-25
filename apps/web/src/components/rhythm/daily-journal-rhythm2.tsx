@@ -291,8 +291,8 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border bg-gradient-to-br from-background via-background to-primary/5 p-4 sm:p-5">
+    <div className="space-y-6 overflow-hidden">
+      <div className="rounded-3xl border bg-gradient-to-br from-background via-background to-primary/5 p-4 sm:p-5 overflow-hidden">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
@@ -304,23 +304,26 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
               Capture the mood, tag the moment, then let the story breathe.
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-[11px] text-muted-foreground">
+          <div className="inline-flex shrink-0 items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-[11px] text-muted-foreground whitespace-nowrap">
             <span
-              className={cn('h-2 w-2 rounded-full', isSaved ? 'bg-emerald-500' : 'bg-amber-500')}
+              className={cn(
+                'h-2 w-2 shrink-0 rounded-full',
+                isSaved ? 'bg-emerald-500' : 'bg-amber-500'
+              )}
             />
-            {isSaved ? 'All changes saved' : 'Editing...'}
+            {isSaved ? 'Saved' : 'Editing...'}
           </div>
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-2xl border bg-card/70 p-3">
+          <div className="rounded-2xl border bg-card/70 p-3 overflow-hidden">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Mood Line
               </p>
               <span className="text-[11px] text-muted-foreground">Tap to set</span>
             </div>
-            <div className="mt-3 grid grid-cols-5 gap-2">
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 sm:grid sm:grid-cols-5 sm:overflow-visible sm:pb-0 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               {MOOD_OPTIONS.map((option) => {
                 const isSelected = mood === option.value;
                 return (
@@ -330,7 +333,7 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
                     title={option.label}
                     disabled={!canEdit}
                     className={cn(
-                      'group flex flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-[11px] font-semibold transition-all',
+                      'group flex shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-[11px] font-semibold transition-all sm:px-2',
                       option.bg,
                       option.ring,
                       option.tint,
@@ -375,7 +378,7 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
                     {emoji || '✨'}
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[320px] p-0" align="center">
+                <PopoverContent className="w-[280px] sm:w-[320px] p-0" align="center">
                   <div className="space-y-4 p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -520,21 +523,23 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
               )}
             </div>
           )}
-          <div className="mt-4 flex items-center justify-between border-t pt-4 text-xs text-muted-foreground">
-            <span>
+          <div className="mt-4 flex items-center justify-between gap-2 border-t pt-4 text-xs text-muted-foreground">
+            <span className="min-w-0 truncate">
               {isSaved ? (
                 <span className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  Saved{' '}
-                  {lastSaved &&
-                    safeFormatDate(lastSaved, 'h:mm a') &&
-                    `at ${safeFormatDate(lastSaved, 'h:mm a')}`}
+                  <CheckCircle2 className="h-3 w-3 shrink-0 text-green-500" />
+                  <span className="truncate">
+                    Saved{' '}
+                    {lastSaved &&
+                      safeFormatDate(lastSaved, 'h:mm a') &&
+                      `at ${safeFormatDate(lastSaved, 'h:mm a')}`}
+                  </span>
                 </span>
               ) : (
                 'Unsaved changes...'
               )}
             </span>
-            <span>{content.length} characters</span>
+            <span className="shrink-0">{content.length} chars</span>
           </div>
         </CardContent>
       </Card>

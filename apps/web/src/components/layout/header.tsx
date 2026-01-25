@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ChevronDown,
   Target,
@@ -78,6 +78,7 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, currentWorkspace, workspaces, setCurrentWorkspace, logout } = useAuthStore();
   const { setCommandPaletteOpen } = useUIStore();
   const { data: unreadCount } = useUnreadNotificationsCount();
@@ -93,8 +94,9 @@ export function Header({ title }: HeaderProps) {
   };
 
   const handleLogout = () => {
+    setSheetOpen(false);
     logout();
-    window.location.href = '/auth/login';
+    router.push('/auth/login');
   };
 
   return (
@@ -123,17 +125,17 @@ export function Header({ title }: HeaderProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full justify-between" size="sm">
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
                       {currentWorkspace?.type === 'family' ? (
-                        <Users className="h-4 w-4" />
+                        <Users className="h-4 w-4 shrink-0" />
                       ) : (
-                        <Target className="h-4 w-4" />
+                        <Target className="h-4 w-4 shrink-0" />
                       )}
                       <span className="truncate">
                         {currentWorkspace?.name || 'Select workspace'}
                       </span>
                     </div>
-                    <ChevronDown className="h-4 w-4 opacity-50" />
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
@@ -143,14 +145,17 @@ export function Header({ title }: HeaderProps) {
                     <DropdownMenuItem
                       key={workspace.id}
                       onClick={() => setCurrentWorkspace(workspace)}
-                      className={cn(currentWorkspace?.id === workspace.id && 'bg-accent')}
+                      className={cn(
+                        'min-w-0',
+                        currentWorkspace?.id === workspace.id && 'bg-accent'
+                      )}
                     >
                       {workspace.type === 'family' ? (
-                        <Users className="mr-2 h-4 w-4" />
+                        <Users className="mr-2 h-4 w-4 shrink-0" />
                       ) : (
-                        <Target className="mr-2 h-4 w-4" />
+                        <Target className="mr-2 h-4 w-4 shrink-0" />
                       )}
-                      {workspace.name}
+                      <span className="truncate">{workspace.name}</span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

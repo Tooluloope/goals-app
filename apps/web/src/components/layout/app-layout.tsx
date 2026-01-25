@@ -38,7 +38,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       {/* Desktop Sidebar */}
       <Sidebar />
 
@@ -48,7 +48,9 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
         {showHeader && <Header title={title} />}
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">{children}</main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0 overscroll-contain">
+          {children}
+        </main>
 
         {/* Mobile Bottom Nav */}
         <BottomNav />
