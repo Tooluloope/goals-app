@@ -18,6 +18,7 @@ export function AiChat({ conversationId }: AiChatProps) {
     content: streamingContent,
     isStreaming,
     error,
+    pendingUserMessage,
     sendMessage,
     stopStream,
   } = useAiStream(conversationId);
@@ -25,7 +26,7 @@ export function AiChat({ conversationId }: AiChatProps) {
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [conversation?.messages, streamingContent]);
+  }, [conversation?.messages, streamingContent, pendingUserMessage]);
 
   if (isLoading) {
     return (
@@ -44,12 +45,13 @@ export function AiChat({ conversationId }: AiChatProps) {
   }
 
   const messages = conversation.messages || [];
+  const showEmptyState = messages.length === 0 && !pendingUserMessage && !streamingContent;
 
   return (
     <div className="flex h-full flex-col">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 && !streamingContent ? (
+        {showEmptyState ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
             <div className="rounded-full bg-primary/10 p-4">
               <svg
@@ -90,6 +92,21 @@ export function AiChat({ conversationId }: AiChatProps) {
             {messages.map((msg) => (
               <AiChatMessage key={msg.id} role={msg.role} content={msg.content} />
             ))}
+
+            {/* Pending user message (shown immediately before server confirms) */}
+            {pendingUserMessage && <AiChatMessage role="user" content={pendingUserMessage} />}
+
+            {/* Loading indicator while waiting for AI response */}
+            {isStreaming && !streamingContent && (
+              <div className="flex items-center gap-2 px-4 py-3">
+                <div className="flex gap-1">
+                  <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:-0.3s]" />
+                  <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:-0.15s]" />
+                  <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" />
+                </div>
+                <span className="text-sm text-muted-foreground">Thinking...</span>
+              </div>
+            )}
 
             {/* Streaming response */}
             {streamingContent && (

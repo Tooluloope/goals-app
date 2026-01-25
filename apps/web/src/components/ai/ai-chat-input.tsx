@@ -23,6 +23,18 @@ export function AiChatInput({
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Auto-focus on mount and when streaming ends
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
+
+  // Refocus when streaming ends
+  useEffect(() => {
+    if (!isStreaming && !disabled) {
+      textareaRef.current?.focus();
+    }
+  }, [isStreaming, disabled]);
+
   // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -39,9 +51,10 @@ export function AiChatInput({
     onSend(trimmed);
     setMessage('');
 
-    // Reset textarea height
+    // Reset textarea height and refocus
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      textareaRef.current.focus();
     }
   };
 

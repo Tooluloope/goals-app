@@ -10,6 +10,7 @@ interface StreamState {
   content: string;
   isStreaming: boolean;
   error: string | null;
+  pendingUserMessage: string | null;
 }
 
 interface StreamEvent {
@@ -30,6 +31,7 @@ export function useAiStream(conversationId: string) {
     content: '',
     isStreaming: false,
     error: null,
+    pendingUserMessage: null,
   });
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -37,8 +39,8 @@ export function useAiStream(conversationId: string) {
     async (message: string) => {
       if (!conversationId || state.isStreaming) return;
 
-      // Reset state
-      setState({ content: '', isStreaming: true, error: null });
+      // Reset state and show user message immediately
+      setState({ content: '', isStreaming: true, error: null, pendingUserMessage: message });
 
       // Create abort controller
       abortControllerRef.current = new AbortController();
@@ -117,6 +119,7 @@ export function useAiStream(conversationId: string) {
           content: '',
           isStreaming: false,
           error: null,
+          pendingUserMessage: null,
         });
 
         // Invalidate conversation cache to fetch updated messages
@@ -140,6 +143,7 @@ export function useAiStream(conversationId: string) {
           content: '',
           isStreaming: false,
           error: error instanceof Error ? error.message : 'Failed to send message',
+          pendingUserMessage: null,
         });
       }
     },
@@ -162,6 +166,7 @@ export function useAiStream(conversationId: string) {
       content: '',
       isStreaming: false,
       error: null,
+      pendingUserMessage: null,
     });
   }, []);
 

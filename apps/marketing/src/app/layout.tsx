@@ -47,10 +47,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/apple-icon', type: 'image/png' }],
   },
   openGraph: {
     title: 'Alignia - Achieve Your Goals',
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-image.png',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Alignia - Goal Tracking App',
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     title: 'Alignia - Achieve Your Goals',
     description:
       'The personal goal tracking app for individuals and families. Build habits, track goals, achieve more.',
-    images: ['/og-image.png'],
+    images: ['/twitter-image'],
     creator: '@alignia',
   },
   robots: {
@@ -96,33 +96,48 @@ export const metadata: Metadata = {
 };
 
 // Structured Data (JSON-LD)
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'WebApplication',
-  name: 'Alignia',
-  description:
-    'The personal goal tracking app for individuals and families. Set meaningful goals, build lasting habits, and track your progress with AI-powered insights.',
-  url: config.siteUrl,
-  applicationCategory: 'Productivity',
-  operatingSystem: 'Web',
-  offers: {
-    '@type': 'AggregateOffer',
-    priceCurrency: 'USD',
-    lowPrice: 0,
-    highPrice: 14,
-    offerCount: 3,
-  },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    reviewCount: '1200',
-  },
-  author: {
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'Alignia',
     url: config.siteUrl,
+    logo: `${config.siteUrl}/icon.svg`,
   },
-};
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Alignia',
+    url: config.siteUrl,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${config.siteUrl}/?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Alignia',
+    description:
+      'The personal goal tracking app for individuals and families. Set meaningful goals, build lasting habits, and track your progress with AI-powered insights.',
+    url: config.siteUrl,
+    applicationCategory: 'Productivity',
+    operatingSystem: 'Web',
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'USD',
+      lowPrice: 0,
+      highPrice: 14,
+      offerCount: 3,
+    },
+    author: {
+      '@type': 'Organization',
+      name: 'Alignia',
+      url: config.siteUrl,
+    },
+  },
+];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

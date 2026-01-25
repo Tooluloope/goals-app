@@ -264,6 +264,40 @@ Be warm, encouraging, and specific if context is available. Keep it brief and up
   }
 
   /**
+   * Generate a short title for a conversation based on the first message
+   */
+  private async generateConversationTitle(
+    conversationId: string,
+    firstMessage: string
+  ): Promise<void> {
+    try {
+      // Generate a concise title using AI
+      const response = await this.anthropic.createMessage(
+        `Generate a very short title (3-5 words max) for a conversation that starts with this message. Return ONLY the title, no quotes, no punctuation at the end.\n\nMessage: "${firstMessage.slice(0, 200)}"`,
+        'You generate ultra-short conversation titles. Return only 3-5 words, no quotes or extra punctuation.'
+      );
+
+      const title = response.content.trim().slice(0, 50); // Limit to 50 chars
+
+      if (title) {
+        await this.prisma.aiConversation.update({
+          where: { id: conversationId },
+          data: { title },
+        });
+      }
+    } catch (error) {
+      // Fallback: use first few words of message
+      const fallbackTitle = firstMessage.split(' ').slice(0, 4).join(' ').slice(0, 50);
+      if (fallbackTitle) {
+        await this.prisma.aiConversation.update({
+          where: { id: conversationId },
+          data: { title: fallbackTitle + '...' },
+        });
+      }
+    }
+  }
+
+  /**
    * Send a message and stream the response
    */
   streamChatResponse(
@@ -290,6 +324,11 @@ Be warm, encouraging, and specific if context is available. Keep it brief and up
       // Verify conversation ownership and get workspace context
       const conversation = await this.getConversation(userId, conversationId);
 
+      // Check if this is the first message (conversation has default title)
+      const isFirstMessage =
+        conversation.messages.length === 0 &&
+        (conversation.title === 'New conversation' || !conversation.title);
+
       // Get user context (scoped to the conversation's workspace)
       const userContext = await this.dataAggregator.getUserContext(
         userId,
@@ -304,6 +343,13 @@ Be warm, encouraging, and specific if context is available. Keep it brief and up
           content: userMessage,
         },
       });
+
+      // Auto-generate title for first message
+      if (isFirstMessage) {
+        this.generateConversationTitle(conversationId, userMessage).catch((err) =>
+          this.logger.warn('Failed to generate conversation title:', err)
+        );
+      }
 
       // Build system prompt with user context
       const systemPrompt = this.buildChatSystemPrompt(userContext);
