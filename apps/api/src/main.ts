@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { json, urlencoded } from 'express';
 import * as nodeCrypto from 'node:crypto';
 import { AppModule } from './app.module';
 
@@ -9,7 +10,12 @@ if (!('crypto' in globalThis)) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Disable default body parser to configure custom limits for image uploads
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+
+  // Increase body parser limit for base64 encoded image uploads
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // Enable CORS - supports comma-separated list of origins
   // Use '*' or true for tunnel/development access

@@ -41,6 +41,7 @@ import {
   cn,
 } from '@/lib/utils';
 import { Project } from '@/types';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 
 // Area gradient backgrounds
 const AREA_GRADIENTS: Record<string, string> = {
@@ -465,7 +466,9 @@ function ProjectCard({
               )}
             </div>
             <h3 className="font-semibold text-lg">{project.name}</h3>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{project.objective}</p>
+            <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
+              <RichTextContent>{project.objective}</RichTextContent>
+            </div>
           </div>
 
           {/* Progress Circle */}
@@ -509,14 +512,18 @@ function ProjectCard({
                 <Target className="h-3 w-3" />
                 Objective
               </h4>
-              <p className="text-sm">{project.objective}</p>
+              <div className="text-sm">
+                <RichTextContent>{project.objective}</RichTextContent>
+              </div>
             </div>
             {project.successMetric && (
               <div className="bg-muted/50 rounded-lg p-3">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                   Success Metric
                 </h4>
-                <p className="text-sm">{project.successMetric}</p>
+                <div className="text-sm">
+                  <RichTextContent>{project.successMetric}</RichTextContent>
+                </div>
               </div>
             )}
 
@@ -567,7 +574,9 @@ function ProjectCard({
                   <p className="text-xs text-muted-foreground mb-1">
                     {formatDate(latestReview.date, 'MMM d, yyyy')}
                   </p>
-                  <p className="text-sm line-clamp-2">{latestReview.notes}</p>
+                  <div className="text-sm line-clamp-2">
+                    <RichTextContent>{latestReview.notes || ''}</RichTextContent>
+                  </div>
                 </div>
               </div>
             )}

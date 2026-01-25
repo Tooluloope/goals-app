@@ -57,7 +57,7 @@ export class TasksService {
     }
   }
 
-  async create(data: CreateTaskDto, userId: string): Promise<Task> {
+  async create(data: CreateTaskDto & { images?: any[] }, userId: string): Promise<Task> {
     // Verify user has access to the project
     await this.projectsService.findById(data.projectId, userId);
 
@@ -78,6 +78,15 @@ export class TasksService {
       );
     }
 
+    // Prepare image attachments if provided
+    const imageData = data.images?.map((img) => ({
+      filename: img.name,
+      url: img.data, // Base64 data URL
+      mimeType: img.type,
+      size: img.size,
+      caption: img.caption || null,
+    }));
+
     return this.prisma.task.create({
       data: {
         projectId: data.projectId,
@@ -90,6 +99,10 @@ export class TasksService {
         recurrenceInterval,
         recurrenceDays,
         nextOccurrence,
+        ...(imageData && imageData.length > 0 ? { images: { create: imageData } } : {}),
+      },
+      include: {
+        images: true,
       },
     });
   }

@@ -147,6 +147,16 @@ export const recurrenceTypeSchema = z.enum([
   'custom',
 ]);
 
+// Image attachment schema for task/review uploads
+const imageAttachmentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  data: z.string(), // Base64 encoded image data
+  type: z.string(), // MIME type
+  size: z.number(),
+  caption: z.string().optional(),
+});
+
 export const createTaskSchema = z.object({
   projectId: z.string().uuid('Invalid project ID'),
   title: z.string().min(1, 'Title is required'),
@@ -158,6 +168,8 @@ export const createTaskSchema = z.object({
   recurrenceType: recurrenceTypeSchema.optional().default('none'),
   recurrenceInterval: z.number().int().min(1).optional().default(1),
   recurrenceDays: z.array(z.number().int().min(0).max(6)).optional().default([]),
+  // Image attachments
+  images: z.array(imageAttachmentSchema).optional(),
 });
 
 export const updateTaskSchema = z.object({

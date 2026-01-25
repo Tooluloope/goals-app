@@ -1,6 +1,7 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from 'next-themes';
 import { useState, useEffect, Suspense } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
@@ -67,14 +68,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Suspense fallback={null}>
-        <NavigationProgress />
-      </Suspense>
-      <AuthInitializer>
-        {children}
-        <GlobalComponents />
-      </AuthInitializer>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <QueryClientProvider client={queryClient}>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
+        <AuthInitializer>
+          {children}
+          <GlobalComponents />
+        </AuthInitializer>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

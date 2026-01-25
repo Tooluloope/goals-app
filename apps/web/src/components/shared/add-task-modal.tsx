@@ -178,12 +178,28 @@ export function AddTaskModal() {
       setImages([]);
       setShowRecurrence(false);
       closeAddTaskModal();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create task. Please try again.',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      // Check for payload too large errors
+      const isPayloadTooLarge =
+        error?.response?.status === 413 ||
+        error?.message?.toLowerCase().includes('payload too large') ||
+        error?.message?.toLowerCase().includes('request entity too large') ||
+        error?.message?.toLowerCase().includes('body exceeded');
+
+      if (isPayloadTooLarge && images.length > 0) {
+        toast({
+          title: 'Images too large',
+          description:
+            'The total size of attached images exceeds the limit. Please use smaller images or attach fewer images.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to create task. Please try again.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 

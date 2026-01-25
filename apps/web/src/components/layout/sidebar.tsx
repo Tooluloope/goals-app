@@ -25,10 +25,13 @@ import {
   GitBranch,
   Bot,
   Home,
+  Moon,
+  Sun,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -94,6 +97,7 @@ export function Sidebar() {
   const { setCommandPaletteOpen, setShortcutsHelpOpen } = useUIStore();
   const { data: unreadCount } = useUnreadNotificationsCount();
   const modKey = useMemo(() => getModifierKey(), []);
+  const { setTheme, theme, resolvedTheme } = useTheme();
 
   const handleWorkspaceSwitch = useCallback(
     (workspace: typeof currentWorkspace) => {
@@ -261,6 +265,30 @@ export function Sidebar() {
               </kbd>
             </Button>
           </div>
+
+          {/* Theme Toggle */}
+          <div className="pb-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => {
+                if (theme === 'system') {
+                  setTheme('light');
+                } else if (theme === 'light') {
+                  setTheme('dark');
+                } else {
+                  setTheme('system');
+                }
+              }}
+            >
+              {resolvedTheme === 'dark' ? (
+                <Moon className="mr-3 h-5 w-5" />
+              ) : (
+                <Sun className="mr-3 h-5 w-5" />
+              )}
+              {theme === 'system' ? 'System theme' : theme === 'dark' ? 'Dark mode' : 'Light mode'}
+            </Button>
+          </div>
         </ScrollArea>
 
         {/* User Menu */}
@@ -269,6 +297,7 @@ export function Sidebar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-2 px-2">
                 <Avatar className="h-8 w-8">
+                  {user?.avatar && <AvatarImage src={user.avatar} alt={user.name || 'User'} />}
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                     {user?.name ? getInitials(user.name) : 'U'}
                   </AvatarFallback>
@@ -293,7 +322,7 @@ export function Sidebar() {
               <DropdownMenuItem
                 onClick={() => {
                   logout();
-                  window.location.href = '/auth/login';
+                  router.push('/auth/login');
                 }}
                 className="text-destructive focus:text-destructive"
               >

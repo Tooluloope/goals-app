@@ -48,6 +48,7 @@ import {
   Plus,
   Flame,
   User,
+  ImageIcon,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -350,6 +351,40 @@ export default function TaskDetailPage() {
           <div className="grid gap-8 lg:grid-cols-12">
             {/* Main Column */}
             <div className="lg:col-span-8 space-y-8">
+              {/* Images Section */}
+              {task.images && task.images.length > 0 && (
+                <section className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    Attachments
+                    <Badge variant="secondary" className="ml-1">
+                      {task.images.length}
+                    </Badge>
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {task.images.map((image) => (
+                      <div
+                        key={image.id}
+                        className="group relative aspect-square overflow-hidden rounded-lg border bg-muted"
+                      >
+                        <img
+                          src={image.url}
+                          alt={image.filename || 'Task attachment'}
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                        {image.caption && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                            <p className="text-xs text-white truncate">{image.caption}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {task.images && task.images.length > 0 && <Separator />}
+
               {/* Blocked By */}
               <section className="space-y-4">
                 <div className="flex items-center justify-between">

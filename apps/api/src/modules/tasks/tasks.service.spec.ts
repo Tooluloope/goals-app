@@ -96,6 +96,7 @@ describe('TasksService', () => {
           isRecurring: false,
           recurrenceType: 'none',
         }),
+        include: { images: true },
       });
       expect(result).toEqual(mockTask);
     });
@@ -123,6 +124,7 @@ describe('TasksService', () => {
           recurrenceInterval: 1,
           nextOccurrence: expect.any(Date),
         }),
+        include: { images: true },
       });
     });
 
@@ -150,6 +152,7 @@ describe('TasksService', () => {
           recurrenceInterval: 2,
           recurrenceDays: [1, 3, 5],
         }),
+        include: { images: true },
       });
     });
 
@@ -188,6 +191,7 @@ describe('TasksService', () => {
         data: expect.objectContaining({
           dueDate: new Date('2024-06-20'),
         }),
+        include: { images: true },
       });
     });
   });
@@ -549,6 +553,7 @@ describe('TasksService', () => {
         data: expect.objectContaining({
           nextOccurrence: expect.any(Date),
         }),
+        include: { images: true },
       });
     });
 

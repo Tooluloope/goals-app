@@ -30,6 +30,7 @@ import { formatDistanceToNow } from 'date-fns';
 export default function AiPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('chat');
 
   const { data: conversations, isLoading } = useAiConversations();
   const createMutation = useCreateAiConversation();
@@ -38,6 +39,7 @@ export default function AiPage() {
   const handleCreateConversation = async () => {
     const conversation = await createMutation.mutateAsync(undefined);
     setSelectedConversationId(conversation.id);
+    setActiveTab('chat');
   };
 
   const handleDeleteConversation = async () => {
@@ -65,7 +67,7 @@ export default function AiPage() {
 
         {/* Mobile Layout with Tabs */}
         <div className="lg:hidden">
-          <Tabs defaultValue="chat" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-4">
               <TabsTrigger value="conversations">
                 <MessageSquare className="h-4 w-4 mr-2" />
@@ -130,7 +132,10 @@ export default function AiPage() {
                               ? 'bg-accent text-accent-foreground'
                               : 'hover:bg-muted'
                           )}
-                          onClick={() => setSelectedConversationId(conv.id)}
+                          onClick={() => {
+                            setSelectedConversationId(conv.id);
+                            setActiveTab('chat');
+                          }}
                         >
                           <MessageSquare className="h-4 w-4 shrink-0" />
                           <div className="flex-1 min-w-0">

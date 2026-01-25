@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { AppLayout } from '@/components/layout/app-layout';
-import { DependencyGraph } from '@/components/shared/dependency-graph';
+import { DependencyGraph, DependencyGraphRef } from '@/components/shared/dependency-graph';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,6 +41,7 @@ export default function DependenciesPage() {
   const { getStatusById, getPriorityById } = useConfigStore();
   const { toast } = useToast();
   const [autoSurface, setAutoSurface] = useState(true);
+  const graphRef = useRef<DependencyGraphRef>(null);
 
   // Get blocked projects (those with active blockers)
   const blockedProjects = useMemo(() => {
@@ -133,18 +134,46 @@ export default function DependenciesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1 rounded-xl border bg-card/90 p-1 shadow-lg backdrop-blur">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Zoom In">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Zoom In"
+                      onClick={() => graphRef.current?.zoomIn()}
+                    >
                       <ZoomIn className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Zoom Out">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Zoom Out"
+                      onClick={() => graphRef.current?.zoomOut()}
+                    >
                       <ZoomOut className="h-4 w-4" />
                     </Button>
                     <div className="mx-1 h-4 w-px bg-border" />
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Fit to Screen">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Fit to Screen"
+                      onClick={() => graphRef.current?.fitView()}
+                    >
                       <Maximize2 className="h-4 w-4" />
                     </Button>
                   </div>
-                  <Button variant="outline" size="sm" className="gap-2 bg-card/90">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 bg-card/90"
+                    onClick={() => {
+                      toast({
+                        title: 'Export coming soon',
+                        description: 'Graph export functionality will be available soon',
+                      });
+                    }}
+                  >
                     <Download className="h-4 w-4" />
                     Export
                   </Button>
@@ -345,8 +374,13 @@ export default function DependenciesPage() {
           )}
 
           {/* Graph */}
-          <div className="absolute inset-0 z-10">
-            <DependencyGraph projects={projects || []} className="h-full" debug={showDebug} />
+          <div className="absolute inset-0 z-10 pt-44 md:pt-52">
+            <DependencyGraph
+              ref={graphRef}
+              projects={projects || []}
+              className="h-full"
+              debug={showDebug}
+            />
           </div>
 
           {/* Legend */}

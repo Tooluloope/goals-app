@@ -24,9 +24,13 @@ import {
   Bot,
   GitBranch,
   Home,
+  ListChecks,
+  Moon,
+  Sun,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +52,7 @@ const personalNavigation = [
   { name: 'AI Assistant', href: '/ai', icon: Bot },
   { name: 'Daily Rhythm', href: '/rhythm', icon: BookOpen },
   { name: 'Habit Manager', href: '/habits', icon: BarChart3 },
+  { name: 'Tasks', href: '/tasks', icon: ListChecks },
   { name: 'Projects', href: '/projects', icon: Folder },
   { name: 'Board', href: '/board', icon: Kanban },
   { name: 'Roadmap', href: '/roadmap', icon: Map },
@@ -63,6 +68,7 @@ const personalNavigation = [
 const familyNavigation = [
   { name: 'Family Hub', href: '/family', icon: Home },
   { name: 'AI Assistant', href: '/ai', icon: Bot },
+  { name: 'Tasks', href: '/tasks', icon: ListChecks },
   { name: 'Goals', href: '/projects', icon: Folder },
   { name: 'Board', href: '/board', icon: Kanban },
   { name: 'Roadmap', href: '/roadmap', icon: Map },
@@ -83,6 +89,7 @@ export function Header({ title }: HeaderProps) {
   const { setCommandPaletteOpen } = useUIStore();
   const { data: unreadCount } = useUnreadNotificationsCount();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const { setTheme, theme, resolvedTheme } = useTheme();
 
   const getInitials = (name: string) => {
     return name
@@ -193,6 +200,7 @@ export function Header({ title }: HeaderProps) {
             <div className="absolute bottom-0 left-0 right-0 border-t bg-background p-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
+                  {user?.avatar && <AvatarImage src={user.avatar} alt={user.name || 'User'} />}
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                     {user?.name ? getInitials(user.name) : 'U'}
                   </AvatarFallback>
@@ -232,6 +240,26 @@ export function Header({ title }: HeaderProps) {
             <span className="sr-only">Search</span>
           </Button>
 
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (theme === 'system') {
+                setTheme('light');
+              } else if (theme === 'light') {
+                setTheme('dark');
+              } else {
+                setTheme('system');
+              }
+            }}
+            className="shrink-0"
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+
           {/* Notifications */}
           <Link href="/notifications">
             <Button variant="ghost" size="icon" className="relative shrink-0">
@@ -247,6 +275,7 @@ export function Header({ title }: HeaderProps) {
 
           {/* User Avatar */}
           <Avatar className="h-8 w-8">
+            {user?.avatar && <AvatarImage src={user.avatar} alt={user.name || 'User'} />}
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
               {user?.name ? getInitials(user.name) : 'U'}
             </AvatarFallback>

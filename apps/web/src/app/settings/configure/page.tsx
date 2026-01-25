@@ -339,25 +339,39 @@ export default function ConfigurePage() {
         </div>
 
         <Tabs defaultValue="statuses" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-6">
-            <TabsTrigger value="statuses">Statuses</TabsTrigger>
-            <TabsTrigger value="areas">Areas</TabsTrigger>
-            <TabsTrigger value="priorities">Priorities</TabsTrigger>
-            <TabsTrigger value="cadences">Cadences</TabsTrigger>
-            <TabsTrigger value="taskStatuses">Tasks</TabsTrigger>
-            <TabsTrigger value="tags">Tags</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 mb-6">
+            <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-6">
+              <TabsTrigger value="statuses" className="flex-1 md:flex-none">
+                Statuses
+              </TabsTrigger>
+              <TabsTrigger value="areas" className="flex-1 md:flex-none">
+                Areas
+              </TabsTrigger>
+              <TabsTrigger value="priorities" className="flex-1 md:flex-none">
+                Priorities
+              </TabsTrigger>
+              <TabsTrigger value="cadences" className="flex-1 md:flex-none">
+                Cadences
+              </TabsTrigger>
+              <TabsTrigger value="taskStatuses" className="flex-1 md:flex-none">
+                Tasks
+              </TabsTrigger>
+              <TabsTrigger value="tags" className="flex-1 md:flex-none">
+                Tags
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Statuses Tab */}
           <TabsContent value="statuses">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <CardTitle>Project Statuses</CardTitle>
                     <CardDescription>Configure the columns shown on your board</CardDescription>
                   </div>
-                  <Button onClick={() => handleAdd('status')}>
+                  <Button onClick={() => handleAdd('status')} className="shrink-0 w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Status
                   </Button>
@@ -398,12 +412,12 @@ export default function ConfigurePage() {
           <TabsContent value="areas">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <CardTitle>Goal Areas</CardTitle>
                     <CardDescription>Categories for organizing your goals</CardDescription>
                   </div>
-                  <Button onClick={() => handleAdd('area')}>
+                  <Button onClick={() => handleAdd('area')} className="shrink-0 w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Area
                   </Button>
@@ -432,12 +446,15 @@ export default function ConfigurePage() {
           <TabsContent value="priorities">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <CardTitle>Priority Levels</CardTitle>
                     <CardDescription>Define priority levels for your goals</CardDescription>
                   </div>
-                  <Button onClick={() => handleAdd('priority')}>
+                  <Button
+                    onClick={() => handleAdd('priority')}
+                    className="shrink-0 w-full sm:w-auto"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Priority
                   </Button>
@@ -466,12 +483,15 @@ export default function ConfigurePage() {
           <TabsContent value="cadences">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <CardTitle>Review Cadences</CardTitle>
                     <CardDescription>Define how often goals should be reviewed</CardDescription>
                   </div>
-                  <Button onClick={() => handleAdd('cadence')}>
+                  <Button
+                    onClick={() => handleAdd('cadence')}
+                    className="shrink-0 w-full sm:w-auto"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Cadence
                   </Button>
@@ -500,12 +520,15 @@ export default function ConfigurePage() {
           <TabsContent value="taskStatuses">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <CardTitle>Task Statuses</CardTitle>
                     <CardDescription>Configure statuses for tasks within goals</CardDescription>
                   </div>
-                  <Button onClick={() => handleAdd('taskStatus')}>
+                  <Button
+                    onClick={() => handleAdd('taskStatus')}
+                    className="shrink-0 w-full sm:w-auto"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Status
                   </Button>
@@ -541,12 +564,12 @@ export default function ConfigurePage() {
           <TabsContent value="tags">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <CardTitle>Tags</CardTitle>
                     <CardDescription>Create tags to label and filter your goals</CardDescription>
                   </div>
-                  <Button onClick={() => handleAdd('tag')}>
+                  <Button onClick={() => handleAdd('tag')} className="shrink-0 w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Tag
                   </Button>

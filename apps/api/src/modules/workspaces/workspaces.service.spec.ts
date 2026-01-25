@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkspacesService } from './workspaces.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 
 describe('WorkspacesService', () => {
@@ -253,6 +253,346 @@ describe('WorkspacesService', () => {
       await expect(
         service.verifyAccess('workspace-1', 'user-1', ['owner', 'admin'])
       ).rejects.toThrow('Insufficient permissions');
+    });
+  });
+
+  describe('update', () => {
+    beforeEach(() => {
+      prisma.workspace.update = jest.fn();
+    });
+
+    it('should update workspace name', async () => {
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+      prisma.workspace.update.mockResolvedValue({ ...mockWorkspace, name: 'New Name' });
+
+      const result = await service.update('workspace-1', 'user-1', { name: 'New Name' });
+
+      expect(result.name).toBe('New Name');
+      expect(prisma.workspace.update).toHaveBeenCalledWith({
+        where: { id: 'workspace-1' },
+        data: { name: 'New Name' },
+      });
+    });
+
+    it('should trim workspace name', async () => {
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+      prisma.workspace.update.mockResolvedValue({ ...mockWorkspace, name: 'Trimmed Name' });
+
+      await service.update('workspace-1', 'user-1', { name: '  Trimmed Name  ' });
+
+      expect(prisma.workspace.update).toHaveBeenCalledWith({
+        where: { id: 'workspace-1' },
+        data: { name: 'Trimmed Name' },
+      });
+    });
+
+    it('should throw BadRequestException for empty name', async () => {
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+
+      await expect(service.update('workspace-1', 'user-1', { name: '' })).rejects.toThrow(
+        BadRequestException
+      );
+    });
+
+    it('should throw BadRequestException for whitespace-only name', async () => {
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+
+      await expect(service.update('workspace-1', 'user-1', { name: '   ' })).rejects.toThrow(
+        BadRequestException
+      );
+    });
+
+    it('should throw ForbiddenException when user is not owner or admin', async () => {
+      prisma.workspaceMember.findUnique.mockResolvedValue({
+        ...mockMembership,
+        role: 'member',
+      });
+
+      await expect(service.update('workspace-1', 'user-1', { name: 'New Name' })).rejects.toThrow(
+        ForbiddenException
+      );
+    });
+  });
+
+  describe('acceptInvite', () => {
+    const mockInvite = {
+      id: 'invite-1',
+      workspaceId: 'workspace-1',
+      email: 'test@example.com',
+      token: 'valid-token',
+      status: 'pending',
+      role: 'member',
+      expiresAt: new Date(Date.now() + 86400000), // tomorrow
+      workspace: mockWorkspace,
+    };
+
+    beforeEach(() => {
+      prisma.workspaceInvite.update = jest.fn();
+      prisma.$transaction = jest.fn();
+    });
+
+    it('should accept valid invite', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(mockInvite);
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      prisma.workspaceMember.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockResolvedValue([{}, {}]);
+
+      const result = await service.acceptInvite('valid-token', 'user-2');
+
+      expect(result.workspaceId).toBe('workspace-1');
+      expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException for invalid token', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(null);
+
+      await expect(service.acceptInvite('invalid-token', 'user-2')).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('should throw BadRequestException for already used invite', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue({
+        ...mockInvite,
+        status: 'accepted',
+      });
+
+      await expect(service.acceptInvite('valid-token', 'user-2')).rejects.toThrow(
+        BadRequestException
+      );
+    });
+
+    it('should throw BadRequestException for expired invite', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue({
+        ...mockInvite,
+        expiresAt: new Date(Date.now() - 86400000), // yesterday
+      });
+      prisma.workspaceInvite.update.mockResolvedValue({});
+
+      await expect(service.acceptInvite('valid-token', 'user-2')).rejects.toThrow(
+        BadRequestException
+      );
+    });
+
+    it('should throw ForbiddenException for email mismatch', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(mockInvite);
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        email: 'different@example.com',
+      });
+
+      await expect(service.acceptInvite('valid-token', 'user-2')).rejects.toThrow(
+        ForbiddenException
+      );
+    });
+
+    it('should throw BadRequestException if user is already a member', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(mockInvite);
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      prisma.workspaceMember.findUnique.mockResolvedValue({ id: 'existing-member' });
+      prisma.workspaceInvite.update.mockResolvedValue({});
+
+      await expect(service.acceptInvite('valid-token', 'user-2')).rejects.toThrow(
+        BadRequestException
+      );
+    });
+  });
+
+  describe('cancelInvite', () => {
+    const mockInvite = {
+      id: 'invite-1',
+      workspaceId: 'workspace-1',
+      status: 'pending',
+    };
+
+    beforeEach(() => {
+      prisma.workspaceInvite.update = jest.fn();
+    });
+
+    it('should cancel pending invite', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(mockInvite);
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+      prisma.workspaceInvite.update.mockResolvedValue({});
+
+      await service.cancelInvite('invite-1', 'user-1');
+
+      expect(prisma.workspaceInvite.update).toHaveBeenCalledWith({
+        where: { id: 'invite-1' },
+        data: { status: 'cancelled' },
+      });
+    });
+
+    it('should throw NotFoundException for invalid invite', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(null);
+
+      await expect(service.cancelInvite('invalid-invite', 'user-1')).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('should throw BadRequestException for non-pending invite', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue({
+        ...mockInvite,
+        status: 'accepted',
+      });
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+
+      await expect(service.cancelInvite('invite-1', 'user-1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('resendInvite', () => {
+    const mockInvite = {
+      id: 'invite-1',
+      workspaceId: 'workspace-1',
+      email: 'test@example.com',
+      status: 'pending',
+      workspace: mockWorkspace,
+    };
+
+    beforeEach(() => {
+      prisma.workspaceInvite.update = jest.fn();
+    });
+
+    it('should resend invite with new token', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(mockInvite);
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        name: 'Inviter Name',
+        email: 'inviter@example.com',
+      });
+      prisma.workspaceInvite.update.mockResolvedValue({});
+
+      const result = await service.resendInvite('invite-1', 'user-1');
+
+      expect(result.message).toBe('Invite resent successfully');
+      expect(prisma.workspaceInvite.update).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException for invalid invite', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(null);
+
+      await expect(service.resendInvite('invalid-invite', 'user-1')).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('should throw BadRequestException for non-pending invite', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue({
+        ...mockInvite,
+        status: 'accepted',
+      });
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+
+      await expect(service.resendInvite('invite-1', 'user-1')).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException when inviter not found', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(mockInvite);
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.resendInvite('invite-1', 'user-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getPendingInvites', () => {
+    beforeEach(() => {
+      prisma.workspaceInvite.findMany = jest.fn();
+    });
+
+    it('should return pending invites', async () => {
+      prisma.workspaceMember.findUnique.mockResolvedValue(mockMembership);
+      prisma.workspaceInvite.findMany.mockResolvedValue([
+        { id: 'invite-1', email: 'test@example.com', status: 'pending' },
+      ]);
+
+      const result = await service.getPendingInvites('workspace-1', 'user-1');
+
+      expect(result).toHaveLength(1);
+      expect(prisma.workspaceInvite.findMany).toHaveBeenCalledWith({
+        where: { workspaceId: 'workspace-1', status: 'pending' },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    it('should throw ForbiddenException when user lacks permission', async () => {
+      prisma.workspaceMember.findUnique.mockResolvedValue({
+        ...mockMembership,
+        role: 'member',
+      });
+
+      await expect(service.getPendingInvites('workspace-1', 'user-1')).rejects.toThrow(
+        ForbiddenException
+      );
+    });
+  });
+
+  describe('getInviteByToken', () => {
+    it('should return invite with workspace', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue({
+        id: 'invite-1',
+        token: 'valid-token',
+        workspace: mockWorkspace,
+      });
+
+      const result = await service.getInviteByToken('valid-token');
+
+      expect(result.id).toBe('invite-1');
+      expect(result.workspace).toBeDefined();
+    });
+
+    it('should throw NotFoundException for invalid token', async () => {
+      prisma.workspaceInvite.findUnique.mockResolvedValue(null);
+
+      await expect(service.getInviteByToken('invalid-token')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('invite - additional cases', () => {
+    it('should throw BadRequestException for existing pending invite', async () => {
+      prisma.workspaceMember.findUnique
+        .mockResolvedValueOnce(mockMembership) // verifyAccess
+        .mockResolvedValueOnce(null); // existing member check
+      prisma.user.findUnique.mockResolvedValue(null); // User doesn't exist yet
+      prisma.workspaceInvite.findUnique.mockResolvedValue({
+        id: 'existing-invite',
+        status: 'pending',
+      });
+
+      await expect(service.invite('workspace-1', 'new@example.com', 'user-1')).rejects.toThrow(
+        BadRequestException
+      );
+    });
+  });
+
+  describe('findAllForUser - filter personal workspaces', () => {
+    it('should filter out other users personal workspaces', async () => {
+      prisma.workspaceMember.findMany.mockResolvedValue([
+        {
+          ...mockMembership,
+          workspace: { ...mockWorkspace, type: 'personal', ownerId: 'user-1' },
+        },
+        {
+          ...mockMembership,
+          id: 'member-2',
+          workspace: { ...mockWorkspace, id: 'ws-2', type: 'personal', ownerId: 'other-user' },
+        },
+        {
+          ...mockMembership,
+          id: 'member-3',
+          workspace: { ...mockWorkspace, id: 'ws-3', type: 'family' },
+        },
+      ]);
+
+      const result = await service.findAllForUser('user-1');
+
+      // Should only return user's own personal workspace and the family workspace
+      expect(result).toHaveLength(2);
+      expect(result.map((w) => w.id)).toContain('workspace-1');
+      expect(result.map((w) => w.id)).toContain('ws-3');
+      expect(result.map((w) => w.id)).not.toContain('ws-2');
     });
   });
 });
