@@ -53,7 +53,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://alignia.io,https://app.alignia.io}
       CORS_ALLOW_ALL: ${CORS_ALLOW_ALL:-false}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@alignia.app}
@@ -65,8 +65,8 @@ services:
         condition: service_healthy
     networks:
       - goals-network
-    ports:
-      - '3001:3001'
+    expose:
+      - '3001'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health/live"]
       interval: 30s
@@ -98,7 +98,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@alignia.app}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Alignia}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://app.alignia.io}
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,11 +126,11 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3001}
     container_name: goals-web
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3001}
       PORT: 3000
       NODE_ENV: production
     depends_on:
@@ -138,8 +138,8 @@ services:
         condition: service_healthy
     networks:
       - goals-network
-    ports:
-      - '3000:3000'
+    expose:
+      - '3000'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
@@ -154,6 +154,67 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
+
+  marketing:
+    build:
+      context: .
+      dockerfile: apps/marketing/Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://app.alignia.io}
+    container_name: goals-marketing
+    restart: always
+    environment:
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://app.alignia.io}
+      PORT: 3002
+      NODE_ENV: production
+    networks:
+      - goals-network
+    expose:
+      - '3002'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: goals-nginx
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - web
+      - marketing
+      - api
+    networks:
+      - goals-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
 
 networks:
   goals-network:
