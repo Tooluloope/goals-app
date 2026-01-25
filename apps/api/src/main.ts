@@ -26,7 +26,7 @@ async function bootstrap() {
         'http://localhost:3002',
         'http://localhost:3008',
         'https://alignia.io',
-        'https://app.alignia.io',
+        'https://app.alignia.xyz',
       ];
 
   app.enableCors({

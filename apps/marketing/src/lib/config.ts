@@ -3,7 +3,7 @@
 
 export const config = {
   // Dashboard app URL (where users sign in/register)
-  appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://app.alignia.io',
+  appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://app.alignia.xyz',
 
   // Marketing site URL
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://alignia.io',
