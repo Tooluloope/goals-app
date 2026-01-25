@@ -26,7 +26,7 @@ interface UIState {
 
   addTaskModalOpen: boolean;
   addTaskProjectId: string | null;
-  openAddTaskModal: (projectId: string) => void;
+  openAddTaskModal: (projectId?: string) => void;
   closeAddTaskModal: () => void;
 
   addReviewModalOpen: boolean;
@@ -90,8 +90,8 @@ export const useUIStore = create<UIState>((set) => {
     // Add task modal
     addTaskModalOpen: false,
     addTaskProjectId: null,
-    openAddTaskModal: (projectId: string) =>
-      set({ addTaskModalOpen: true, addTaskProjectId: projectId }),
+    openAddTaskModal: (projectId?: string) =>
+      set({ addTaskModalOpen: true, addTaskProjectId: projectId || null }),
     closeAddTaskModal: () => set({ addTaskModalOpen: false, addTaskProjectId: null }),
 
     // Add review modal

@@ -28,7 +28,7 @@ import { ImageUpload, ImageThumbnail } from '@/components/shared/image-upload';
 import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
-import { useCreateTask, useProject } from '@/hooks/use-projects';
+import { useCreateTask, useProject, useProjects } from '@/hooks/use-projects';
 import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -63,12 +63,28 @@ export function AddTaskModal() {
   const { addTaskModalOpen, addTaskProjectId, closeAddTaskModal } = useUIStore();
   const { currentWorkspace, user } = useAuthStore();
   const { getTaskStatusesForWorkspace } = useConfigStore();
-  const { data: project } = useProject(addTaskProjectId || '');
+  const { data: projects = [] } = useProjects();
   const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const createTask = useCreateTask();
   const { toast } = useToast();
   const [images, setImages] = useState<LocalImageAttachment[]>([]);
   const [showRecurrence, setShowRecurrence] = useState(false);
+
+  // If no project is pre-selected, allow user to choose
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const effectiveProjectId = addTaskProjectId || selectedProjectId;
+  const { data: project } = useProject(effectiveProjectId || '');
+
+  // Reset selected project when modal opens/closes or addTaskProjectId changes
+  useEffect(() => {
+    if (addTaskModalOpen) {
+      if (addTaskProjectId) {
+        setSelectedProjectId('');
+      } else if (projects.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(projects[0].id);
+      }
+    }
+  }, [addTaskModalOpen, addTaskProjectId, projects, selectedProjectId]);
 
   // Check if workspace has multiple members (show assignee selector only then)
   const hasMultipleMembers = workspaceMembers.length > 1;
@@ -133,11 +149,11 @@ export function AddTaskModal() {
   }, [taskStatuses, setValue, watch]);
 
   const onSubmit = async (data: TaskFormData) => {
-    if (!addTaskProjectId) return;
+    if (!effectiveProjectId) return;
 
     try {
       await createTask.mutateAsync({
-        projectId: addTaskProjectId,
+        projectId: effectiveProjectId,
         title: data.title,
         statusId: data.statusId,
         dueDate: data.dueDate || undefined,
@@ -175,6 +191,7 @@ export function AddTaskModal() {
     reset();
     setImages([]);
     setShowRecurrence(false);
+    setSelectedProjectId('');
     closeAddTaskModal();
   };
 
@@ -183,11 +200,40 @@ export function AddTaskModal() {
       <DialogContent className="sm:max-w-md max-h-[80vh] sm:max-h-[90vh] flex flex-col overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Task</DialogTitle>
-          <DialogDescription>{project && `Adding task to "${project.name}"`}</DialogDescription>
+          <DialogDescription>
+            {addTaskProjectId && project
+              ? `Adding task to "${project.name}"`
+              : 'Create a new task for one of your goals'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="space-y-4 py-4 pb-6 overflow-y-auto flex-1">
+            {/* Project selector - only show when no project is pre-selected */}
+            {!addTaskProjectId && (
+              <div className="space-y-2">
+                <Label htmlFor="project">Goal</Label>
+                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a goal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No goals available
+                      </SelectItem>
+                    ) : (
+                      projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="title">Task title</Label>
               <Input
@@ -429,7 +475,10 @@ export function AddTaskModal() {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || createTask.isPending}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || createTask.isPending || !effectiveProjectId}
+            >
               {isSubmitting || createTask.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

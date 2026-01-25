@@ -52,7 +52,6 @@ export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dueFilter, setDueFilter] = useState<DueBucket | 'all'>('all');
   const [search, setSearch] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -119,18 +118,6 @@ export default function TasksPage() {
     return <Badge className={cn(colors.bg, colors.text)}>{status?.name || 'Status'}</Badge>;
   };
 
-  useEffect(() => {
-    if (projects.length === 0) {
-      if (selectedProjectId) setSelectedProjectId('');
-      return;
-    }
-
-    const exists = projects.some((p) => p.id === selectedProjectId);
-    if (!selectedProjectId || !exists) {
-      setSelectedProjectId(projects[0].id);
-    }
-  }, [projects, selectedProjectId]);
-
   const metrics = useMemo(() => {
     const total = tasks?.length ?? 0;
     const overdue = tasks?.filter((t) => bucketTask(t) === 'Overdue').length ?? 0;
@@ -155,26 +142,7 @@ export default function TasksPage() {
             <Button variant="outline" onClick={() => router.push('/board')}>
               Go to Board
             </Button>
-            <select
-              className="min-w-[200px] rounded-md border bg-background px-3 py-2 text-sm"
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              disabled={projects.length === 0}
-            >
-              {projects.length === 0 ? (
-                <option value="">No goals available</option>
-              ) : (
-                projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))
-              )}
-            </select>
-            <Button
-              onClick={() => selectedProjectId && openAddTaskModal(selectedProjectId)}
-              disabled={!selectedProjectId}
-            >
+            <Button onClick={() => openAddTaskModal()} disabled={projects.length === 0}>
               Add Task
             </Button>
           </div>
