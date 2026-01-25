@@ -13,7 +13,7 @@ import {
 import { BaseProps, CTA, ThemeType } from '../types';
 
 const defaultApp = 'Alignia';
-const defaultLogoUrl = 'https://alignia.app/logo.png';
+const defaultLogoUrl = process.env.APP_LOGO_URL || 'https://www.alignia.xyz/logo.png';
 
 // Theme colors
 const themes: Record<ThemeType, { bg: string; light: string; text: string }> = {
