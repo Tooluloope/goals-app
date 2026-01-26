@@ -67,7 +67,11 @@ export function StaleProjects() {
           These projects are in &quot;Doing&quot; but haven&apos;t been updated in 30+ days.
         </p>
         {staleProjects.map((project) => {
-          const area = currentWorkspace ? getAreaById(currentWorkspace.id, project.areaId) : null;
+          const primaryAreaId = project.areaIds?.[0];
+          const area =
+            currentWorkspace && primaryAreaId
+              ? getAreaById(currentWorkspace.id, primaryAreaId)
+              : null;
           const colors = area
             ? getColorClasses(area.color)
             : { bg: 'bg-slate-100', text: 'text-slate-700' };

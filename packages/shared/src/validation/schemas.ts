@@ -82,7 +82,7 @@ export const inviteToWorkspaceSchema = z.object({
 export const createProjectSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   workspaceId: z.string().uuid('Invalid workspace ID'),
-  areaId: z.string().min(1, 'Area is required'),
+  areaIds: z.array(z.string()).min(1, 'At least one area is required'),
   statusId: z.string().min(1, 'Status is required'),
   startDate: z.string().datetime({ message: 'Invalid start date' }),
   targetDate: z.string().datetime({ message: 'Invalid target date' }),

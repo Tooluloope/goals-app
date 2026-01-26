@@ -48,8 +48,10 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
   const progress = calculateProjectProgress(project, completedTaskStatusIds);
   const daysUntil = getDaysUntilDeadline(project.targetDate);
 
-  // Get area and priority config
-  const area = currentWorkspace ? getAreaById(currentWorkspace.id, project.areaId) : null;
+  // Get area and priority config (use first area for primary display)
+  const primaryAreaId = project.areaIds?.[0];
+  const area =
+    currentWorkspace && primaryAreaId ? getAreaById(currentWorkspace.id, primaryAreaId) : null;
   const priority = currentWorkspace
     ? getPriorityById(currentWorkspace.id, project.priorityId)
     : null;
@@ -63,11 +65,13 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
   // Get colors from config or fallback to legacy colors
   const colors = area
     ? getColorClasses(area.color)
-    : areaColors[project.areaId] || {
-        bg: 'bg-slate-100',
-        text: 'text-slate-700',
-        border: 'border-slate-200',
-      };
+    : primaryAreaId && areaColors[primaryAreaId]
+      ? areaColors[primaryAreaId]
+      : {
+          bg: 'bg-slate-100',
+          text: 'text-slate-700',
+          border: 'border-slate-200',
+        };
 
   const priorityColor = priority
     ? getColorClasses(priority.color)
@@ -125,8 +129,13 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
             {/* Badges */}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <Badge className={cn('text-xs', colors.bg, colors.text)}>
-                {area?.name || project.areaId}
+                {area?.name || primaryAreaId || 'Unknown'}
               </Badge>
+              {project.areaIds && project.areaIds.length > 1 && (
+                <Badge variant="outline" className="text-xs text-muted-foreground">
+                  +{project.areaIds.length - 1}
+                </Badge>
+              )}
               <Badge className={cn('text-xs', priorityColor.bg, priorityColor.text)}>
                 {priority?.name || project.priorityId}
               </Badge>

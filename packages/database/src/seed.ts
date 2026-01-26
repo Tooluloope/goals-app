@@ -258,7 +258,7 @@ async function main() {
       workspaceId: workspace.id,
       name: 'Read 12 Books in 2025',
       statusId: 'status-doing',
-      areaId: 'area-learning',
+      areaIds: ['area-learning'],
       priorityId: 'priority-high',
       cadenceId: 'cadence-monthly',
       confidenceId: 'confidence-high',

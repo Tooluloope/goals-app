@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TagSelect } from '@/components/ui/tag-select';
+import { AreaSelect } from '@/components/ui/area-select';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useUpdateProject } from '@/hooks/use-projects';
@@ -35,7 +36,7 @@ import { Project } from '@/types';
 const projectSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   objective: z.string().min(1, 'Objective is required'),
-  areaId: z.string().min(1, 'Area is required'),
+  areaIds: z.array(z.string()).min(1, 'At least one area is required'),
   statusId: z.string().min(1, 'Status is required'),
   priorityId: z.string().min(1, 'Priority is required'),
   cadenceId: z.string().min(1, 'Cadence is required'),
@@ -75,6 +76,7 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
   const tags = currentWorkspace ? getActiveTags(currentWorkspace.id) : [];
 
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(project.tagIds || []);
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>(project.areaIds || []);
 
   const formatDate = (date: Date | string | null | undefined) => {
     if (!date) return '';
@@ -94,7 +96,7 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
     defaultValues: {
       name: project.name,
       objective: project.objective,
-      areaId: project.areaId,
+      areaIds: project.areaIds || [],
       statusId: project.statusId,
       priorityId: project.priorityId,
       cadenceId: project.cadenceId,
@@ -106,12 +108,17 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
     },
   });
 
+  // Sync selectedAreaIds with form
+  useEffect(() => {
+    setValue('areaIds', selectedAreaIds);
+  }, [selectedAreaIds, setValue]);
+
   // Reset form when project changes
   useEffect(() => {
     reset({
       name: project.name,
       objective: project.objective,
-      areaId: project.areaId,
+      areaIds: project.areaIds || [],
       statusId: project.statusId,
       priorityId: project.priorityId,
       cadenceId: project.cadenceId,
@@ -122,6 +129,7 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
       failureCriteria: project.failureCriteria || '',
     });
     setSelectedTagIds(project.tagIds || []);
+    setSelectedAreaIds(project.areaIds || []);
   }, [project, reset]);
 
   const onSubmit = async (data: ProjectFormData) => {
@@ -131,7 +139,7 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
         updates: {
           name: data.name,
           objective: data.objective,
-          areaId: data.areaId,
+          areaIds: selectedAreaIds,
           statusId: data.statusId,
           priorityId: data.priorityId,
           cadenceId: data.cadenceId,
@@ -163,6 +171,7 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
   const handleClose = () => {
     reset();
     setSelectedTagIds(project.tagIds || []);
+    setSelectedAreaIds(project.areaIds || []);
     onOpenChange(false);
   };
 
@@ -196,29 +205,20 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Area</Label>
-                <Select
-                  value={watch('areaId')}
-                  onValueChange={(value) => setValue('areaId', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select area" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {areas.map((area) => {
-                      const colors = getColorClasses(area.color);
-                      return (
-                        <SelectItem key={area.id} value={area.id}>
-                          <span className={colors.text}>{area.name}</span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Areas</Label>
+              <AreaSelect
+                areas={areas}
+                selectedAreaIds={selectedAreaIds}
+                onSelectionChange={setSelectedAreaIds}
+                placeholder="Select areas..."
+              />
+              {errors.areaIds && (
+                <p className="text-sm text-destructive">{errors.areaIds.message}</p>
+              )}
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select

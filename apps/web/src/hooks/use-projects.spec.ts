@@ -202,7 +202,7 @@ describe('use-projects hooks', () => {
           name: 'New Project',
           workspaceId: 'ws-1',
           statusId: 'status-1',
-          areaId: 'area-1',
+          areaIds: ['area-1'],
           startDate: '2024-01-01T00:00:00.000Z',
           targetDate: '2024-12-31T00:00:00.000Z',
           cadenceId: 'cadence-1',

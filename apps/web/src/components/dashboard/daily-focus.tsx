@@ -103,7 +103,11 @@ export function DailyFocus() {
       </CardHeader>
       <CardContent className="space-y-2">
         {focusTasks.map(({ task, project }) => {
-          const area = currentWorkspace ? getAreaById(currentWorkspace.id, project.areaId) : null;
+          const primaryAreaId = project.areaIds?.[0];
+          const area =
+            currentWorkspace && primaryAreaId
+              ? getAreaById(currentWorkspace.id, primaryAreaId)
+              : null;
           const colors = area
             ? getColorClasses(area.color)
             : { bg: 'bg-slate-100', text: 'text-slate-700' };

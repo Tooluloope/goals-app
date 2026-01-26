@@ -520,7 +520,7 @@ describe('ApiClient', () => {
       const project = await apiClient.createProject({
         name: 'New Project',
         workspaceId: 'ws-1',
-        areaId: 'area-1',
+        areaIds: ['area-1'],
         statusId: 'status-todo',
         priorityId: 'priority-medium',
         cadenceId: 'cadence-30',

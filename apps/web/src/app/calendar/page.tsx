@@ -545,9 +545,11 @@ export default function CalendarPage() {
                           <h4 className="text-lg font-bold mb-1">{priorityEvent.title}</h4>
                           <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             {(() => {
-                              const area = currentWorkspace
-                                ? getAreaById(currentWorkspace.id, priorityEvent.project.areaId)
-                                : null;
+                              const primaryAreaId = priorityEvent.project.areaIds?.[0];
+                              const area =
+                                currentWorkspace && primaryAreaId
+                                  ? getAreaById(currentWorkspace.id, primaryAreaId)
+                                  : null;
                               return (
                                 area && (
                                   <span className="bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded text-xs">
@@ -563,9 +565,11 @@ export default function CalendarPage() {
                       {/* Other Events */}
                       {otherEvents.map((event) => {
                         const eventColors = EVENT_COLORS[event.type];
-                        const area = currentWorkspace
-                          ? getAreaById(currentWorkspace.id, event.project.areaId)
-                          : null;
+                        const primaryAreaId = event.project.areaIds?.[0];
+                        const area =
+                          currentWorkspace && primaryAreaId
+                            ? getAreaById(currentWorkspace.id, primaryAreaId)
+                            : null;
                         const assignee =
                           event.type === 'task' && event.task
                             ? getMemberInfo(event.task.assignedToId)

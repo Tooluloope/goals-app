@@ -165,7 +165,7 @@ export interface Project {
   workspaceId: string;
   name: string;
   statusId: string;
-  areaId: string;
+  areaIds: string[];
   startDate: Date;
   targetDate: Date;
   cadenceId: string;

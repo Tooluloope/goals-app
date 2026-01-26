@@ -59,7 +59,7 @@ export default function RoadmapPage() {
   const filteredProjects = useMemo(() => {
     if (!projects) return [];
     if (selectedAreaId === 'all') return projects;
-    return projects.filter((p) => p.areaId === selectedAreaId);
+    return projects.filter((p) => p.areaIds?.includes(selectedAreaId));
   }, [projects, selectedAreaId]);
 
   // Calculate stats
@@ -84,7 +84,7 @@ export default function RoadmapPage() {
 
     return areas
       .map((area) => {
-        const areaProjects = filteredProjects.filter((p) => p.areaId === area.id);
+        const areaProjects = filteredProjects.filter((p) => p.areaIds?.includes(area.id));
         const total = areaProjects.length;
         const completed = areaProjects.filter((p) => {
           const status = getStatusById(currentWorkspace.id, p.statusId);
@@ -137,7 +137,8 @@ export default function RoadmapPage() {
     if (!currentWorkspace) return [];
 
     return filteredProjects.map((project) => {
-      const area = getAreaById(currentWorkspace.id, project.areaId);
+      const primaryAreaId = project.areaIds?.[0];
+      const area = primaryAreaId ? getAreaById(currentWorkspace.id, primaryAreaId) : null;
       const status = getStatusById(currentWorkspace.id, project.statusId);
 
       return {

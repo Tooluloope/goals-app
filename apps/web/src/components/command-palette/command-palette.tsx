@@ -184,7 +184,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           {projects && projects.length > 0 && (
             <Command.Group heading="Projects">
               {projects.slice(0, 5).map((project) => {
-                const area = areas.find((a) => a.id === project.areaId);
+                const primaryAreaId = project.areaIds?.[0];
+                const area = primaryAreaId ? areas.find((a) => a.id === primaryAreaId) : undefined;
                 const handleProjectClick = () =>
                   runCommand(() => router.push(`/project/${project.id}`));
                 return (

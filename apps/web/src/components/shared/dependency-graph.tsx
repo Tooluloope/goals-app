@@ -194,7 +194,11 @@ const DependencyGraphInner = forwardRef<DependencyGraphRef, DependencyGraphProps
         const status = currentWorkspace
           ? getStatusById(currentWorkspace.id, project.statusId)
           : null;
-        const area = currentWorkspace ? getAreaById(currentWorkspace.id, project.areaId) : null;
+        const primaryAreaId = project.areaIds?.[0];
+        const area =
+          currentWorkspace && primaryAreaId
+            ? getAreaById(currentWorkspace.id, primaryAreaId)
+            : null;
         const isCompleted = status?.type === 'completed';
 
         const col = index % cols;

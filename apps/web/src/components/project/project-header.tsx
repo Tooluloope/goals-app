@@ -75,7 +75,12 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   const currentStatus = currentWorkspace
     ? getStatusById(currentWorkspace.id, project.statusId)
     : null;
-  const area = currentWorkspace ? getAreaById(currentWorkspace.id, project.areaId) : null;
+  // Get all areas for the project
+  const areas =
+    currentWorkspace && project.areaIds
+      ? project.areaIds.map((id) => getAreaById(currentWorkspace.id, id)).filter(Boolean)
+      : [];
+  const primaryArea = areas[0] || null;
   const priority = currentWorkspace
     ? getPriorityById(currentWorkspace.id, project.priorityId)
     : null;
@@ -85,8 +90,8 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     : null;
 
   const progress = calculateProjectProgress(project, completedTaskStatusIds);
-  const areaColors = area
-    ? getColorClasses(area.color)
+  const primaryAreaColors = primaryArea
+    ? getColorClasses(primaryArea.color)
     : { bg: 'bg-slate-100', text: 'text-slate-700' };
   const priorityColors = priority
     ? getColorClasses(priority.color)
@@ -159,9 +164,22 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
 
             {/* Badges */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge className={cn(areaColors.bg, areaColors.text)}>
-                {area?.name || 'Unknown Area'}
-              </Badge>
+              {areas.length > 0 ? (
+                <>
+                  <Badge className={cn(primaryAreaColors.bg, primaryAreaColors.text)}>
+                    {primaryArea!.name}
+                  </Badge>
+                  {areas.length > 1 && (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      +{areas.length - 1} area{areas.length > 2 ? 's' : ''}
+                    </Badge>
+                  )}
+                </>
+              ) : (
+                <Badge className={cn(primaryAreaColors.bg, primaryAreaColors.text)}>
+                  Unknown Area
+                </Badge>
+              )}
               <Badge className={cn(priorityColors.bg, priorityColors.text)}>
                 {priority?.name || 'Unknown'} Priority
               </Badge>

@@ -67,8 +67,11 @@ export default function BoardPage() {
   // Filter projects based on board filters
   const filteredProjects =
     projects?.filter((project) => {
-      // Area filter
-      if (boardFilters.areaIds.length > 0 && !boardFilters.areaIds.includes(project.areaId)) {
+      // Area filter (project must have at least one area that matches the filter)
+      if (
+        boardFilters.areaIds.length > 0 &&
+        !boardFilters.areaIds.some((areaId) => project.areaIds?.includes(areaId))
+      ) {
         return false;
       }
 

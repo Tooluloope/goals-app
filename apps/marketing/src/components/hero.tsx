@@ -53,7 +53,7 @@ export function Hero() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <Link
-              href="#features"
+              href="/features"
               className="rounded-lg border bg-background px-6 py-3 text-sm font-medium transition-colors hover:bg-muted"
             >
               See Features

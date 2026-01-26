@@ -100,9 +100,9 @@ export default function AreaProjectsPage() {
     [taskStatuses]
   );
 
-  // Filter projects for this area
+  // Filter projects for this area (projects that include this area in their areaIds)
   const areaProjects = useMemo(() => {
-    return projects?.filter((p) => p.areaId === areaId) || [];
+    return projects?.filter((p) => p.areaIds?.includes(areaId)) || [];
   }, [projects, areaId]);
 
   // Calculate area-wide stats

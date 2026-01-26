@@ -178,7 +178,7 @@ model Project {
   workspaceId     String
   name            String
   statusId        String
-  areaId          String
+  areaIds         String[]  @default([])
   startDate       DateTime
   targetDate      DateTime
   cadenceId       String
@@ -209,7 +209,6 @@ model Project {
 
   @@index([workspaceId])
   @@index([statusId])
-  @@index([areaId])
   @@index([ownerId])
 }
 

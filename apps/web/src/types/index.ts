@@ -21,7 +21,7 @@ export interface AuthState {
 export interface CreateProjectData {
   name: string;
   workspaceId: string;
-  areaId: string;
+  areaIds: string[];
   statusId: string;
   startDate: string;
   targetDate: string;

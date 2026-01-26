@@ -4,9 +4,9 @@ import { appUrls } from '@/lib/config';
 
 const footerLinks = {
   product: [
-    { label: 'Features', href: '#features' },
-    { label: 'Pricing', href: '#pricing' },
-    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'Features', href: '/features' },
+    { label: 'Pricing', href: '/pricing' },
+    { label: 'Testimonials', href: '/#testimonials' },
   ],
   company: [
     { label: 'About', href: '/about' },

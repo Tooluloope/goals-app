@@ -70,7 +70,7 @@ export default function ProjectsPage() {
 
     return areas
       .map((area) => {
-        const areaProjects = projects.filter((p) => p.areaId === area.id);
+        const areaProjects = projects.filter((p) => p.areaIds?.includes(area.id));
         const total = areaProjects.length;
 
         const completed = areaProjects.filter((p) => {

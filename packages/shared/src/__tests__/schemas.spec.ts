@@ -147,7 +147,7 @@ describe('Validation Schemas', () => {
     const validProject = {
       name: 'Test Project',
       workspaceId: '123e4567-e89b-12d3-a456-426614174000',
-      areaId: 'area-1',
+      areaIds: ['area-1'],
       statusId: 'status-1',
       startDate: '2024-06-01T00:00:00.000Z',
       targetDate: '2024-12-01T00:00:00.000Z',

@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TagSelect } from '@/components/ui/tag-select';
+import { AreaSelect } from '@/components/ui/area-select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -37,14 +38,13 @@ import {
   PriorityConfig,
   CadenceConfig,
   ConfidenceConfig,
-  AreaConfig,
   StatusConfig,
 } from '@/types/config';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   objective: z.string().min(1, 'Objective is required'),
-  areaId: z.string().min(1, 'Area is required'),
+  areaIds: z.array(z.string()).min(1, 'At least one area is required'),
   statusId: z.string().min(1, 'Status is required'),
   priorityId: z.string().min(1, 'Priority is required'),
   cadenceId: z.string().min(1, 'Cadence is required'),
@@ -105,7 +105,6 @@ export function AddProjectModal() {
   const today = new Date().toISOString().split('T')[0];
   const endOfYear = `${new Date().getFullYear()}-12-31`;
 
-  const defaultAreaId = areas[0]?.id || '';
   const defaultStatusId = statuses[0]?.id || '';
   const defaultPriorityId =
     priorities.find((p: PriorityConfig) => p.name === 'Medium')?.id || priorities[0]?.id || '';
@@ -113,6 +112,8 @@ export function AddProjectModal() {
     cadences.find((c: CadenceConfig) => c.name === 'Monthly')?.id || cadences[0]?.id || '';
   const defaultConfidenceId =
     confidences.find((c: ConfidenceConfig) => c.name === 'Medium')?.id || confidences[0]?.id || '';
+
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
 
   const {
     register,
@@ -126,7 +127,7 @@ export function AddProjectModal() {
     defaultValues: {
       name: '',
       objective: '',
-      areaId: defaultAreaId,
+      areaIds: [],
       statusId: defaultStatusId,
       priorityId: defaultPriorityId,
       cadenceId: defaultCadenceId,
@@ -138,10 +139,15 @@ export function AddProjectModal() {
     },
   });
 
+  // Sync selectedAreaIds with form
+  useEffect(() => {
+    setValue('areaIds', selectedAreaIds);
+  }, [selectedAreaIds, setValue]);
+
   // Update defaults when config loads
   useEffect(() => {
-    if (areas.length > 0 && !watch('areaId')) {
-      setValue('areaId', areas[0].id);
+    if (areas.length > 0) {
+      setSelectedAreaIds((prev) => (prev.length === 0 ? [areas[0].id] : prev));
     }
     if (statuses.length > 0 && !watch('statusId')) {
       setValue('statusId', statuses[0].id);
@@ -168,7 +174,7 @@ export function AddProjectModal() {
         workspaceId: currentWorkspace.id,
         name: data.name,
         objective: data.objective,
-        areaId: data.areaId,
+        areaIds: selectedAreaIds,
         statusId: data.statusId,
         priorityId: data.priorityId,
         cadenceId: data.cadenceId,
@@ -187,6 +193,7 @@ export function AddProjectModal() {
       });
 
       reset();
+      setSelectedAreaIds([]);
       setSelectedTagIds([]);
       setAddProjectModalOpen(false);
     } catch (error) {
@@ -200,6 +207,7 @@ export function AddProjectModal() {
 
   const handleClose = () => {
     reset();
+    setSelectedAreaIds([]);
     setSelectedTagIds([]);
     setAddProjectModalOpen(false);
   };
@@ -234,29 +242,20 @@ export function AddProjectModal() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Area</Label>
-                <Select
-                  value={watch('areaId')}
-                  onValueChange={(value) => setValue('areaId', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select area" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {areas.map((area: AreaConfig) => {
-                      const colors = getColorClasses(area.color);
-                      return (
-                        <SelectItem key={area.id} value={area.id}>
-                          <span className={colors.text}>{area.name}</span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Areas</Label>
+              <AreaSelect
+                areas={areas}
+                selectedAreaIds={selectedAreaIds}
+                onSelectionChange={setSelectedAreaIds}
+                placeholder="Select areas..."
+              />
+              {errors.areaIds && (
+                <p className="text-sm text-destructive">{errors.areaIds.message}</p>
+              )}
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
