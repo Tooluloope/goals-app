@@ -25,7 +25,7 @@ export default function ContactPage() {
         </p>
         <div className="rounded-2xl border bg-card p-6">
           <p className="text-sm text-muted-foreground">Email</p>
-          <p className="text-lg font-semibold">hello@alignia.io</p>
+          <p className="text-lg font-semibold">hello@alignia.xyz</p>
         </div>
       </div>
     </section>

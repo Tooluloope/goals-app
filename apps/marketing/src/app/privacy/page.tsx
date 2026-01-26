@@ -29,7 +29,7 @@ export default function PrivacyPage() {
             Data you add—like goals, habits, and journal entries—remains yours. You can update or
             delete your account at any time from Settings.
           </p>
-          <p>If you have any questions about this policy, reach out to hello@alignia.io.</p>
+          <p>If you have any questions about this policy, reach out to hello@alignia.xyz.</p>
         </div>
       </div>
     </section>

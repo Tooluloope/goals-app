@@ -55,7 +55,7 @@ export default function OpenGraphImage() {
               color: '#6366f1',
             }}
           >
-            <span>alignia.io</span>
+            <span>alignia.xyz</span>
             <span style={{ color: '#94a3b8' }}>|</span>
             <span>Start free</span>
           </div>

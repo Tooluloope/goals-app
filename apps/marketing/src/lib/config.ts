@@ -6,7 +6,7 @@ export const config = {
   appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://app.alignia.xyz',
 
   // Marketing site URL
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://alignia.io',
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.alignia.xyz',
 } as const;
 
 // Helper to build app URLs

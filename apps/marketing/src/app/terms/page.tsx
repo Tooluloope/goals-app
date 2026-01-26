@@ -26,7 +26,7 @@ export default function TermsPage() {
         </p>
         <p className="text-muted-foreground">
           We may update these terms occasionally. We&apos;ll notify you when there are material
-          changes. If you have questions, contact hello@alignia.io.
+          changes. If you have questions, contact hello@alignia.xyz.
         </p>
       </div>
     </section>

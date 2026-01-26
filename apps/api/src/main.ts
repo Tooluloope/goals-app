@@ -25,7 +25,7 @@ async function bootstrap() {
         'http://localhost:3000',
         'http://localhost:3002',
         'http://localhost:3008',
-        'https://alignia.io',
+        'https://alignia.xyz',
         'https://app.alignia.xyz',
       ];
 
