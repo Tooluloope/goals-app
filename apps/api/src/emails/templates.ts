@@ -76,6 +76,7 @@ export interface EmailTemplate<T extends BaseEmailData = BaseEmailData> {
 }
 
 const defaultApp = 'Alignia';
+const logoUrl = process.env.APP_LOGO_URL || 'https://www.alignia.xyz/logo.png';
 
 // SVG Icons as inline data URIs for better email compatibility
 const icons = {
@@ -173,7 +174,7 @@ function renderLayout(
       <div class="wrapper">
         <div class="card">
           <div class="header">
-            ${options.icon ? `<div class="icon-wrapper">${options.icon}</div>` : ''}
+            <img src="${logoUrl}" alt="${appName}" class="logo" style="width: 48px; height: 48px; margin: 0 auto 12px; display: block; border-radius: 12px;" />
             <div class="logo-text">${appName}</div>
           </div>
           <div class="content">
