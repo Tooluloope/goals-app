@@ -7,7 +7,8 @@
       "Bash(pgrep:*)",
       "Bash(pkill:*)",
       "Bash(pnpm test:*)",
-      "Bash(pnpm -w run test -- apps/web/src/lib/api-client.spec.ts)"
+      "Bash(pnpm -w run test -- apps/web/src/lib/api-client.spec.ts)",
+      "Bash(curl:*)"
     ]
   }
 }
