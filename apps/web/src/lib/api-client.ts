@@ -48,35 +48,9 @@ export function getApiBaseUrl(): string {
     return process.env.NEXT_PUBLIC_API_URL || process.env.NESTJS_API_URL || 'http://localhost:3001';
   }
 
-  // Client-side: derive API URL from current hostname
-  const hostname = window.location.hostname;
-  const protocol = window.location.protocol;
-
-  // Production: app.alignia.xyz -> api.alignia.xyz
-  if (hostname === 'app.alignia.xyz') {
-    return 'https://api.alignia.xyz';
-  }
-
-  // Local development
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    const apiPort = process.env.NEXT_PUBLIC_API_PORT || '3001';
-    return `http://${hostname}:${apiPort}`;
-  }
-
-  // Local network (e.g., 10.0.0.111)
-  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
-    const apiPort = process.env.NEXT_PUBLIC_API_PORT || '3001';
-    return `${protocol}//${hostname}:${apiPort}`;
-  }
-
-  // Fallback: try to derive api subdomain from app subdomain
-  // e.g., app.example.com -> api.example.com
-  if (hostname.startsWith('app.')) {
-    const apiHostname = hostname.replace(/^app\./, 'api.');
-    return `${protocol}//${apiHostname}`;
-  }
-
-  // Last resort: use relative URLs (relies on Next.js rewrites)
+  // Client-side: ALWAYS use relative URLs (empty string) to go through Next.js proxy
+  // This ensures the middleware can attach session tokens and cookies work properly
+  // The Next.js rewrites in next.config.js will proxy to the actual API server
   return '';
 }
 

@@ -5,7 +5,9 @@
       "Bash(pnpm prisma migrate dev:*)",
       "Bash(pnpm prisma db pull:*)",
       "Bash(pgrep:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm -w run test -- apps/web/src/lib/api-client.spec.ts)"
     ]
   }
 }

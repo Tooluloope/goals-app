@@ -12,25 +12,19 @@ describe('ApiClient', () => {
   });
 
   describe('getApiBaseUrl', () => {
-    // Since we can't easily mock window.location in jsdom and the function
-    // uses window.location.hostname at runtime, we test the function behavior
-    // with the default jsdom location (localhost) which is the common dev case.
-    // The hostname-based logic is simple enough that visual code inspection
-    // provides sufficient confidence for other hostname cases.
+    // The function now always returns an empty string on the client-side
+    // to ensure all API requests go through Next.js proxy for proper
+    // authentication middleware handling
 
-    it('should return localhost URL in jsdom test environment', () => {
-      // jsdom sets window.location.hostname to 'localhost' by default
+    it('should return empty string in client-side (jsdom) environment', () => {
+      // Client-side should use relative URLs (empty string) to go through Next.js proxy
       const result = getApiBaseUrl();
-      expect(result).toBe('http://localhost:3001');
+      expect(result).toBe('');
     });
 
-    it('should use custom port from env if set', () => {
-      const originalPort = process.env.NEXT_PUBLIC_API_PORT;
-      process.env.NEXT_PUBLIC_API_PORT = '4000';
-      const result = getApiBaseUrl();
-      expect(result).toBe('http://localhost:4000');
-      process.env.NEXT_PUBLIC_API_PORT = originalPort;
-    });
+    // Server-side behavior (when window is undefined) can't be easily tested in jsdom
+    // The function will return process.env.NEXT_PUBLIC_API_URL on the server-side
+    // This is tested in integration and works as expected in production
   });
 
   describe('token management', () => {
