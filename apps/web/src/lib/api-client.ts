@@ -40,42 +40,44 @@ import type {
   SummaryType,
 } from '@goals/shared';
 
-const getDirectApiBaseUrl = () =>
-  process.env.NEXT_PUBLIC_API_URL || process.env.NESTJS_API_URL || 'http://localhost:3001';
-
 // Dynamically determine API URL based on current hostname
-// Exported for SSE connections in use-ai-stream.ts
-export function getApiBaseUrl(endpoint?: string): string {
-  // If using proxy mode (for tunnels), use relative URLs
-  // The Next.js rewrites will proxy /api/* to the backend
-  if (process.env.NEXT_PUBLIC_USE_PROXY === 'true') {
-    // Avoid NextAuth route conflicts for backend auth endpoints
-    if (endpoint?.startsWith('/auth/')) {
-      return getDirectApiBaseUrl();
-    }
-    return '';
-  }
-
-  // Server-side: use environment variable
+// This works at RUNTIME, not build time, so it handles Docker deployments correctly
+export function getApiBaseUrl(): string {
+  // Server-side: use environment variable (set at runtime in Docker)
   if (typeof window === 'undefined') {
-    return getDirectApiBaseUrl();
+    return process.env.NEXT_PUBLIC_API_URL || process.env.NESTJS_API_URL || 'http://localhost:3001';
   }
 
-  // If explicit API URL is set, use it
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-
-  // Client-side: check if we're on a tunnel (not localhost)
+  // Client-side: derive API URL from current hostname
   const hostname = window.location.hostname;
-  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    // On a tunnel - use relative URLs (proxied by Next.js)
-    return '';
+  const protocol = window.location.protocol;
+
+  // Production: app.alignia.xyz -> api.alignia.xyz
+  if (hostname === 'app.alignia.xyz') {
+    return 'https://api.alignia.xyz';
   }
 
-  // Local development: use the same hostname but with API port
-  const apiPort = process.env.NEXT_PUBLIC_API_PORT || '3001';
-  return `http://${hostname}:${apiPort}`;
+  // Local development
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    const apiPort = process.env.NEXT_PUBLIC_API_PORT || '3001';
+    return `http://${hostname}:${apiPort}`;
+  }
+
+  // Local network (e.g., 10.0.0.111)
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
+    const apiPort = process.env.NEXT_PUBLIC_API_PORT || '3001';
+    return `${protocol}//${hostname}:${apiPort}`;
+  }
+
+  // Fallback: try to derive api subdomain from app subdomain
+  // e.g., app.example.com -> api.example.com
+  if (hostname.startsWith('app.')) {
+    const apiHostname = hostname.replace(/^app\./, 'api.');
+    return `${protocol}//${apiHostname}`;
+  }
+
+  // Last resort: use relative URLs (relies on Next.js rewrites)
+  return '';
 }
 
 interface FetchOptions extends RequestInit {
@@ -127,7 +129,7 @@ class ApiClient {
     if (!this.refreshToken) return false;
 
     try {
-      const response = await fetch(`${getApiBaseUrl('/auth/refresh')}/api/auth/refresh`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: this.refreshToken }),
@@ -166,7 +168,7 @@ class ApiClient {
     }
 
     // Use credentials: 'include' to send cookies automatically
-    let response = await fetch(`${getApiBaseUrl(endpoint)}/api${endpoint}`, {
+    let response = await fetch(`${getApiBaseUrl()}/api${endpoint}`, {
       ...fetchOptions,
       headers,
       credentials: 'include',
@@ -176,7 +178,7 @@ class ApiClient {
       const refreshed = await this.refreshAccessToken();
       if (refreshed) {
         (headers as Record<string, string>).Authorization = `Bearer ${this.accessToken}`;
-        response = await fetch(`${getApiBaseUrl(endpoint)}/api${endpoint}`, {
+        response = await fetch(`${getApiBaseUrl()}/api${endpoint}`, {
           ...fetchOptions,
           headers,
           credentials: 'include',
