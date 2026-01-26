@@ -1,6 +1,19 @@
 // Jest setup file for Web tests
 import '@testing-library/jest-dom';
 import { jest } from '@jest/globals';
+import type { ReactNode } from 'react';
+
+// Mock next-auth/react
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(() => ({
+    data: null,
+    status: 'unauthenticated',
+  })),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  getSession: jest.fn(() => Promise.resolve(null)),
+  SessionProvider: ({ children }: { children: ReactNode }) => children,
+}));
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({

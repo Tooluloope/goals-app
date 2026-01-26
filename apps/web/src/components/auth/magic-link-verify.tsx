@@ -3,20 +3,19 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { getSession, signIn } from 'next-auth/react';
 import { Loader2, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
-import { apiClient } from '@/lib/api-client';
+import { setShouldShowOnboarding } from '@/lib/onboarding';
 
 type VerifyState = 'loading' | 'success' | 'error';
 
 export function MagicLinkVerify() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setUser } = useAuthStore();
-  const { setShowNotificationSummary, setShowOnboardingModal } = useUIStore();
+  const { setShowNotificationSummary } = useUIStore();
   const [state, setState] = useState<VerifyState>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const verificationAttempted = useRef(false);
@@ -36,13 +35,34 @@ export function MagicLinkVerify() {
 
     const verifyToken = async () => {
       try {
-        const { user, isNewUser } = await apiClient.verifyMagicLink(token);
-        await setUser(user);
+        // Use NextAuth magic-link provider
+        const result = await signIn('magic-link', {
+          token,
+          redirect: false,
+        });
+
+        const session = await getSession();
+
+        if (result?.error && !session?.user?.id) {
+          setState('error');
+          setErrorMessage('Invalid or expired magic link');
+          return;
+        }
+
         setState('success');
 
-        // Show notification summary for returning users (new users will see it after onboarding)
+        const isNewUser = Boolean(session?.user?.isNewUser);
+
+        // Show notification summary for returning users
         if (!isNewUser) {
           setShowNotificationSummary(true);
+          setShouldShowOnboarding(false);
+        }
+
+        // Set flag for new users (the session will have isNewUser)
+        // We'll trigger onboarding via the providers.tsx check
+        if (isNewUser) {
+          setShouldShowOnboarding(true);
         }
 
         // Redirect after a short delay to show success message
@@ -52,12 +72,9 @@ export function MagicLinkVerify() {
             sessionStorage.removeItem('redirectAfterLogin');
             router.push(redirectUrl);
           } else {
-            // New users will see onboarding modal on dashboard
-            if (isNewUser) {
-              setShowOnboardingModal(true);
-            }
             router.push('/dashboard');
           }
+          router.refresh(); // Refresh to update server components
         }, 1500);
       } catch (error) {
         setState('error');
@@ -70,7 +87,7 @@ export function MagicLinkVerify() {
     };
 
     verifyToken();
-  }, [searchParams, setUser, setShowNotificationSummary, setShowOnboardingModal, router]);
+  }, [searchParams, setShowNotificationSummary, router]);
 
   return (
     <div className="relative flex min-h-screen w-full flex-row overflow-hidden">

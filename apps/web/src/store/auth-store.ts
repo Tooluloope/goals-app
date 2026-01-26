@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { User, Workspace } from '@/types';
+import { signOut } from 'next-auth/react';
+import { User, UserSettings, Workspace } from '@/types';
 import { apiClient } from '@/lib/api-client';
 
 // Helper to transform API response to local types
@@ -11,7 +11,7 @@ const transformUser = (apiUser: any): User => ({
   avatar: apiUser.avatar ?? undefined,
   defaultWorkspaceId: apiUser.defaultWorkspaceId,
   timezone: apiUser.timezone ?? 'UTC',
-  hasSetPassword: apiUser.hasSetPassword ?? true, // Default to true for backwards compat
+  hasSetPassword: apiUser.hasSetPassword ?? true,
   settings: apiUser.settings,
   createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
   updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date(),
@@ -30,17 +30,16 @@ interface AuthState {
   user: User | null;
   currentWorkspace: Workspace | null;
   workspaces: Workspace[];
-  isLoading: boolean;
   isAuthenticated: boolean;
+  isLoading: boolean;
 
-  // Actions
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string, timezone?: string) => Promise<boolean>;
   setUser: (apiUser: any) => Promise<void>;
-  logout: () => Promise<void>;
-  setCurrentWorkspace: (workspace: Workspace) => void;
+  fetchUser: () => Promise<User | null>;
   loadWorkspaces: () => Promise<void>;
-  updateSettings: (settings: Partial<User['settings']> & { timezone?: string }) => Promise<void>;
+  setCurrentWorkspace: (workspace: Workspace) => void;
+  updateSettings: (settings: Partial<UserSettings> & { timezone?: string }) => Promise<void>;
   updateProfile: (data: { name?: string; avatar?: string }) => Promise<void>;
   changeEmail: (email: string, password: string) => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
@@ -48,275 +47,213 @@ interface AuthState {
   deleteAccount: (password: string) => Promise<boolean>;
   refreshUser: () => Promise<void>;
   initializeAuth: () => Promise<void>;
+  logout: () => Promise<void>;
+  clearUser: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
+export const useAuthStore = create<AuthState>()((set, get) => ({
+  user: null,
+  currentWorkspace: null,
+  workspaces: [],
+  isAuthenticated: false,
+  isLoading: false,
+
+  login: async (email: string, password: string) => {
+    set({ isLoading: true });
+    try {
+      const apiUser = await apiClient.login(email, password);
+      if (!apiUser) {
+        set({ isLoading: false, isAuthenticated: false });
+        return false;
+      }
+      await get().setUser(apiUser);
+      set({ isLoading: false });
+      return true;
+    } catch {
+      set({ isLoading: false, isAuthenticated: false });
+      return false;
+    }
+  },
+
+  signup: async (name: string, email: string, password: string, timezone?: string) => {
+    set({ isLoading: true });
+    try {
+      const apiUser = await apiClient.signup(name, email, password, timezone);
+      if (!apiUser) {
+        set({ isLoading: false, isAuthenticated: false });
+        return false;
+      }
+      await get().setUser(apiUser);
+      set({ isLoading: false });
+      return true;
+    } catch {
+      set({ isLoading: false, isAuthenticated: false });
+      return false;
+    }
+  },
+
+  setUser: async (apiUser: any) => {
+    const user = transformUser(apiUser);
+    const apiWorkspaces = await apiClient.getWorkspaces();
+    const workspaces = apiWorkspaces.map(transformWorkspace);
+    const persistedCurrent = get().currentWorkspace;
+    const defaultWorkspace =
+      workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
+      workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
+      workspaces[0] ||
+      null;
+
+    set({
+      user,
+      workspaces,
+      currentWorkspace: defaultWorkspace,
+      isAuthenticated: true,
+    });
+  },
+
+  fetchUser: async () => {
+    set({ isLoading: true });
+    try {
+      const apiUser = await apiClient.getCurrentUser();
+      await get().setUser(apiUser);
+      set({ isLoading: false });
+      return transformUser(apiUser);
+    } catch {
+      set({
+        user: null,
+        currentWorkspace: null,
+        workspaces: [],
+        isAuthenticated: false,
+        isLoading: false,
+      });
+      return null;
+    }
+  },
+
+  loadWorkspaces: async () => {
+    const { user } = get();
+    if (!user) return;
+    try {
+      const apiWorkspaces = await apiClient.getWorkspaces();
+      const workspaces = apiWorkspaces.map(transformWorkspace);
+      const { currentWorkspace } = get();
+
+      const preferred =
+        workspaces.find((ws) => ws.id === currentWorkspace?.id) || workspaces[0] || null;
+
+      set({ workspaces, currentWorkspace: preferred });
+    } catch (error) {
+      console.error('Failed to load workspaces:', error);
+    }
+  },
+
+  setCurrentWorkspace: (workspace: Workspace) => {
+    set({ currentWorkspace: workspace });
+  },
+
+  updateSettings: async (settings: Partial<UserSettings> & { timezone?: string }) => {
+    const { user } = get();
+    if (!user) return;
+
+    const apiUser = await apiClient.updateUserSettings(settings);
+    set({ user: transformUser(apiUser) });
+  },
+
+  updateProfile: async (data: { name?: string; avatar?: string }) => {
+    const { user } = get();
+    if (!user) return;
+
+    const apiUser = await apiClient.updateProfile(data);
+    set({ user: transformUser(apiUser) });
+  },
+
+  changeEmail: async (email: string, password: string) => {
+    const { user } = get();
+    if (!user) return false;
+
+    await apiClient.changeEmail({ email, password });
+    apiClient.clearTokens();
+    set({
+      user: { ...user, email },
       currentWorkspace: null,
       workspaces: [],
-      isLoading: false,
       isAuthenticated: false,
+    });
+    return true;
+  },
 
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
-        try {
-          const apiUser = await apiClient.login(email, password);
-          if (apiUser) {
-            const user = transformUser(apiUser);
-            const apiWorkspaces = await apiClient.getWorkspaces();
-            const workspaces = apiWorkspaces.map(transformWorkspace);
-            const persistedCurrent = get().currentWorkspace;
-            const defaultWorkspace =
-              workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
-              workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
-              workspaces[0];
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    const { user } = get();
+    if (!user) return false;
 
-            set({
-              user,
-              workspaces,
-              currentWorkspace: defaultWorkspace,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            return true;
-          }
-          set({ isLoading: false });
-          return false;
-        } catch (error) {
-          set({ isLoading: false });
-          return false;
-        }
-      },
+    await apiClient.changePassword({ currentPassword, newPassword });
+    apiClient.clearTokens();
+    set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
+    return true;
+  },
 
-      signup: async (name: string, email: string, password: string, timezone?: string) => {
-        set({ isLoading: true });
-        console.log('Signing up user:', { name, email, timezone });
-        try {
-          const apiUser = await apiClient.signup(name, email, password, timezone);
-          const user = transformUser(apiUser);
-          const apiWorkspaces = await apiClient.getWorkspaces();
-          const workspaces = apiWorkspaces.map(transformWorkspace);
-          const persistedCurrent = get().currentWorkspace;
-          const defaultWorkspace =
-            workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
-            workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
-            workspaces[0];
+  setPassword: async (newPassword: string) => {
+    const { user } = get();
+    if (!user) return false;
 
-          set({
-            user,
-            workspaces,
-            currentWorkspace: defaultWorkspace,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-          return true;
-        } catch (error) {
-          console.error('Signup error:', error);
-          set({ isLoading: false });
-          return false;
-        }
-      },
+    await apiClient.setPassword(newPassword);
+    apiClient.clearTokens();
+    set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
+    return true;
+  },
 
-      setUser: async (apiUser: any) => {
-        // Used for magic link authentication where tokens are already set
-        const user = transformUser(apiUser);
-        const apiWorkspaces = await apiClient.getWorkspaces();
-        const workspaces = apiWorkspaces.map(transformWorkspace);
-        const persistedCurrent = get().currentWorkspace;
-        const defaultWorkspace =
-          workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
-          workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
-          workspaces[0];
+  deleteAccount: async (password: string) => {
+    const { user } = get();
+    if (!user) return false;
 
-        set({
-          user,
-          workspaces,
-          currentWorkspace: defaultWorkspace,
-          isAuthenticated: true,
-        });
-      },
+    await apiClient.deleteAccount(password);
+    apiClient.clearTokens();
+    set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
+    return true;
+  },
 
-      logout: async () => {
-        try {
-          await apiClient.logout();
-        } catch {
-          // Ignore logout errors
-        }
-        set({
-          user: null,
-          currentWorkspace: null,
-          workspaces: [],
-          isAuthenticated: false,
-        });
-      },
+  refreshUser: async () => {
+    const { user } = get();
+    if (!user) return;
 
-      setCurrentWorkspace: (workspace: Workspace) => {
-        set({ currentWorkspace: workspace });
-      },
+    const apiUser = await apiClient.getCurrentUser();
+    if (apiUser) {
+      set({ user: transformUser(apiUser) });
+    }
+  },
 
-      loadWorkspaces: async () => {
-        const { user, currentWorkspace } = get();
-        if (!user) return;
-
-        const apiWorkspaces = await apiClient.getWorkspaces();
-        const workspaces = apiWorkspaces.map(transformWorkspace);
-        const preferred =
-          workspaces.find((ws) => ws.id === currentWorkspace?.id) ||
-          workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
-          workspaces[0] ||
-          null;
-        set({ workspaces, currentWorkspace: preferred });
-      },
-
-      updateSettings: async (settings: Partial<User['settings']> & { timezone?: string }) => {
-        const { user } = get();
-        if (!user) return;
-
-        const apiUser = await apiClient.updateUserSettings(settings);
-        set({ user: transformUser(apiUser) });
-      },
-
-      updateProfile: async (data: { name?: string; avatar?: string }) => {
-        const { user } = get();
-        if (!user) return;
-
-        const apiUser = await apiClient.updateProfile(data);
-        set({ user: transformUser(apiUser) });
-      },
-
-      changeEmail: async (email: string, password: string) => {
-        const { user } = get();
-        if (!user) return false;
-
-        await apiClient.changeEmail({ email, password });
-        // Force re-login by clearing tokens; API invalidates refresh tokens
-        apiClient.clearTokens();
-        set({
-          user: { ...user, email },
-          isAuthenticated: false,
-          currentWorkspace: null,
-          workspaces: [],
-        });
-        return true;
-      },
-
-      changePassword: async (currentPassword: string, newPassword: string) => {
-        const { user } = get();
-        if (!user) return false;
-
-        await apiClient.changePassword({ currentPassword, newPassword });
-        apiClient.clearTokens();
-        set({
-          user: null,
-          currentWorkspace: null,
-          workspaces: [],
-          isAuthenticated: false,
-        });
-        return true;
-      },
-
-      setPassword: async (newPassword: string) => {
-        const { user } = get();
-        if (!user) return false;
-
-        await apiClient.setPassword(newPassword);
-        apiClient.clearTokens();
-        set({
-          user: null,
-          currentWorkspace: null,
-          workspaces: [],
-          isAuthenticated: false,
-        });
-        return true;
-      },
-
-      deleteAccount: async (password: string) => {
-        const { user } = get();
-        if (!user) return false;
-
-        await apiClient.deleteAccount(password);
-        apiClient.clearTokens();
-        set({
-          user: null,
-          currentWorkspace: null,
-          workspaces: [],
-          isAuthenticated: false,
-        });
-        return true;
-      },
-
-      refreshUser: async () => {
-        const { user } = get();
-        if (!user) return;
-
+  initializeAuth: async () => {
+    if (apiClient.hasTokens()) {
+      try {
         const apiUser = await apiClient.getCurrentUser();
         if (apiUser) {
-          set({ user: transformUser(apiUser) });
-        }
-      },
-
-      initializeAuth: async () => {
-        // Load tokens from localStorage and validate session
-        if (apiClient.hasTokens()) {
-          try {
-            const apiUser = await apiClient.getCurrentUser();
-            if (apiUser) {
-              const user = transformUser(apiUser);
-              const apiWorkspaces = await apiClient.getWorkspaces();
-              const workspaces = apiWorkspaces.map(transformWorkspace);
-              const persistedCurrent = get().currentWorkspace;
-              const defaultWorkspace =
-                workspaces.find((ws) => ws.id === persistedCurrent?.id) ||
-                workspaces.find((ws) => ws.id === user.defaultWorkspaceId) ||
-                workspaces[0];
-
-              set({
-                user,
-                workspaces,
-                currentWorkspace: defaultWorkspace,
-                isAuthenticated: true,
-              });
-            } else {
-              // No user returned, clear state
-              apiClient.clearTokens();
-              set({
-                user: null,
-                currentWorkspace: null,
-                workspaces: [],
-                isAuthenticated: false,
-              });
-            }
-          } catch {
-            // Token invalid, clear state
-            apiClient.clearTokens();
-            set({
-              user: null,
-              currentWorkspace: null,
-              workspaces: [],
-              isAuthenticated: false,
-            });
-          }
+          await get().setUser(apiUser);
         } else {
-          // No tokens exist, clear any persisted auth state
-          set({
-            user: null,
-            currentWorkspace: null,
-            workspaces: [],
-            isAuthenticated: false,
-          });
+          apiClient.clearTokens();
+          set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
         }
-      },
-    }),
-    {
-      name: 'goals-auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        currentWorkspace: state.currentWorkspace,
-        workspaces: state.workspaces,
-        isAuthenticated: state.isAuthenticated,
-      }),
+      } catch {
+        apiClient.clearTokens();
+        set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
+      }
+    } else {
+      set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
     }
-  )
-);
+  },
+
+  logout: async () => {
+    try {
+      await apiClient.logout();
+      if (process.env.NODE_ENV !== 'test') {
+        await signOut({ redirect: false });
+      }
+    } catch {
+      // Ignore logout errors
+    }
+    set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
+  },
+
+  clearUser: () => {
+    set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
+  },
+}));

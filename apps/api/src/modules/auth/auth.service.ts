@@ -98,7 +98,7 @@ export class AuthService {
       // Create personal workspace
       const workspace = await tx.workspace.create({
         data: {
-          name: `${signupDto.name}'s Goals`,
+          name: `${signupDto.name}'s Workspace`,
           type: 'personal',
           ownerId: newUser.id,
         },
@@ -377,7 +377,7 @@ export class AuthService {
       // Create personal workspace
       const workspace = await tx.workspace.create({
         data: {
-          name: `${userName}'s Goals`,
+          name: `${userName}'s Workspace`,
           type: 'personal',
           ownerId: newUser.id,
         },

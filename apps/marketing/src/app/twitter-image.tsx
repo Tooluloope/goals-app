@@ -18,7 +18,7 @@ export default function TwitterImage() {
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%)',
         color: '#ffffff',
-        fontFamily: 'Inter, sans-serif',
+        fontFamily: 'Space Grotesk, sans-serif',
       }}
     >
       <div

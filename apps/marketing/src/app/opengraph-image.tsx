@@ -17,7 +17,7 @@ export default function OpenGraphImage() {
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #eef2ff 0%, #ffffff 45%, #e0e7ff 100%)',
         color: '#0f172a',
-        fontFamily: 'Inter, sans-serif',
+        fontFamily: 'Space Grotesk, sans-serif',
       }}
     >
       <div

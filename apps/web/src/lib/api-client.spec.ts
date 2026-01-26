@@ -28,6 +28,12 @@ describe('ApiClient', () => {
       expect(getApiBaseUrl()).toBe('');
     });
 
+    it('should return direct API URL for auth endpoints in proxy mode', () => {
+      process.env.NEXT_PUBLIC_USE_PROXY = 'true';
+      process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3001';
+      expect(getApiBaseUrl('/auth/magic-link/request')).toBe('http://localhost:3001');
+    });
+
     it('should return environment variable when set', () => {
       process.env.NEXT_PUBLIC_USE_PROXY = 'false';
       process.env.NEXT_PUBLIC_API_URL = 'https://api.example.com';

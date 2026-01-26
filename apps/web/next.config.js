@@ -3,14 +3,18 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone', // Optimized for Docker production builds
   // Proxy API requests to backend - useful for tunnels
+  // Note: NextAuth routes (/api/auth/*) are handled by Next.js, not proxied
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${apiUrl}/api/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        // Proxy all API requests EXCEPT /api/auth/* (NextAuth routes)
+        {
+          source: '/api/:path((?!auth).*)',
+          destination: `${apiUrl}/api/:path*`,
+        },
+      ],
+    };
   },
 };
 

@@ -1,10 +1,10 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
+export class JwtAuthGuard extends AuthGuard(['jwt', 'nextauth']) {
   constructor(private reflector: Reflector) {
     super();
   }
@@ -18,5 +18,20 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return true;
     }
     return super.canActivate(context);
+  }
+
+  handleRequest(err: any, user: any, info: any) {
+    // If either strategy succeeds, we have a user
+    if (user) {
+      return user;
+    }
+
+    // If both strategies fail, throw the error
+    if (err) {
+      throw err;
+    }
+
+    // No user and no error means unauthorized
+    throw new UnauthorizedException(info?.message || 'Unauthorized');
   }
 }

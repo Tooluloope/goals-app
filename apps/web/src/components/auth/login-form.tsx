@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +12,6 @@ import { Mail, Lock, Sparkles, Star, Eye, EyeOff, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,7 +24,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
   const { setShowNotificationSummary } = useUIStore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,8 +40,19 @@ export function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      const success = await login(data.email, data.password);
-      if (success) {
+      const result = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast({
+          title: 'Login failed',
+          description: 'Invalid email or password. Please try again.',
+          variant: 'destructive',
+        });
+      } else {
         setShowNotificationSummary(true);
         const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
         if (redirectUrl) {
@@ -51,12 +61,7 @@ export function LoginForm() {
         } else {
           router.push('/dashboard');
         }
-      } else {
-        toast({
-          title: 'Login failed',
-          description: 'Invalid email or password. Please try again.',
-          variant: 'destructive',
-        });
+        router.refresh(); // Refresh to update server components
       }
     } catch {
       toast({
@@ -158,7 +163,7 @@ export function LoginForm() {
               <Button
                 type="submit"
                 className="h-14 w-full rounded-xl text-base font-bold shadow-lg shadow-primary/20"
-                disabled={isSubmitting || isLoading}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? 'Signing in...' : 'Sign In'}
               </Button>

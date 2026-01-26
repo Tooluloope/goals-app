@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { json, urlencoded } from 'express';
+import cookieParser from 'cookie-parser';
 import * as nodeCrypto from 'node:crypto';
 import { AppModule } from './app.module';
 
@@ -12,6 +13,9 @@ if (!('crypto' in globalThis)) {
 async function bootstrap() {
   // Disable default body parser to configure custom limits for image uploads
   const app = await NestFactory.create(AppModule, { bodyParser: false });
+
+  // Parse cookies for NextAuth session validation
+  app.use(cookieParser());
 
   // Increase body parser limit for base64 encoded image uploads
   app.use(json({ limit: '50mb' }));

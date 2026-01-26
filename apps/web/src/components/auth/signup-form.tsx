@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,9 +12,8 @@ import { Mail, Lock, User, Star, Eye, EyeOff, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthStore } from '@/store/auth-store';
-import { useUIStore } from '@/store/ui-store';
 import { useToast } from '@/hooks/use-toast';
+import { setShouldShowOnboarding } from '@/lib/onboarding';
 
 const signupSchema = z
   .object({
@@ -31,8 +31,6 @@ type SignupFormData = z.infer<typeof signupSchema>;
 
 export function SignupForm() {
   const router = useRouter();
-  const { signup, isLoading } = useAuthStore();
-  const { setShowOnboardingModal } = useUIStore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -51,29 +49,39 @@ export function SignupForm() {
     try {
       // Detect user's timezone from browser
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const success = await signup(data.name, data.email, data.password, timezone);
-      if (success) {
+
+      // Use NextAuth signup provider
+      const result = await signIn('signup', {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        timezone,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast({
+          title: 'Signup failed',
+          description: 'An account with this email may already exist.',
+          variant: 'destructive',
+        });
+      } else {
         toast({
           title: 'Account created',
           description: 'Welcome! Your account has been created successfully.',
           variant: 'success',
         });
+        setShouldShowOnboarding(true);
+
         // Check for redirect URL (e.g., from invite page)
         const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
         if (redirectUrl) {
           sessionStorage.removeItem('redirectAfterLogin');
           router.push(redirectUrl);
         } else {
-          // Show onboarding modal on dashboard for new users
-          setShowOnboardingModal(true);
           router.push('/dashboard');
         }
-      } else {
-        toast({
-          title: 'Signup failed',
-          description: 'An account with this email may already exist.',
-          variant: 'destructive',
-        });
+        router.refresh(); // Refresh to update server components
       }
     } catch {
       toast({
@@ -219,7 +227,7 @@ export function SignupForm() {
               <Button
                 type="submit"
                 className="h-14 w-full rounded-xl text-base font-bold shadow-lg shadow-primary/20"
-                disabled={isSubmitting || isLoading}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? 'Creating account...' : 'Create Account'}
               </Button>

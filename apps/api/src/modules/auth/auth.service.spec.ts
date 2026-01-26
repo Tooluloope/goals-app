@@ -185,7 +185,9 @@ describe('AuthService', () => {
             update: jest.fn().mockResolvedValue(mockCreatedUser),
           },
           workspace: {
-            create: jest.fn().mockResolvedValue({ id: 'workspace-1', name: "Test User's Goals" }),
+            create: jest
+              .fn()
+              .mockResolvedValue({ id: 'workspace-1', name: "Test User's Workspace" }),
           },
           workspaceMember: {
             create: jest.fn().mockResolvedValue({}),

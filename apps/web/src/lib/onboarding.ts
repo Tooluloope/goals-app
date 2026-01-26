@@ -3,6 +3,7 @@ import { generateId } from '@/lib/utils';
 
 export const ONBOARDING_FOCUS_STORAGE_KEY = 'onboarding-focus-areas';
 const ONBOARDING_FOCUS_SYNC_KEY = 'onboarding-focus-synced';
+const SHOW_ONBOARDING_KEY = 'show-onboarding-modal';
 
 export const onboardingFocusAreas = [
   {
@@ -76,6 +77,21 @@ export function clearOnboardingSelection() {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(ONBOARDING_FOCUS_STORAGE_KEY);
   window.localStorage.removeItem(ONBOARDING_FOCUS_SYNC_KEY);
+  window.localStorage.removeItem(SHOW_ONBOARDING_KEY);
+}
+
+export function setShouldShowOnboarding(show: boolean) {
+  if (typeof window === 'undefined') return;
+  if (show) {
+    window.localStorage.setItem(SHOW_ONBOARDING_KEY, 'true');
+  } else {
+    window.localStorage.removeItem(SHOW_ONBOARDING_KEY);
+  }
+}
+
+export function shouldShowOnboarding(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(SHOW_ONBOARDING_KEY) === 'true';
 }
 
 export function markOnboardingFocusSynced() {

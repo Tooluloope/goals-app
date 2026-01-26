@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   Activity,
   ArrowRight,
@@ -76,8 +77,9 @@ interface OnboardingModalProps {
 
 export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   const router = useRouter();
+  const { update } = useSession();
   const { toast } = useToast();
-  const { currentWorkspace } = useAuthStore();
+  const { currentWorkspace, updateSettings } = useAuthStore();
   const { setAreasForWorkspace } = useConfigStore();
 
   const [step, setStep] = useState<'vision' | 'invite'>('vision');
@@ -120,6 +122,15 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
     setStep('invite');
   };
 
+  const markWelcomeComplete = async () => {
+    try {
+      await updateSettings({ showWelcomeOnLogin: false });
+      await update({ isNewUser: false });
+    } catch {
+      // Ignore settings update errors
+    }
+  };
+
   const handleFinish = async (skipInvite = false) => {
     setIsSubmitting(true);
     try {
@@ -131,6 +142,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         });
       }
 
+      await markWelcomeComplete();
       clearOnboardingSelection();
       onOpenChange(false);
       router.push('/dashboard');
@@ -221,6 +233,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
               <Button
                 variant="ghost"
                 onClick={() => {
+                  void markWelcomeComplete();
                   clearOnboardingSelection();
                   onOpenChange(false);
                   router.push('/dashboard');

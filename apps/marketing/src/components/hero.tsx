@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { appUrls } from '@/lib/config';
@@ -66,15 +67,27 @@ export function Hero() {
           </p>
         </div>
 
-        {/* App Preview (placeholder) */}
+        {/* App Preview */}
         <div className="relative mx-auto mt-16 max-w-5xl">
           <div className="overflow-hidden rounded-xl border bg-background shadow-2xl">
-            <div className="aspect-[16/10] bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <p className="text-lg font-medium">App Dashboard Preview</p>
-                <p className="text-sm">Add your screenshot here</p>
-              </div>
-            </div>
+            {/* Light mode image */}
+            <Image
+              src="/dashboard-preview-light.jpg"
+              alt="Alignia Dashboard - Track your goals, habits, and progress"
+              width={1920}
+              height={1200}
+              className="w-full h-auto dark:hidden"
+              priority
+            />
+            {/* Dark mode image */}
+            <Image
+              src="/dashboard-preview-dark.png"
+              alt="Alignia Dashboard - Track your goals, habits, and progress"
+              width={1920}
+              height={1200}
+              className="w-full h-auto hidden dark:block"
+              priority
+            />
           </div>
           {/* Decorative gradient behind */}
           <div className="absolute -inset-4 -z-10 rounded-2xl bg-gradient-to-r from-primary/20 via-primary/5 to-blue-500/20 blur-3xl" />

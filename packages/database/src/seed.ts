@@ -207,7 +207,7 @@ async function main() {
     update: {},
     create: {
       id: 'demo-workspace',
-      name: "Demo User's Goals",
+      name: "Demo User's Workspace",
       type: 'personal',
       ownerId: user.id,
     },

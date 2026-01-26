@@ -40,18 +40,25 @@ import type {
   SummaryType,
 } from '@goals/shared';
 
+const getDirectApiBaseUrl = () =>
+  process.env.NEXT_PUBLIC_API_URL || process.env.NESTJS_API_URL || 'http://localhost:3001';
+
 // Dynamically determine API URL based on current hostname
 // Exported for SSE connections in use-ai-stream.ts
-export function getApiBaseUrl(): string {
+export function getApiBaseUrl(endpoint?: string): string {
   // If using proxy mode (for tunnels), use relative URLs
   // The Next.js rewrites will proxy /api/* to the backend
   if (process.env.NEXT_PUBLIC_USE_PROXY === 'true') {
+    // Avoid NextAuth route conflicts for backend auth endpoints
+    if (endpoint?.startsWith('/auth/')) {
+      return getDirectApiBaseUrl();
+    }
     return '';
   }
 
   // Server-side: use environment variable
   if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    return getDirectApiBaseUrl();
   }
 
   // If explicit API URL is set, use it
@@ -109,14 +116,22 @@ class ApiClient {
     return !!this.accessToken;
   }
 
+  getAuthHeaders(): Record<string, string> {
+    if (!this.accessToken) {
+      return {};
+    }
+    return { Authorization: `Bearer ${this.accessToken}` };
+  }
+
   private async refreshAccessToken(): Promise<boolean> {
     if (!this.refreshToken) return false;
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/auth/refresh`, {
+      const response = await fetch(`${getApiBaseUrl('/auth/refresh')}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: this.refreshToken }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -125,8 +140,13 @@ class ApiClient {
       }
 
       const data = await response.json();
-      this.setTokens(data.accessToken, data.refreshToken);
-      return true;
+      if (data?.accessToken && data?.refreshToken) {
+        this.setTokens(data.accessToken, data.refreshToken);
+        return true;
+      }
+
+      this.clearTokens();
+      return false;
     } catch {
       this.clearTokens();
       return false;
@@ -142,22 +162,24 @@ class ApiClient {
     };
 
     if (requiresAuth && this.accessToken) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${this.accessToken}`;
+      (headers as Record<string, string>).Authorization = `Bearer ${this.accessToken}`;
     }
 
-    let response = await fetch(`${getApiBaseUrl()}/api${endpoint}`, {
+    // Use credentials: 'include' to send cookies automatically
+    let response = await fetch(`${getApiBaseUrl(endpoint)}/api${endpoint}`, {
       ...fetchOptions,
       headers,
+      credentials: 'include',
     });
 
-    // Handle token refresh
     if (response.status === 401 && requiresAuth && this.refreshToken) {
       const refreshed = await this.refreshAccessToken();
       if (refreshed) {
-        (headers as Record<string, string>)['Authorization'] = `Bearer ${this.accessToken}`;
-        response = await fetch(`${getApiBaseUrl()}/api${endpoint}`, {
+        (headers as Record<string, string>).Authorization = `Bearer ${this.accessToken}`;
+        response = await fetch(`${getApiBaseUrl(endpoint)}/api${endpoint}`, {
           ...fetchOptions,
           headers,
+          credentials: 'include',
         });
       }
     }
@@ -173,7 +195,7 @@ class ApiClient {
   }
 
   // ============================================================
-  // AUTH
+  // AUTH (These are used internally by NextAuth, not directly by components)
   // ============================================================
 
   async login(email: string, password: string): Promise<AuthResponse['user']> {
@@ -182,7 +204,9 @@ class ApiClient {
       body: JSON.stringify({ email, password }),
       requiresAuth: false,
     });
-    this.setTokens(data.accessToken, data.refreshToken);
+    if (data.accessToken && data.refreshToken) {
+      this.setTokens(data.accessToken, data.refreshToken);
+    }
     return data.user;
   }
 
@@ -197,7 +221,9 @@ class ApiClient {
       body: JSON.stringify({ name, email, password, timezone }),
       requiresAuth: false,
     });
-    this.setTokens(data.accessToken, data.refreshToken);
+    if (data.accessToken && data.refreshToken) {
+      this.setTokens(data.accessToken, data.refreshToken);
+    }
     return data.user;
   }
 
@@ -205,8 +231,9 @@ class ApiClient {
     try {
       await this.fetch('/auth/logout', {
         method: 'POST',
-        body: JSON.stringify({ refreshToken: this.refreshToken }),
       });
+    } catch {
+      // Ignore logout errors
     } finally {
       this.clearTokens();
     }
@@ -247,7 +274,9 @@ class ApiClient {
         requiresAuth: false,
       }
     );
-    this.setTokens(data.accessToken, data.refreshToken);
+    if (data.accessToken && data.refreshToken) {
+      this.setTokens(data.accessToken, data.refreshToken);
+    }
     return { user: data.user, isNewUser: data.isNewUser };
   }
 
@@ -888,14 +917,6 @@ class ApiClient {
    */
   getAiChatStreamUrl(conversationId: string): string {
     return `${getApiBaseUrl()}/api/ai/conversations/${conversationId}/messages`;
-  }
-
-  /**
-   * Get auth headers for SSE requests.
-   */
-  getAuthHeaders(): Record<string, string> {
-    if (!this.accessToken) return {};
-    return { Authorization: `Bearer ${this.accessToken}` };
   }
 
   // ============================================================
