@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useUIStore } from '@/store/ui-store';
-import { useAuthStore } from '@/store/auth-store';
+import { useAuthStore, useViewMode } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { getColorClasses } from '@/types/config';
@@ -17,11 +17,17 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function BoardFilters() {
+  const viewMode = useViewMode();
   const { boardFilters, setBoardFilters, resetBoardFilters } = useUIStore();
   const { currentWorkspace } = useAuthStore();
   const { getAreasForWorkspace, getPrioritiesForWorkspace, getActiveTags } = useConfigStore();
   const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Hide filters in Focus Mode
+  if (viewMode === 'focus') {
+    return null;
+  }
 
   const areas = currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : [];
   const priorities = currentWorkspace ? getPrioritiesForWorkspace(currentWorkspace.id) : [];

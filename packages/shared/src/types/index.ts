@@ -46,6 +46,7 @@ export interface UserSettings {
   theme: 'light' | 'dark' | 'system';
   compactMode: boolean;
   showWelcomeOnLogin: boolean;
+  viewMode?: 'focus' | 'power';
   emailPreferences?: EmailPreferences;
 }
 

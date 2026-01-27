@@ -257,3 +257,14 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ user: null, currentWorkspace: null, workspaces: [], isAuthenticated: false });
   },
 }));
+
+// Helper hooks for view mode
+export const useViewMode = () => {
+  const user = useAuthStore((state) => state.user);
+  return user?.settings?.viewMode || 'focus'; // Default to focus mode
+};
+
+export const isPowerMode = () => {
+  const user = useAuthStore.getState().user;
+  return user?.settings?.viewMode === 'power';
+};

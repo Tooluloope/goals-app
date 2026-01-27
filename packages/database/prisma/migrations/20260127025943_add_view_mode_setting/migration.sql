@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "settings" SET DEFAULT '{"theme": "light", "compactMode": false, "showWelcomeOnLogin": true, "viewMode": "focus", "emailPreferences": {"habitReminders": true, "taskDueReminders": true, "weeklySummary": true, "monthlySummary": true, "staleProjectAlerts": true, "reviewDueReminders": true, "streakMilestones": true, "aiInsights": true, "inactivityReminders": false}}';

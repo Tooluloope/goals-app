@@ -27,10 +27,12 @@ import {
   Pencil,
   Eye,
   EyeOff,
+  Zap,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -53,7 +55,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useAuthStore } from '@/store/auth-store';
+import { useAuthStore, useViewMode } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api-client';
@@ -152,6 +154,7 @@ type SectionId =
   | 'email'
   | 'password'
   | 'regional'
+  | 'viewMode'
   | 'workspaces'
   | 'family'
   | 'notifications'
@@ -166,6 +169,8 @@ const HASH_TO_SECTION: Record<string, SectionId> = {
   security: 'password', // Alias for password section
   regional: 'regional',
   timezone: 'regional', // Alias for regional section
+  viewMode: 'viewMode',
+  mode: 'viewMode', // Alias for view mode section
   workspaces: 'workspaces',
   family: 'family',
   notifications: 'notifications',
@@ -192,6 +197,7 @@ export default function SettingsPage() {
   const { getConfig, initializeConfig, updateNotificationSettings, updateDashboardSettings } =
     useConfigStore();
   const { toast } = useToast();
+  const viewMode = useViewMode();
 
   // Collapsible sections state - only profile expanded by default
   const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(
@@ -677,6 +683,26 @@ export default function SettingsPage() {
     }
   };
 
+  const handleViewModeChange = async (mode: 'focus' | 'power') => {
+    try {
+      await updateSettings({ viewMode: mode });
+      toast({
+        title: 'Experience mode updated',
+        description:
+          mode === 'focus'
+            ? 'Switched to Focus Mode - simplified interface'
+            : 'Switched to Power Mode - full features unlocked',
+        variant: 'success',
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to update experience mode',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleEmailPreferenceChange = async (key: string, value: boolean) => {
     try {
       const currentPrefs = user?.settings?.emailPreferences || {};
@@ -991,6 +1017,46 @@ export default function SettingsPage() {
               </SelectContent>
             </Select>
           </div>
+        </CollapsibleCard>
+
+        {/* Experience Mode */}
+        <CollapsibleCard
+          id="viewMode"
+          icon={<Zap className="h-5 w-5" />}
+          title="Experience Mode"
+          description="Choose between simplified or full-featured interface"
+          isExpanded={expandedSections.has('viewMode')}
+          onToggle={() => toggleSection('viewMode')}
+        >
+          <RadioGroup value={viewMode} onValueChange={handleViewModeChange}>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/50 transition-colors">
+                <RadioGroupItem value="focus" id="focus" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="focus" className="font-medium cursor-pointer">
+                    Focus Mode
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Simplified interface with essential goal tracking. Perfect for getting started
+                    or staying distraction-free. Shows Dashboard, Projects, Board, Habits, and basic
+                    settings.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/50 transition-colors">
+                <RadioGroupItem value="power" id="power" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="power" className="font-medium cursor-pointer">
+                    Power Mode
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Full-featured with AI insights, reviews, calendar, dependencies, and advanced
+                    analytics. For power users who want complete control and all available features.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </RadioGroup>
         </CollapsibleCard>
 
         {/* Workspaces Section */}

@@ -58,6 +58,7 @@ export const updateUserSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   compactMode: z.boolean().optional(),
   showWelcomeOnLogin: z.boolean().optional(),
+  viewMode: z.enum(['focus', 'power']).optional(),
   timezone: z.string().optional(), // IANA timezone string (e.g., "America/New_York")
   emailPreferences: emailPreferencesSchema.optional(),
 });

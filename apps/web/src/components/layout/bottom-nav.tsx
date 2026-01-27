@@ -2,10 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, BookOpen, Bot, Settings, Home } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Kanban,
+  BookOpen,
+  Bot,
+  Settings,
+  Home,
+  Folder,
+  BarChart3,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
-import { useAuthStore } from '@/store/auth-store';
+import { useAuthStore, useViewMode } from '@/store/auth-store';
 
 // Personal workspace navigation
 const personalNavigation = [
@@ -25,12 +34,36 @@ const familyNavigation = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
+// Focus Mode navigation (simplified) for personal workspaces
+const focusNavigation = [
+  { name: 'Today', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Projects', href: '/projects', icon: Folder },
+  { name: 'Board', href: '/board', icon: Kanban },
+  { name: 'Habits', href: '/habits', icon: BarChart3 },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
+// Focus Mode navigation for family workspaces
+const focusFamilyNavigation = [
+  { name: 'Home', href: '/family', icon: Home },
+  { name: 'Projects', href: '/projects', icon: Folder },
+  { name: 'Board', href: '/board', icon: Kanban },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
 export function BottomNav() {
   const pathname = usePathname();
   const { data: unreadCount } = useUnreadNotificationsCount();
   const { currentWorkspace } = useAuthStore();
+  const viewMode = useViewMode();
 
-  const navigation = currentWorkspace?.type === 'family' ? familyNavigation : personalNavigation;
+  const navigation = (() => {
+    // Determine which navigation array to use based on viewMode and workspace type
+    if (viewMode === 'focus') {
+      return currentWorkspace?.type === 'family' ? focusFamilyNavigation : focusNavigation;
+    }
+    return currentWorkspace?.type === 'family' ? familyNavigation : personalNavigation;
+  })();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden pb-safe">

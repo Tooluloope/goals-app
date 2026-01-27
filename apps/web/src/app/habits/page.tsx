@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, subDays, startOfDay, eachDayOfInterval } from 'date-fns';
 import { AppLayout } from '@/components/layout/app-layout';
-import { useAuthStore } from '@/store/auth-store';
+import { useAuthStore, useViewMode } from '@/store/auth-store';
 import { useHabits, useToggleHabitLog, useDeleteHabit } from '@/hooks/use-habits';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,7 @@ function getColorClass(colorName: string) {
 export default function HabitManagerPage() {
   const router = useRouter();
   const { currentWorkspace } = useAuthStore();
+  const viewMode = useViewMode();
   const { data: habitsData, isLoading } = useHabits();
   const habits = useMemo(() => (Array.isArray(habitsData) ? habitsData : []), [habitsData]);
   const deleteHabit = useDeleteHabit();
@@ -140,42 +141,44 @@ export default function HabitManagerPage() {
           <AddHabitModal />
         </div>
 
-        {/* Quick Stats */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="rounded-full bg-green-500/10 p-3">
-                <TrendingUp className="h-6 w-6 text-green-500" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold">{overallStats.avgCompletionRate}%</p>
-                <p className="text-sm text-muted-foreground">Completion Rate</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="rounded-full bg-orange-500/10 p-3">
-                <Flame className="h-6 w-6 text-orange-500" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold">{overallStats.bestStreak}</p>
-                <p className="text-sm text-muted-foreground">Best Streak (days)</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="rounded-full bg-primary/10 p-3">
-                <Target className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold">{overallStats.activeHabits}</p>
-                <p className="text-sm text-muted-foreground">Active Habits</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Quick Stats - Only in Power Mode */}
+        {viewMode === 'power' && (
+          <div className="mb-8 grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="rounded-full bg-green-500/10 p-3">
+                  <TrendingUp className="h-6 w-6 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold">{overallStats.avgCompletionRate}%</p>
+                  <p className="text-sm text-muted-foreground">Completion Rate</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="rounded-full bg-orange-500/10 p-3">
+                  <Flame className="h-6 w-6 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold">{overallStats.bestStreak}</p>
+                  <p className="text-sm text-muted-foreground">Best Streak (days)</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="rounded-full bg-primary/10 p-3">
+                  <Target className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold">{overallStats.activeHabits}</p>
+                  <p className="text-sm text-muted-foreground">Active Habits</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="grid gap-6 lg:grid-cols-3">
