@@ -27,6 +27,8 @@ import {
   ListChecks,
   Moon,
   Sun,
+  Zap,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -41,7 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuthStore } from '@/store/auth-store';
+import { useAuthStore, useViewMode } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
 import { cn } from '@/lib/utils';
@@ -78,6 +80,25 @@ const familyNavigation = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
+// Focus Mode navigation (simplified) for personal workspaces
+const focusNavigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Projects', href: '/projects', icon: Folder },
+  { name: 'Board', href: '/board', icon: Kanban },
+  { name: 'Habits', href: '/habits', icon: BarChart3 },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
+// Focus Mode navigation for family workspaces
+const focusFamilyNavigation = [
+  { name: 'Family Hub', href: '/family', icon: Home },
+  { name: 'Projects', href: '/projects', icon: Folder },
+  { name: 'Board', href: '/board', icon: Kanban },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
+
 interface HeaderProps {
   title?: string;
 }
@@ -90,6 +111,7 @@ export function Header({ title }: HeaderProps) {
   const { data: unreadCount } = useUnreadNotificationsCount();
   const [sheetOpen, setSheetOpen] = useState(false);
   const { setTheme, theme, resolvedTheme } = useTheme();
+  const viewMode = useViewMode();
 
   const getInitials = (name: string) => {
     return name
@@ -172,28 +194,62 @@ export function Header({ title }: HeaderProps) {
             {/* Navigation */}
             <ScrollArea className="h-[calc(100vh-200px)]">
               <nav className="flex flex-col gap-1 p-4">
-                {(currentWorkspace?.type === 'family' ? familyNavigation : personalNavigation).map(
-                  (item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                    return (
-                      <Link key={item.name} href={item.href} onClick={() => setSheetOpen(false)}>
-                        <Button
-                          variant={isActive ? 'secondary' : 'ghost'}
-                          className={cn('w-full justify-start', isActive && 'bg-secondary')}
-                        >
-                          <item.icon className="mr-3 h-5 w-5" />
-                          {item.name}
-                          {item.name === 'Notifications' && (unreadCount ?? 0) > 0 && (
-                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                              {unreadCount! > 9 ? '9+' : unreadCount}
-                            </span>
-                          )}
-                        </Button>
-                      </Link>
-                    );
+                {(() => {
+                  // Determine which navigation array to use based on viewMode and workspace type
+                  if (viewMode === 'focus') {
+                    return currentWorkspace?.type === 'family'
+                      ? focusFamilyNavigation
+                      : focusNavigation;
                   }
-                )}
+                  return currentWorkspace?.type === 'family'
+                    ? familyNavigation
+                    : personalNavigation;
+                })().map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                  return (
+                    <Link key={item.name} href={item.href} onClick={() => setSheetOpen(false)}>
+                      <Button
+                        variant={isActive ? 'secondary' : 'ghost'}
+                        className={cn('w-full justify-start', isActive && 'bg-secondary')}
+                      >
+                        <item.icon className="mr-3 h-5 w-5" />
+                        {item.name}
+                        {item.name === 'Notifications' && (unreadCount ?? 0) > 0 && (
+                          <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                            {unreadCount! > 9 ? '9+' : unreadCount}
+                          </span>
+                        )}
+                      </Button>
+                    </Link>
+                  );
+                })}
               </nav>
+
+              {/* Upgrade Prompt - Only in Focus Mode */}
+              {viewMode === 'focus' && (
+                <div className="px-4 pb-4">
+                  <div className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-sm">Unlock Power Mode</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                      Get AI insights, reviews, calendar, dependencies, and advanced analytics
+                    </p>
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setSheetOpen(false);
+                        router.push('/settings#viewMode');
+                      }}
+                    >
+                      <Sparkles className="mr-2 h-3.5 w-3.5" />
+                      Upgrade Now
+                    </Button>
+                  </div>
+                </div>
+              )}
             </ScrollArea>
 
             {/* User Section */}
