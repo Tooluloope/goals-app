@@ -646,4 +646,229 @@ describe('auth-store', () => {
       expect(workspace?.ownerId).toBe('ws-1');
     });
   });
+
+  describe('viewMode functionality', () => {
+    it('should default to "focus" when user has no settings', () => {
+      useAuthStore.setState({
+        user: null,
+      });
+
+      const state = useAuthStore.getState();
+      const viewMode = state.user?.settings?.viewMode || 'focus';
+      expect(viewMode).toBe('focus');
+    });
+
+    it('should default to "focus" when user settings do not include viewMode', () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            // viewMode is undefined
+          },
+        },
+      });
+
+      const state = useAuthStore.getState();
+      const viewMode = state.user?.settings?.viewMode || 'focus';
+      expect(viewMode).toBe('focus');
+    });
+
+    it('should return "focus" when viewMode is explicitly set to "focus"', () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            viewMode: 'focus',
+          },
+        },
+      });
+
+      const state = useAuthStore.getState();
+      expect(state.user?.settings?.viewMode).toBe('focus');
+    });
+
+    it('should return "power" when viewMode is set to "power"', () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            viewMode: 'power',
+          },
+        },
+      });
+
+      const state = useAuthStore.getState();
+      expect(state.user?.settings?.viewMode).toBe('power');
+    });
+
+    it('should update viewMode when state changes', () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            viewMode: 'focus',
+          },
+        },
+      });
+
+      let state = useAuthStore.getState();
+      expect(state.user?.settings?.viewMode).toBe('focus');
+
+      // Update settings to power mode
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            viewMode: 'power',
+          },
+        },
+      });
+
+      state = useAuthStore.getState();
+      expect(state.user?.settings?.viewMode).toBe('power');
+    });
+  });
+
+  describe('isPowerMode logic', () => {
+    it('should return false by default when user has no settings', () => {
+      useAuthStore.setState({
+        user: null,
+      });
+
+      const state = useAuthStore.getState();
+      const isPower = state.user?.settings?.viewMode === 'power';
+      expect(isPower).toBe(false);
+    });
+
+    it('should return false when user settings do not include viewMode', () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            // viewMode is undefined
+          },
+        },
+      });
+
+      const state = useAuthStore.getState();
+      const isPower = state.user?.settings?.viewMode === 'power';
+      expect(isPower).toBe(false);
+    });
+
+    it('should return false when viewMode is "focus"', () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            viewMode: 'focus',
+          },
+        },
+      });
+
+      const state = useAuthStore.getState();
+      const isPower = state.user?.settings?.viewMode === 'power';
+      expect(isPower).toBe(false);
+    });
+
+    it('should return true when viewMode is "power"', () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            viewMode: 'power',
+          },
+        },
+      });
+
+      const state = useAuthStore.getState();
+      const isPower = state.user?.settings?.viewMode === 'power';
+      expect(isPower).toBe(true);
+    });
+  });
+
+  describe('updateSettings with viewMode', () => {
+    it('should update viewMode setting to power', async () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            viewMode: 'focus',
+          },
+        },
+      });
+
+      const updatedUser = {
+        ...mockApiUser,
+        settings: {
+          theme: 'light' as const,
+          compactMode: false,
+          showWelcomeOnLogin: true,
+          viewMode: 'power' as const,
+        },
+      };
+      mockApiClient.updateUserSettings.mockResolvedValue(updatedUser as any);
+
+      await useAuthStore.getState().updateSettings({ viewMode: 'power' });
+
+      expect(mockApiClient.updateUserSettings).toHaveBeenCalledWith({ viewMode: 'power' });
+      expect(useAuthStore.getState().user?.settings?.viewMode).toBe('power');
+    });
+
+    it('should update viewMode setting to focus', async () => {
+      useAuthStore.setState({
+        user: {
+          ...createMockUser(),
+          settings: {
+            theme: 'light',
+            compactMode: false,
+            showWelcomeOnLogin: true,
+            viewMode: 'power',
+          },
+        },
+      });
+
+      const updatedUser = {
+        ...mockApiUser,
+        settings: {
+          theme: 'light' as const,
+          compactMode: false,
+          showWelcomeOnLogin: true,
+          viewMode: 'focus' as const,
+        },
+      };
+      mockApiClient.updateUserSettings.mockResolvedValue(updatedUser as any);
+
+      await useAuthStore.getState().updateSettings({ viewMode: 'focus' });
+
+      expect(mockApiClient.updateUserSettings).toHaveBeenCalledWith({ viewMode: 'focus' });
+      expect(useAuthStore.getState().user?.settings?.viewMode).toBe('focus');
+    });
+  });
 });

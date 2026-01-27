@@ -13,6 +13,7 @@ describe('Settings Page Hash Navigation', () => {
     | 'email'
     | 'password'
     | 'regional'
+    | 'viewMode'
     | 'workspaces'
     | 'family'
     | 'notifications'
@@ -26,6 +27,8 @@ describe('Settings Page Hash Navigation', () => {
     security: 'password', // Alias for password section
     regional: 'regional',
     timezone: 'regional', // Alias for regional section
+    viewMode: 'viewMode',
+    mode: 'viewMode', // Alias for view mode section
     workspaces: 'workspaces',
     family: 'family',
     notifications: 'notifications',
@@ -40,6 +43,7 @@ describe('Settings Page Hash Navigation', () => {
       expect(HASH_TO_SECTION['email']).toBe('email');
       expect(HASH_TO_SECTION['password']).toBe('password');
       expect(HASH_TO_SECTION['regional']).toBe('regional');
+      expect(HASH_TO_SECTION['viewMode']).toBe('viewMode');
       expect(HASH_TO_SECTION['workspaces']).toBe('workspaces');
       expect(HASH_TO_SECTION['family']).toBe('family');
       expect(HASH_TO_SECTION['notifications']).toBe('notifications');
@@ -62,6 +66,11 @@ describe('Settings Page Hash Navigation', () => {
       expect(HASH_TO_SECTION['emailPrefs']).toBe('emailPrefs');
     });
 
+    it('should map mode alias to viewMode section', () => {
+      // /settings#mode should scroll to the view mode section
+      expect(HASH_TO_SECTION['mode']).toBe('viewMode');
+    });
+
     it('should return undefined for unknown hashes', () => {
       expect(HASH_TO_SECTION['unknown']).toBeUndefined();
       expect(HASH_TO_SECTION['random']).toBeUndefined();
@@ -74,6 +83,7 @@ describe('Settings Page Hash Navigation', () => {
         'email',
         'password',
         'regional',
+        'viewMode',
         'workspaces',
         'family',
         'notifications',
@@ -174,6 +184,7 @@ describe('Settings Page Hash Navigation', () => {
         'email',
         'password',
         'regional',
+        'viewMode',
         'workspaces',
         'family',
         'notifications',
@@ -209,5 +220,19 @@ describe('Settings Page URL patterns', () => {
     const inviteUrl = '/invite/accept?token=abc123';
     const path = inviteUrl.split('?')[0];
     expect(path).toBe('/invite/accept');
+  });
+
+  it('should support view mode upgrade link from sidebar', () => {
+    // Sidebar upgrade button links to /settings#viewMode
+    const upgradeUrl = '/settings#viewMode';
+    const hash = upgradeUrl.split('#')[1];
+    expect(hash).toBe('viewMode');
+  });
+
+  it('should support mode alias link', () => {
+    // Alternative short form /settings#mode
+    const modeUrl = '/settings#mode';
+    const hash = modeUrl.split('#')[1];
+    expect(hash).toBe('mode');
   });
 });

@@ -13,7 +13,10 @@
       "Bash(npx turbo run:*)",
       "Bash(npm run dev:*)",
       "Bash(lsof:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(npx jest:*)"
     ]
   }
 }
