@@ -184,7 +184,7 @@ export function Sidebar() {
 
   return (
     <div className="hidden md:flex md:w-64 md:flex-col">
-      <div className="fixed flex h-screen w-64 flex-col border-r bg-card">
+      <div className="fixed inset-y-0 left-0 flex w-64 flex-col border-r bg-card">
         {/* Logo */}
         <div className="flex h-16 items-center gap-2 px-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
