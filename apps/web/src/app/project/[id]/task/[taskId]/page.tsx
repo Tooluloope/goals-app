@@ -11,6 +11,16 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -80,6 +90,7 @@ export default function TaskDetailPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Get priority from parent project
   const priority =
@@ -155,21 +166,26 @@ export default function TaskDetailPage() {
 
   const handleDelete = async () => {
     if (!task) return;
-    if (confirm('Are you sure you want to delete this task?')) {
-      try {
-        await deleteTask.mutateAsync(task.id);
-        toast({
-          title: 'Task deleted',
-          variant: 'success',
-        });
-        router.push(`/project/${projectId}`);
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete task',
-          variant: 'destructive',
-        });
-      }
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!task) return;
+    try {
+      await deleteTask.mutateAsync(task.id);
+      toast({
+        title: 'Task deleted',
+        variant: 'success',
+      });
+      router.push(`/project/${projectId}`);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete task',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -820,6 +836,26 @@ export default function TaskDetailPage() {
 
       {/* Edit Task Modal */}
       <EditTaskModal task={task} open={editModalOpen} onOpenChange={setEditModalOpen} />
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{task.title}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteTask.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteTask.isPending}
+            >
+              {deleteTask.isPending ? 'Deleting...' : 'Delete task'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

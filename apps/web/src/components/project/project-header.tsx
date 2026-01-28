@@ -16,6 +16,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -56,6 +66,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const [blockersModalOpen, setBlockersModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const {
     getStatusesForWorkspace,
     getStatusById,
@@ -137,14 +148,26 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     }
   };
 
-  const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this goal?')) {
+  const handleDelete = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
       await deleteProject.mutateAsync(project.id);
       toast({
         title: 'Goal deleted',
         variant: 'success',
       });
       router.push('/board');
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete goal',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -397,6 +420,27 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
 
       {/* Edit Project Modal */}
       <EditProjectModal project={project} open={editModalOpen} onOpenChange={setEditModalOpen} />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete goal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{project.name}" and all its related data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteProject.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteProject.isPending}
+            >
+              {deleteProject.isPending ? 'Deleting...' : 'Delete goal'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -9,6 +9,16 @@ import {
   useDeleteHabit,
 } from '@/hooks/use-habits';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { AddHabitModal } from '@/components/habits/add-habit-modal';
 import { cn } from '@/lib/utils';
 import {
@@ -173,6 +183,11 @@ export function HabitTracker({ selectedDate }: HabitTrackerProps) {
   const deleteHabit = useDeleteHabit();
 
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deleteHabitId, setDeleteHabitId] = useState<string | null>(null);
+  const habitToDelete = useMemo(
+    () => (deleteHabitId ? habits.find((h) => h.id === deleteHabitId) : null),
+    [deleteHabitId, habits]
+  );
 
   const handleToggle = (habitId: string) => {
     // Only allow toggling for today's habits
@@ -189,9 +204,14 @@ export function HabitTracker({ selectedDate }: HabitTrackerProps) {
   };
 
   const handleDeleteHabit = (habitId: string) => {
-    if (confirm('Are you sure you want to delete this habit?')) {
-      deleteHabit.mutate(habitId);
-    }
+    setDeleteHabitId(habitId);
+  };
+
+  const confirmDeleteHabit = () => {
+    if (!deleteHabitId) return;
+    deleteHabit.mutate(deleteHabitId, {
+      onSettled: () => setDeleteHabitId(null),
+    });
   };
 
   const getColorClasses = (colorName: string, isCompleted: boolean) => {
@@ -261,6 +281,29 @@ export function HabitTracker({ selectedDate }: HabitTrackerProps) {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={!!deleteHabitId} onOpenChange={(open) => !open && setDeleteHabitId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete habit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {habitToDelete?.name
+                ? `This will permanently delete "${habitToDelete.name}" and all its logs.`
+                : 'This will permanently delete this habit and all its logs.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteHabit.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteHabit}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteHabit.isPending}
+            >
+              {deleteHabit.isPending ? 'Deleting...' : 'Delete habit'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
