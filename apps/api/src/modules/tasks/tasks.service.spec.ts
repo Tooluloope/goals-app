@@ -38,6 +38,10 @@ describe('TasksService', () => {
     recurrenceInterval: 1,
   };
 
+  const makeDataUrl = (mime: string, bytes: number[]) =>
+    `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
+  const PNG_BYTES = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
   beforeEach(async () => {
     const mockPrismaService = {
       task: {
@@ -193,6 +197,96 @@ describe('TasksService', () => {
         }),
         include: { images: true },
       });
+    });
+
+    it('should create task with image attachments', async () => {
+      const pngDataUrl = makeDataUrl('image/png', PNG_BYTES);
+      prisma.task.create.mockResolvedValue({ ...mockTask, images: [] });
+
+      await service.create(
+        {
+          projectId: 'project-1',
+          title: 'Task with images',
+          statusId: 'status-1',
+          images: [
+            {
+              id: 'img-1',
+              name: 'proof',
+              data: pngDataUrl,
+              type: 'image/png',
+              size: 100,
+              caption: 'Progress',
+            },
+          ],
+        } as any,
+        'user-1'
+      );
+
+      expect(prisma.task.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          images: {
+            create: [
+              expect.objectContaining({
+                filename: 'proof.png',
+                url: pngDataUrl,
+                mimeType: 'image/png',
+                size: Buffer.from(PNG_BYTES).length,
+                caption: 'Progress',
+              }),
+            ],
+          },
+        }),
+        include: { images: true },
+      });
+    });
+
+    it('should reject invalid image data', async () => {
+      await expect(
+        service.create(
+          {
+            projectId: 'project-1',
+            title: 'Bad image task',
+            statusId: 'status-1',
+            images: [
+              {
+                id: 'img-1',
+                name: 'proof',
+                data: 'not-a-data-url',
+                type: 'image/png',
+                size: 100,
+              },
+            ],
+          } as any,
+          'user-1'
+        )
+      ).rejects.toThrow(BadRequestException);
+
+      expect(prisma.task.create).not.toHaveBeenCalled();
+    });
+
+    it('should reject too many images', async () => {
+      const pngDataUrl = makeDataUrl('image/png', PNG_BYTES);
+      const images = Array.from({ length: 6 }, (_, index) => ({
+        id: `img-${index}`,
+        name: `proof-${index}`,
+        data: pngDataUrl,
+        type: 'image/png',
+        size: 100,
+      }));
+
+      await expect(
+        service.create(
+          {
+            projectId: 'project-1',
+            title: 'Too many images',
+            statusId: 'status-1',
+            images,
+          } as any,
+          'user-1'
+        )
+      ).rejects.toThrow(BadRequestException);
+
+      expect(prisma.task.create).not.toHaveBeenCalled();
     });
   });
 

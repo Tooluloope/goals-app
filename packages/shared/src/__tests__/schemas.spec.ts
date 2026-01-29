@@ -1,6 +1,7 @@
 import {
   loginSchema,
   signupSchema,
+  updateProfileSchema,
   updateUserSettingsSchema,
   createWorkspaceSchema,
   inviteToWorkspaceSchema,
@@ -80,6 +81,30 @@ describe('Validation Schemas', () => {
       };
       const result = signupSchema.safeParse(data);
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('updateProfileSchema', () => {
+    const pngDataUrl = 'data:image/png;base64,AAA=';
+
+    it('should accept https avatar URL', () => {
+      const data = { avatar: 'https://example.com/avatar.png' };
+      expect(updateProfileSchema.safeParse(data).success).toBe(true);
+    });
+
+    it('should accept data URL avatar', () => {
+      const data = { avatar: pngDataUrl };
+      expect(updateProfileSchema.safeParse(data).success).toBe(true);
+    });
+
+    it('should reject http avatar URL', () => {
+      const data = { avatar: 'http://example.com/avatar.png' };
+      expect(updateProfileSchema.safeParse(data).success).toBe(false);
+    });
+
+    it('should reject unsupported data URL avatar', () => {
+      const data = { avatar: 'data:image/gif;base64,AAA=' };
+      expect(updateProfileSchema.safeParse(data).success).toBe(false);
     });
   });
 
@@ -291,6 +316,7 @@ describe('Validation Schemas', () => {
       title: 'Test Task',
       statusId: 'status-1',
     };
+    const imageDataUrl = 'data:image/png;base64,AAA=';
 
     it('should validate valid task', () => {
       expect(createTaskSchema.safeParse(validTask).success).toBe(true);
@@ -313,6 +339,70 @@ describe('Validation Schemas', () => {
         dueDate: '2024-06-15T00:00:00.000Z',
       };
       expect(createTaskSchema.safeParse(data).success).toBe(true);
+    });
+
+    it('should validate task with image attachments', () => {
+      const data = {
+        ...validTask,
+        images: [
+          {
+            id: 'img-1',
+            name: 'proof',
+            data: imageDataUrl,
+            type: 'image/png',
+            size: 1024,
+          },
+        ],
+      };
+      expect(createTaskSchema.safeParse(data).success).toBe(true);
+    });
+
+    it('should reject task with invalid image data URL', () => {
+      const data = {
+        ...validTask,
+        images: [
+          {
+            id: 'img-1',
+            name: 'proof',
+            data: 'not-a-data-url',
+            type: 'image/png',
+            size: 1024,
+          },
+        ],
+      };
+      expect(createTaskSchema.safeParse(data).success).toBe(false);
+    });
+
+    it('should reject task with unsupported image type', () => {
+      const data = {
+        ...validTask,
+        images: [
+          {
+            id: 'img-1',
+            name: 'proof',
+            data: imageDataUrl,
+            type: 'image/gif',
+            size: 1024,
+          },
+        ],
+      };
+      expect(createTaskSchema.safeParse(data).success).toBe(false);
+    });
+
+    it('should reject task with oversized image', () => {
+      const data = {
+        ...validTask,
+        images: [
+          {
+            id: 'img-1',
+            name: 'proof',
+            data: imageDataUrl,
+            type: 'image/png',
+            size: 5 * 1024 * 1024 + 1,
+          },
+        ],
+      };
+      expect(createTaskSchema.safeParse(data).success).toBe(false);
     });
 
     it('should reject invalid project ID', () => {

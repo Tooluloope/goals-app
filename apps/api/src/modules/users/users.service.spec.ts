@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -44,6 +44,10 @@ describe('UsersService', () => {
       update: jest.fn(),
     },
   };
+
+  const makeDataUrl = (mime: string, bytes: number[]) =>
+    `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
+  const JPEG_BYTES = [0xff, 0xd8, 0xff, 0xdb];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -301,6 +305,35 @@ describe('UsersService', () => {
       });
 
       expect(result.avatar).toBe('https://example.com/new-avatar.png');
+    });
+
+    it('should accept data URL avatar', async () => {
+      const dataUrl = makeDataUrl('image/jpeg', JPEG_BYTES);
+      mockPrismaService.user.update.mockResolvedValue({
+        ...mockUserWithoutPassword,
+        avatar: dataUrl,
+      });
+
+      const result = await service.updateProfile('user-123', {
+        avatar: dataUrl,
+      });
+
+      expect(result.avatar).toBe(dataUrl);
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+        data: { avatar: dataUrl },
+        select: expect.any(Object),
+      });
+    });
+
+    it('should reject non-https avatar URLs', async () => {
+      await expect(
+        service.updateProfile('user-123', {
+          avatar: 'http://example.com/avatar.png',
+        })
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
     });
 
     it('should update both name and avatar', async () => {
