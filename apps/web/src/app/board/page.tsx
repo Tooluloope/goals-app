@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -65,8 +65,9 @@ export default function BoardPage() {
   );
 
   // Filter projects based on board filters
-  const filteredProjects =
-    projects?.filter((project) => {
+  const filteredProjects = useMemo(() => {
+    const list = projects ?? [];
+    return list.filter((project) => {
       // Area filter (project must have at least one area that matches the filter)
       if (
         boardFilters.areaIds.length > 0 &&
@@ -110,10 +111,24 @@ export default function BoardPage() {
       }
 
       return true;
-    }) || [];
+    });
+  }, [projects, boardFilters, config]);
+
+  const projectsByStatus = useMemo(() => {
+    const map = new Map<string, typeof filteredProjects>();
+    filteredProjects.forEach((project) => {
+      const list = map.get(project.statusId);
+      if (list) {
+        list.push(project);
+      } else {
+        map.set(project.statusId, [project]);
+      }
+    });
+    return map;
+  }, [filteredProjects]);
 
   const getProjectsByStatus = (statusId: string) => {
-    return filteredProjects.filter((p) => p.statusId === statusId);
+    return projectsByStatus.get(statusId) || [];
   };
 
   const activeProject = activeId ? filteredProjects.find((p) => p.id === activeId) : null;

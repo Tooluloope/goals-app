@@ -17,6 +17,7 @@ import {
   isAfter,
   addDays,
   differenceInDays,
+  isValid,
 } from 'date-fns';
 import {
   ChevronLeft,
@@ -158,28 +159,34 @@ export default function CalendarPage() {
       if (!activeStatusIds.includes(project.statusId)) return;
 
       // Add project deadline
-      const deadlineDate = toDate(project.targetDate);
-      const daysUntilDeadline = differenceInDays(deadlineDate, today);
-      allEvents.push({
-        id: `deadline-${project.id}`,
-        title: `${project.name} due`,
-        date: project.targetDate,
-        type: 'deadline',
-        project,
-        urgency:
-          daysUntilDeadline <= 3 ? 'critical' : daysUntilDeadline <= 7 ? 'warning' : 'normal',
-      });
+      if (project.targetDate) {
+        const deadlineDate = toDate(project.targetDate);
+        if (isValid(deadlineDate)) {
+          const daysUntilDeadline = differenceInDays(deadlineDate, today);
+          allEvents.push({
+            id: `deadline-${project.id}`,
+            title: `${project.name} due`,
+            date: project.targetDate,
+            type: 'deadline',
+            project,
+            urgency:
+              daysUntilDeadline <= 3 ? 'critical' : daysUntilDeadline <= 7 ? 'warning' : 'normal',
+          });
+        }
+      }
 
       // Add project start date (if in future or recent past)
-      const startDate = toDate(project.startDate);
-      if (differenceInDays(today, startDate) <= 30) {
-        allEvents.push({
-          id: `start-${project.id}`,
-          title: `${project.name} starts`,
-          date: project.startDate,
-          type: 'start',
-          project,
-        });
+      if (project.startDate) {
+        const startDate = toDate(project.startDate);
+        if (isValid(startDate) && differenceInDays(today, startDate) <= 30) {
+          allEvents.push({
+            id: `start-${project.id}`,
+            title: `${project.name} starts`,
+            date: project.startDate,
+            type: 'start',
+            project,
+          });
+        }
       }
 
       // Add review due indicator (add to today if review is due)
@@ -199,6 +206,7 @@ export default function CalendarPage() {
         .filter((task) => task.dueDate && !doneTaskStatusIds.includes(task.statusId))
         .forEach((task) => {
           const taskDueDate = toDate(task.dueDate!);
+          if (!isValid(taskDueDate)) return;
           const daysUntilTask = differenceInDays(taskDueDate, today);
           allEvents.push({
             id: `task-${task.id}`,
@@ -215,13 +223,27 @@ export default function CalendarPage() {
     return allEvents;
   }, [projects, doneTaskStatusIds, activeStatusIds, cadences]);
 
+  const eventsByDay = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    events.forEach((event) => {
+      const key = format(toDate(event.date), 'yyyy-MM-dd');
+      const list = map.get(key);
+      if (list) {
+        list.push(event);
+      } else {
+        map.set(key, [event]);
+      }
+    });
+    return map;
+  }, [events]);
+
   // Get events for a specific day
   const getEventsForDay = (day: Date) => {
-    return events.filter((event) => isSameDay(toDate(event.date), day));
+    return eventsByDay.get(format(day, 'yyyy-MM-dd')) || [];
   };
 
   // Get events for selected date
-  const selectedDateEvents = getEventsForDay(selectedCalendarDate);
+  const selectedDateEvents = eventsByDay.get(format(selectedCalendarDate, 'yyyy-MM-dd')) || [];
 
   // Get upcoming events (next 7 days)
   const upcomingEvents = useMemo(() => {

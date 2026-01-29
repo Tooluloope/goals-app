@@ -9,6 +9,7 @@ import {
   useCreateAiConversation,
   useDeleteAiConversation,
 } from '@/hooks/use-ai';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,20 +36,38 @@ export default function AiPage() {
   const { data: conversations, isLoading } = useAiConversations();
   const createMutation = useCreateAiConversation();
   const deleteMutation = useDeleteAiConversation();
+  const { toast } = useToast();
 
   const handleCreateConversation = async () => {
-    const conversation = await createMutation.mutateAsync(undefined);
-    setSelectedConversationId(conversation.id);
-    setActiveTab('chat');
+    try {
+      const conversation = await createMutation.mutateAsync(undefined);
+      setSelectedConversationId(conversation.id);
+      setActiveTab('chat');
+    } catch (error) {
+      toast({
+        title: 'Unable to create conversation',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDeleteConversation = async () => {
     if (!deleteId) return;
-    await deleteMutation.mutateAsync(deleteId);
-    if (selectedConversationId === deleteId) {
-      setSelectedConversationId(null);
+    try {
+      await deleteMutation.mutateAsync(deleteId);
+      if (selectedConversationId === deleteId) {
+        setSelectedConversationId(null);
+      }
+    } catch (error) {
+      toast({
+        title: 'Unable to delete conversation',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteId(null);
     }
-    setDeleteId(null);
   };
 
   return (

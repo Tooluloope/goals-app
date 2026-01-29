@@ -20,8 +20,11 @@ export const updateProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').optional(),
   avatar: z
     .string()
-    // Allow http(s) URLs or data URLs (for base64 inline uploads)
-    .regex(/^(https?:\/\/|data:image\/[a-zA-Z]+;base64,).*/, 'Avatar must be a URL or data URI')
+    // Allow https URLs or base64 data URLs for common image types
+    .regex(
+      /^(https:\/\/|data:image\/(jpeg|png|webp);base64,).*/i,
+      'Avatar must be a secure image URL or data URI'
+    )
     .max(2_000_000, 'Avatar data is too large')
     .optional(),
   email: z.string().email('Invalid email address').optional(),
@@ -152,9 +155,14 @@ export const recurrenceTypeSchema = z.enum([
 const imageAttachmentSchema = z.object({
   id: z.string(),
   name: z.string(),
-  data: z.string(), // Base64 encoded image data
-  type: z.string(), // MIME type
-  size: z.number(),
+  data: z
+    .string()
+    .regex(
+      /^data:image\/(jpeg|png|webp);base64,/i,
+      'Image data must be a JPG, PNG, or WebP data URI'
+    ), // Base64 encoded image data
+  type: z.enum(['image/jpeg', 'image/png', 'image/webp']), // MIME type
+  size: z.number().max(5 * 1024 * 1024, 'Image is too large'),
   caption: z.string().optional(),
 });
 

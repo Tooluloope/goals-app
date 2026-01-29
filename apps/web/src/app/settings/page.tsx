@@ -59,6 +59,7 @@ import { useAuthStore, useViewMode } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api-client';
+import { isSafeImageUrl, processImageFile } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 
 // Common IANA timezones grouped by region
@@ -348,62 +349,40 @@ export default function SettingsPage() {
 
   const handleAvatarFileChange = async (file?: File) => {
     if (!file) return;
-    if (file.size > 1.5 * 1024 * 1024) {
+    const { image, error } = await processImageFile(file, {
+      maxSizeMB: 1.5,
+      maxDimension: 320,
+      maxPixels: 3_000_000,
+      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+      outputType: 'image/jpeg',
+      quality: 0.86,
+      cropSquare: true,
+    });
+
+    if (error || !image) {
       toast({
-        title: 'Image too large',
-        description: 'Please choose an image under 1.5MB',
+        title: 'Upload failed',
+        description: error || 'Could not process the selected image.',
         variant: 'destructive',
       });
       return;
     }
-    return new Promise<void>((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file);
-      const image = new Image();
-      image.onload = () => {
-        const cropSize = Math.min(image.width, image.height);
-        const canvasSize = 320;
-        const canvas = document.createElement('canvas');
-        canvas.width = canvasSize;
-        canvas.height = canvasSize;
-        const ctx = canvas.getContext('2d');
 
-        if (!ctx) {
-          URL.revokeObjectURL(objectUrl);
-          toast({
-            title: 'Upload failed',
-            description: 'Could not process the selected image.',
-            variant: 'destructive',
-          });
-          reject(new Error('Canvas not supported'));
-          return;
-        }
-
-        const sx = (image.width - cropSize) / 2;
-        const sy = (image.height - cropSize) / 2;
-        ctx.drawImage(image, sx, sy, cropSize, cropSize, 0, 0, canvasSize, canvasSize);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.86);
-        setAvatarUrl(dataUrl);
-        setAvatarFileName(file.name);
-        URL.revokeObjectURL(objectUrl);
-        resolve();
-      };
-      image.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        toast({
-          title: 'Upload failed',
-          description: 'Could not read the selected image.',
-          variant: 'destructive',
-        });
-        reject(new Error('Image load failed'));
-      };
-      image.src = objectUrl;
-    });
+    setAvatarUrl(image.data);
+    setAvatarFileName(image.name);
   };
 
   const handleProfileSave = async () => {
     if (!profileName.trim()) {
       toast({ title: 'Name is required', variant: 'destructive' });
+      return;
+    }
+    if (avatarUrl && !isSafeImageUrl(avatarUrl)) {
+      toast({
+        title: 'Invalid avatar URL',
+        description: 'Please use a secure https image URL (JPG, PNG, or WebP).',
+        variant: 'destructive',
+      });
       return;
     }
     setIsSavingProfile(true);
@@ -804,7 +783,7 @@ export default function SettingsPage() {
                   <Input
                     id="avatar-upload"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     className="hidden"
                     onChange={(e) => handleAvatarFileChange(e.target.files?.[0])}
                   />

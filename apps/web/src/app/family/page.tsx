@@ -31,7 +31,7 @@ import type { Task } from '@goals/shared';
 export default function FamilyHubPage() {
   const { currentWorkspace } = useAuthStore();
   const { setAddProjectModalOpen } = useUIStore();
-  const { getStatusById, getTaskStatusById } = useConfigStore();
+  const { getStatusById, getTaskStatusesForWorkspace } = useConfigStore();
   const { data: members = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const { data: projects = [] } = useProjects();
 
@@ -42,11 +42,18 @@ export default function FamilyHubPage() {
     return projects.flatMap((p) => p.tasks || []);
   }, [projects]);
 
-  // Helper to check if a task is completed based on status
-  const isTaskCompleted = (task: Task) => {
-    const status = getTaskStatusById(workspaceId, task.statusId);
-    return status?.name?.toLowerCase() === 'done' || status?.name?.toLowerCase() === 'completed';
-  };
+  const doneTaskStatusIds = useMemo(() => {
+    if (!workspaceId) return new Set<string>();
+    const statuses = getTaskStatusesForWorkspace(workspaceId);
+    return new Set(
+      statuses
+        .filter((status) => {
+          const name = status.name?.toLowerCase();
+          return name === 'done' || name === 'completed';
+        })
+        .map((status) => status.id)
+    );
+  }, [getTaskStatusesForWorkspace, workspaceId]);
 
   // Get active (non-archived) projects
   const activeProjects = useMemo(() => {
@@ -62,11 +69,10 @@ export default function FamilyHubPage() {
   const upcomingTasks = useMemo(
     () =>
       allTasks
-        .filter((t: Task) => !isTaskCompleted(t) && t.dueDate)
+        .filter((t: Task) => !doneTaskStatusIds.has(t.statusId) && t.dueDate)
         .sort((a: Task, b: Task) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
         .slice(0, 5),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allTasks, getTaskStatusById, workspaceId]
+    [allTasks, doneTaskStatusIds]
   );
 
   // Calculate stats per member
@@ -74,7 +80,9 @@ export default function FamilyHubPage() {
     return members.map((member) => {
       const memberProjects = projects.filter((p) => p.ownerId === member.userId);
       const memberTasks = allTasks.filter((t: Task) => t.assignedToId === member.userId);
-      const completedTasks = memberTasks.filter((t: Task) => isTaskCompleted(t)).length;
+      const completedTasks = memberTasks.filter((t: Task) =>
+        doneTaskStatusIds.has(t.statusId)
+      ).length;
       return {
         ...member,
         projectCount: memberProjects.length,
@@ -82,16 +90,19 @@ export default function FamilyHubPage() {
         completedTasks,
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [members, projects, allTasks, getTaskStatusById, workspaceId]);
+  }, [members, projects, allTasks, doneTaskStatusIds]);
 
   // Overall family progress
   const familyProgress = useMemo(() => {
     const totalTasks = allTasks.length;
-    const completedTasks = allTasks.filter((t: Task) => isTaskCompleted(t)).length;
+    const completedTasks = allTasks.filter((t: Task) => doneTaskStatusIds.has(t.statusId)).length;
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allTasks, getTaskStatusById, workspaceId]);
+  }, [allTasks, doneTaskStatusIds]);
+
+  const completedTasksCount = useMemo(
+    () => allTasks.filter((t: Task) => doneTaskStatusIds.has(t.statusId)).length,
+    [allTasks, doneTaskStatusIds]
+  );
 
   const getMemberInfo = (userId: string) => {
     return members.find((m) => m.userId === userId);
@@ -161,9 +172,7 @@ export default function FamilyHubPage() {
                   <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
-                    {allTasks.filter((t: Task) => isTaskCompleted(t)).length}
-                  </p>
+                  <p className="text-2xl font-bold">{completedTasksCount}</p>
                   <p className="text-xs text-muted-foreground">Completed</p>
                 </div>
               </div>
@@ -177,9 +186,7 @@ export default function FamilyHubPage() {
                   <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
-                    {allTasks.filter((t: Task) => !isTaskCompleted(t)).length}
-                  </p>
+                  <p className="text-2xl font-bold">{allTasks.length - completedTasksCount}</p>
                   <p className="text-xs text-muted-foreground">In Progress</p>
                 </div>
               </div>
@@ -265,7 +272,7 @@ export default function FamilyHubPage() {
                     const owner = getMemberInfo(project.ownerId || '');
                     const projectTasks = project.tasks || [];
                     const completedCount = projectTasks.filter((t: Task) =>
-                      isTaskCompleted(t)
+                      doneTaskStatusIds.has(t.statusId)
                     ).length;
                     const progress =
                       projectTasks.length > 0

@@ -178,7 +178,7 @@ export function HabitTracker({ selectedDate }: HabitTrackerProps) {
   const isLoading = isViewingToday ? todayLoading : dateLoading;
 
   // Ensure habits is always an array (handle null/undefined)
-  const habits = Array.isArray(habitsData) ? habitsData : [];
+  const habits = useMemo(() => (Array.isArray(habitsData) ? habitsData : []), [habitsData]);
   const toggleLog = useToggleHabitLog();
   const deleteHabit = useDeleteHabit();
 

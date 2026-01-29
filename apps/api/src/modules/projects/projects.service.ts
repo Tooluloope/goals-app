@@ -6,6 +6,7 @@ import { EmailService } from '../email/email.service';
 import { CreateProjectDto, UpdateProjectDto, AddReviewDto } from '@goals/shared';
 import { Project, ProjectDependency } from '@goals/database';
 import { differenceInDays } from 'date-fns';
+import { normalizeImageAttachments } from '../../common/utils/image-validation';
 
 // Status IDs that indicate completion
 const COMPLETED_STATUS_IDS = ['status-done', 'status-completed'];
@@ -161,6 +162,18 @@ export class ProjectsService {
     const updateData: any = { ...data };
     if (data.startDate) updateData.startDate = new Date(data.startDate);
     if (data.targetDate) updateData.targetDate = new Date(data.targetDate);
+    const imageInput = (data as any).images;
+    if (imageInput !== undefined) {
+      const imageData = normalizeImageAttachments(imageInput, {
+        context: 'Project',
+        maxCount: 10,
+        maxBytes: 5 * 1024 * 1024,
+      });
+      updateData.images = {
+        deleteMany: {},
+        ...(imageData.length > 0 ? { create: imageData } : {}),
+      };
+    }
 
     const project = await this.prisma.project.update({
       where: { id },
@@ -170,6 +183,7 @@ export class ProjectsService {
         tasks: true,
         metrics: true,
         reviewNotes: { orderBy: { date: 'desc' } },
+        images: true,
       },
     });
     return transformProjectChecklist(project);

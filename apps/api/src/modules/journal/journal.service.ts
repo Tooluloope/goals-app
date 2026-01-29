@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateJournalEntryDto, UpdateJournalEntryDto } from '@goals/shared';
 import { JournalEntry, Mood } from '@goals/database';
 import { startOfDay, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { validateImageUrl } from '../../common/utils/image-validation';
 
 @Injectable()
 export class JournalService {
@@ -26,6 +32,19 @@ export class JournalService {
 
   async create(data: CreateJournalEntryDto, userId: string): Promise<JournalEntry> {
     const date = startOfDay(parseISO(data.date));
+    let photoUrl = data.photoUrl;
+    if (photoUrl === '') {
+      photoUrl = null;
+    } else if (photoUrl !== undefined && photoUrl !== null) {
+      if (typeof photoUrl !== 'string') {
+        throw new BadRequestException('Journal photo must be a URL.');
+      }
+      photoUrl = validateImageUrl(photoUrl, {
+        allowData: true,
+        maxBytes: 5 * 1024 * 1024,
+        context: 'Journal photo',
+      });
+    }
 
     // Check if entry already exists for this date
     const existing = await this.prisma.journalEntry.findUnique({
@@ -52,7 +71,7 @@ export class JournalService {
         wins: data.wins,
         challenges: data.challenges,
         gratitude: data.gratitude,
-        photoUrl: data.photoUrl,
+        photoUrl,
       },
     });
   }
@@ -62,6 +81,19 @@ export class JournalService {
 
     if (entry.userId !== userId) {
       throw new NotFoundException('Journal entry not found');
+    }
+    let photoUrl = data.photoUrl;
+    if (photoUrl === '') {
+      photoUrl = null;
+    } else if (photoUrl !== undefined && photoUrl !== null) {
+      if (typeof photoUrl !== 'string') {
+        throw new BadRequestException('Journal photo must be a URL.');
+      }
+      photoUrl = validateImageUrl(photoUrl, {
+        allowData: true,
+        maxBytes: 5 * 1024 * 1024,
+        context: 'Journal photo',
+      });
     }
 
     return this.prisma.journalEntry.update({
@@ -74,13 +106,26 @@ export class JournalService {
         wins: data.wins,
         challenges: data.challenges,
         gratitude: data.gratitude,
-        photoUrl: data.photoUrl,
+        photoUrl,
       },
     });
   }
 
   async upsert(data: CreateJournalEntryDto, userId: string): Promise<JournalEntry> {
     const date = startOfDay(parseISO(data.date));
+    let photoUrl = data.photoUrl;
+    if (photoUrl === '') {
+      photoUrl = null;
+    } else if (photoUrl !== undefined && photoUrl !== null) {
+      if (typeof photoUrl !== 'string') {
+        throw new BadRequestException('Journal photo must be a URL.');
+      }
+      photoUrl = validateImageUrl(photoUrl, {
+        allowData: true,
+        maxBytes: 5 * 1024 * 1024,
+        context: 'Journal photo',
+      });
+    }
 
     return this.prisma.journalEntry.upsert({
       where: {
@@ -97,7 +142,7 @@ export class JournalService {
         wins: data.wins,
         challenges: data.challenges,
         gratitude: data.gratitude,
-        photoUrl: data.photoUrl,
+        photoUrl,
       },
       create: {
         userId,
@@ -109,7 +154,7 @@ export class JournalService {
         wins: data.wins,
         challenges: data.challenges,
         gratitude: data.gratitude,
-        photoUrl: data.photoUrl,
+        photoUrl,
       },
     });
   }

@@ -4,6 +4,7 @@ import { ProjectsService } from '../projects/projects.service';
 import { CreateTaskDto, UpdateTaskDto, RecurrenceType } from '@goals/shared';
 import { Task, TaskDependency, RecurrenceType as PrismaRecurrenceType } from '@goals/database';
 import { addDays, addWeeks, addMonths, addYears, setDay, startOfDay } from 'date-fns';
+import { normalizeImageAttachments } from '../../common/utils/image-validation';
 
 @Injectable()
 export class TasksService {
@@ -79,13 +80,11 @@ export class TasksService {
     }
 
     // Prepare image attachments if provided
-    const imageData = data.images?.map((img) => ({
-      filename: img.name,
-      url: img.data, // Base64 data URL
-      mimeType: img.type,
-      size: img.size,
-      caption: img.caption || null,
-    }));
+    const imageData = normalizeImageAttachments(data.images, {
+      context: 'Task',
+      maxCount: 5,
+      maxBytes: 5 * 1024 * 1024,
+    });
 
     return this.prisma.task.create({
       data: {
@@ -99,7 +98,7 @@ export class TasksService {
         recurrenceInterval,
         recurrenceDays,
         nextOccurrence,
-        ...(imageData && imageData.length > 0 ? { images: { create: imageData } } : {}),
+        ...(imageData.length > 0 ? { images: { create: imageData } } : {}),
       },
       include: {
         images: true,

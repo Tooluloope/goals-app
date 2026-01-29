@@ -74,7 +74,7 @@ function WorkspaceInitializer({ children }: { children: React.ReactNode }) {
         .finally(() => setIsSyncing(false));
     }
 
-    if (status === 'unauthenticated' && (isAuthenticated || user)) {
+    if (status === 'unauthenticated' && (isAuthenticated || user?.id)) {
       void logout();
     }
   }, [status, session?.user?.id, user?.id, isAuthenticated, setUser, logout]);

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import sanitizeHtml from 'sanitize-html';
 import { cn } from '@/lib/utils';
 
 export interface RichTextContentProps {
@@ -28,26 +29,78 @@ const proseClasses = cn(
   'prose-a:text-primary prose-a:hover:underline'
 );
 
+const SANITIZE_CONFIG: sanitizeHtml.IOptions = {
+  allowedTags: [
+    'p',
+    'div',
+    'span',
+    'strong',
+    'em',
+    's',
+    'ul',
+    'ol',
+    'li',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'br',
+    'a',
+    'blockquote',
+    'code',
+    'pre',
+  ],
+  allowedAttributes: {
+    a: ['href', 'title', 'target', 'rel'],
+    '*': ['class'],
+  },
+  allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+  allowProtocolRelative: false,
+  transformTags: {
+    a: (tagName, attribs) => {
+      const cleaned: Record<string, string> = {};
+      if (attribs.href) cleaned.href = attribs.href;
+      if (attribs.title) cleaned.title = attribs.title;
+      if (attribs.target === '_blank') {
+        cleaned.target = '_blank';
+        cleaned.rel = 'noopener noreferrer';
+      }
+      return { tagName, attribs: cleaned };
+    },
+  },
+};
+
 /**
  * Renders rich text/HTML content or markdown in a read-only format.
  * Automatically detects HTML vs markdown and renders appropriately.
  */
 export function RichTextContent({ children, className }: RichTextContentProps) {
-  if (!children || children.trim() === '' || children === '<p></p>') {
+  const content = children || '';
+  const sanitizedHtml = React.useMemo(() => sanitizeHtml(content, SANITIZE_CONFIG), [content]);
+
+  if (!content || content.trim() === '' || content === '<p></p>') {
     return null;
   }
 
   // If content looks like HTML (from rich text editor), render as HTML
-  if (isHtmlContent(children)) {
+  if (isHtmlContent(content)) {
+    if (!sanitizedHtml || sanitizedHtml.trim() === '' || sanitizedHtml === '<p></p>') {
+      return null;
+    }
     return (
-      <div className={cn(proseClasses, className)} dangerouslySetInnerHTML={{ __html: children }} />
+      <div
+        className={cn(proseClasses, className)}
+        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+      />
     );
   }
 
   // Otherwise, render as markdown
   return (
     <div className={cn(proseClasses, className)}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
 }

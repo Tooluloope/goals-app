@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { format, getMonth, getYear } from 'date-fns';
+import { format, getMonth, getYear, isValid } from 'date-fns';
 import { Map, Filter } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { RoadmapStats } from '@/components/roadmap/roadmap-stats';
@@ -114,7 +114,9 @@ export default function RoadmapPage() {
       const monthName = format(monthDate, 'MMM');
 
       const started = filteredProjects.filter((p) => {
+        if (!p.startDate) return false;
         const startDate = toDate(p.startDate);
+        if (!isValid(startDate)) return false;
         return getMonth(startDate) === i && getYear(startDate) === currentYear;
       }).length;
 
@@ -122,7 +124,9 @@ export default function RoadmapPage() {
         const status = getStatusById(currentWorkspace.id, p.statusId);
         if (status?.type !== 'completed') return false;
         // For now, count completed projects in their target month
+        if (!p.targetDate) return false;
         const targetDate = toDate(p.targetDate);
+        if (!isValid(targetDate)) return false;
         return getMonth(targetDate) === i && getYear(targetDate) === currentYear;
       }).length;
 

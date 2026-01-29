@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserSettingsDto } from '@goals/shared';
 import { User } from '@goals/database';
+import { validateImageUrl } from '../../common/utils/image-validation';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
@@ -89,9 +90,23 @@ export class UsersService {
     userId: string,
     data: { name?: string; avatar?: string }
   ): Promise<UserWithoutPassword> {
+    const updateData = { ...data };
+    if (updateData.avatar !== undefined) {
+      const trimmed = updateData.avatar.trim();
+      if (trimmed) {
+        updateData.avatar = validateImageUrl(trimmed, {
+          allowData: true,
+          maxBytes: 2 * 1024 * 1024,
+          context: 'Avatar image',
+        });
+      } else {
+        updateData.avatar = undefined;
+      }
+    }
+
     return this.prisma.user.update({
       where: { id: userId },
-      data,
+      data: updateData,
       select: {
         id: true,
         email: true,

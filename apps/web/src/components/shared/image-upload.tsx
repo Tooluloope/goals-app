@@ -5,6 +5,8 @@ import { ImagePlus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LocalImageAttachment } from '@/types';
+import { processImageFiles } from '@/lib/image-utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface ImageUploadProps {
   onImagesAdd: (images: LocalImageAttachment[]) => void;
@@ -24,54 +26,45 @@ export function ImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
 
   const processFiles = useCallback(
     async (files: FileList | File[]) => {
       const fileArray = Array.from(files).slice(0, maxFiles);
-      const validFiles = fileArray.filter((file) => {
-        // Check if it's an image
-        if (!file.type.startsWith('image/')) {
-          return false;
-        }
-        // Check file size
-        if (file.size > maxSizeMB * 1024 * 1024) {
-          return false;
-        }
-        return true;
-      });
-
-      if (validFiles.length === 0) return;
 
       setIsProcessing(true);
 
       try {
-        const imagePromises = validFiles.map((file) => {
-          return new Promise<LocalImageAttachment>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              resolve({
-                id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                name: file.name,
-                data: reader.result as string,
-                type: file.type,
-                size: file.size,
-                createdAt: new Date().toISOString(),
-              });
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
+        const { images, errors } = await processImageFiles(fileArray, {
+          maxSizeMB,
+          maxDimension: 4096,
+          maxPixels: 16_000_000,
+          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
         });
 
-        const images = await Promise.all(imagePromises);
-        onImagesAdd(images);
+        if (errors.length > 0) {
+          toast({
+            title: 'Some files were skipped',
+            description: errors.slice(0, 2).join(' '),
+            variant: 'destructive',
+          });
+        }
+
+        if (images.length > 0) {
+          onImagesAdd(images);
+        }
       } catch (error) {
         console.error('Error processing images:', error);
+        toast({
+          title: 'Upload failed',
+          description: 'Could not process the selected images.',
+          variant: 'destructive',
+        });
       } finally {
         setIsProcessing(false);
       }
     },
-    [maxFiles, maxSizeMB, onImagesAdd]
+    [maxFiles, maxSizeMB, onImagesAdd, toast]
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +106,7 @@ export function ImageUpload({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         multiple
         className="hidden"
         onChange={handleFileChange}
