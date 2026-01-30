@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 import { appUrls } from '@/lib/config';
@@ -19,25 +20,25 @@ const plans = [
     features: ['1 workspace', '3 active projects', 'Daily journal prompts', 'Basic habit tracking'],
   },
   {
-    name: 'Duo',
-    price: '$12',
+    name: 'Pro',
+    price: '$7',
     cadence: 'per month',
-    description: 'Perfect for partners who plan and review together.',
-    cta: 'Start Duo',
-    ctaHref: appUrls.registerWithPlan('duo'),
+    description: 'Full power planning, reviews, and AI insights for solo achievers.',
+    cta: 'Start Pro',
+    ctaHref: appUrls.registerWithPlan('pro'),
     featured: true,
     features: [
-      '2 member accounts',
       'Unlimited projects',
       'Weekly + monthly reviews',
       'Calendar integration',
       'Goal dependency mapping',
+      'AI insights + summaries',
       'Priority support',
     ],
   },
   {
     name: 'Family',
-    price: '$29',
+    price: '$14',
     cadence: 'per month',
     description: 'Designed for families and teams coordinating multiple rhythms.',
     cta: 'Start Family',
@@ -74,6 +75,86 @@ const faqs = [
     answer: 'Starter is always free. Paid plans include a 14-day trial.',
   },
 ];
+
+type PlanValue = boolean | string;
+
+const comparisonSections: Array<{
+  title: string;
+  rows: Array<{
+    label: string;
+    starter: PlanValue;
+    pro: PlanValue;
+    family: PlanValue;
+  }>;
+}> = [
+  {
+    title: 'Core planning',
+    rows: [
+      { label: 'Active goals/projects', starter: 'Up to 3', pro: 'Unlimited', family: 'Unlimited' },
+      { label: 'Habits', starter: 'Up to 5', pro: 'Unlimited', family: 'Unlimited' },
+      { label: 'Workspaces', starter: '1 personal', pro: '1 personal', family: 'Multiple' },
+      { label: 'Task board + notifications', starter: true, pro: true, family: true },
+    ],
+  },
+  {
+    title: 'Reviews & rhythm',
+    rows: [
+      { label: 'Daily rhythm + journal', starter: false, pro: true, family: true },
+      { label: 'Weekly reviews', starter: false, pro: true, family: true },
+      { label: 'Monthly reviews', starter: false, pro: true, family: true },
+    ],
+  },
+  {
+    title: 'AI features',
+    rows: [
+      { label: 'AI assistant + insights', starter: false, pro: true, family: true },
+      { label: 'AI summaries', starter: false, pro: true, family: true },
+    ],
+  },
+  {
+    title: 'Advanced planning',
+    rows: [
+      { label: 'Calendar', starter: false, pro: true, family: true },
+      { label: 'Roadmap timeline', starter: false, pro: true, family: true },
+      { label: 'Dependency mapping', starter: false, pro: true, family: true },
+    ],
+  },
+  {
+    title: 'Family + collaboration',
+    rows: [
+      { label: 'Family Hub', starter: false, pro: false, family: true },
+      { label: 'Shared calendars + boards', starter: false, pro: false, family: true },
+      { label: 'Up to 6 members', starter: false, pro: false, family: true },
+    ],
+  },
+  {
+    title: 'Support',
+    rows: [
+      { label: 'Email support', starter: true, pro: true, family: true },
+      { label: 'Priority support', starter: false, pro: true, family: true },
+    ],
+  },
+];
+
+const renderPlanValue = (value: PlanValue) => {
+  if (typeof value === 'string') {
+    return (
+      <span className="flex items-center justify-center text-sm font-medium text-foreground">
+        {value}
+      </span>
+    );
+  }
+
+  if (value) {
+    return (
+      <span className="flex items-center justify-center">
+        <CheckCircle2 className="h-5 w-5 text-primary" aria-hidden="true" />
+      </span>
+    );
+  }
+
+  return <span className="flex items-center justify-center text-xs text-muted-foreground">-</span>;
+};
 
 export default function PricingPage() {
   return (
@@ -139,6 +220,60 @@ export default function PricingPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20">
+        <div className="container">
+          <div className="mb-10 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              Compare plans
+            </p>
+            <h2 className="mt-3 text-3xl font-bold md:text-4xl">
+              Everything you need, organized by capability
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground md:text-base">
+              See exactly what&apos;s included in each plan. Compare features across core planning,
+              AI, advanced workflows, and collaboration.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto rounded-3xl border bg-background">
+            <table className="w-full min-w-[720px] border-separate border-spacing-0">
+              <thead>
+                <tr className="bg-muted/40">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">
+                    Features
+                  </th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold">Starter</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold">Pro</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold">Family</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonSections.map((section) => (
+                  <Fragment key={section.title}>
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="border-t bg-primary/5 px-6 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary"
+                      >
+                        {section.title}
+                      </td>
+                    </tr>
+                    {section.rows.map((row) => (
+                      <tr key={`${section.title}-${row.label}`} className="border-t">
+                        <td className="px-6 py-4 text-sm text-foreground">{row.label}</td>
+                        <td className="px-6 py-4 text-center">{renderPlanValue(row.starter)}</td>
+                        <td className="px-6 py-4 text-center">{renderPlanValue(row.pro)}</td>
+                        <td className="px-6 py-4 text-center">{renderPlanValue(row.family)}</td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
