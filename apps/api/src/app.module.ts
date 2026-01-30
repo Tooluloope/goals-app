@@ -15,6 +15,9 @@ import { AiModule } from './modules/ai/ai.module';
 import { EmailModule } from './modules/email/email.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { HealthModule } from './modules/health/health.module';
+import { StripeModule } from './modules/stripe/stripe.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { UsageModule } from './modules/usage/usage.module';
 
 // Conditionally include scheduler (default: enabled for backward compatibility)
 const schedulerEnabled = process.env.ENABLE_SCHEDULER !== 'false';
@@ -40,6 +43,9 @@ const schedulerEnabled = process.env.ENABLE_SCHEDULER !== 'false';
     AiModule,
     ...(schedulerEnabled ? [SchedulerModule] : []),
     HealthModule,
+    StripeModule,
+    SubscriptionsModule,
+    UsageModule,
   ],
 })
 export class AppModule {}

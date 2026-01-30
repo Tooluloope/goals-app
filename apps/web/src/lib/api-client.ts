@@ -313,6 +313,41 @@ class ApiClient {
   }
 
   // ============================================================
+  // SUBSCRIPTIONS
+  // ============================================================
+
+  getSubscriptionStatus(): Promise<{
+    plan: 'FREE' | 'PRO' | 'FAMILY';
+    status: string;
+    trialEndsAt: string | null;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  }> {
+    return this.fetch('/subscriptions/status');
+  }
+
+  // ============================================================
+  // STRIPE / BILLING
+  // ============================================================
+
+  createCheckoutSession(
+    plan: 'PRO' | 'FAMILY',
+    successUrl?: string,
+    cancelUrl?: string
+  ): Promise<{ sessionId: string; url: string }> {
+    return this.fetch('/stripe/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify({ plan, successUrl, cancelUrl }),
+    });
+  }
+
+  createBillingPortalSession(): Promise<{ url: string }> {
+    return this.fetch('/stripe/create-portal-session', {
+      method: 'POST',
+    });
+  }
+
+  // ============================================================
   // WORKSPACES
   // ============================================================
 

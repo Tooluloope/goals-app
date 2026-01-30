@@ -31,6 +31,8 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm --filter @goals/database db:generate
         env:
+          # Dummy DATABASE_URL for CI - only needed for schema generation
+          # Production apps use app-specific .env files (see apps/*/. env.example)
           DATABASE_URL: 'postgresql://user:password@localhost:5432/db'
 
       - name: Lint

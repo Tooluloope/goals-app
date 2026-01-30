@@ -15,6 +15,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
 import { useAuthStore, useViewMode } from '@/store/auth-store';
+import { useSubscriptionStatus } from '@/hooks/use-subscription';
+import { getPlanRequirement, hasPlanAccess } from '@/lib/plan-guard';
 
 // Personal workspace navigation
 const personalNavigation = [
@@ -56,13 +58,24 @@ export function BottomNav() {
   const { data: unreadCount } = useUnreadNotificationsCount();
   const { currentWorkspace } = useAuthStore();
   const viewMode = useViewMode();
+  const { data: subscription } = useSubscriptionStatus();
+  const userPlan = subscription?.plan ?? 'FREE';
 
   const navigation = (() => {
-    // Determine which navigation array to use based on viewMode and workspace type
-    if (viewMode === 'focus') {
-      return currentWorkspace?.type === 'family' ? focusFamilyNavigation : focusNavigation;
-    }
-    return currentWorkspace?.type === 'family' ? familyNavigation : personalNavigation;
+    const baseNavigation =
+      viewMode === 'focus'
+        ? currentWorkspace?.type === 'family'
+          ? focusFamilyNavigation
+          : focusNavigation
+        : currentWorkspace?.type === 'family'
+          ? familyNavigation
+          : personalNavigation;
+
+    return baseNavigation.filter((item) => {
+      const requirement = getPlanRequirement(item.href);
+      if (!requirement) return true;
+      return hasPlanAccess(userPlan, requirement.requiredPlan);
+    });
   })();
 
   return (

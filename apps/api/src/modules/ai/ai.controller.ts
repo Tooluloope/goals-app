@@ -13,7 +13,9 @@ import {
 } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequiresPlan } from '../../common/decorators/requires-plan.decorator';
 import { AiService } from './ai.service';
 import {
   CreateConversationDto,
@@ -47,7 +49,8 @@ interface ConversationWithMessages extends AiConversation {
 }
 
 @Controller('ai')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@RequiresPlan('PRO')
 export class AiController {
   constructor(private aiService: AiService) {}
 

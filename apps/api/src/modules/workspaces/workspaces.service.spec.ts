@@ -3,6 +3,8 @@ import { WorkspacesService } from './workspaces.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { UsageService } from '../usage/usage.service';
 
 describe('WorkspacesService', () => {
   let service: WorkspacesService;
@@ -60,11 +62,28 @@ describe('WorkspacesService', () => {
       sendWorkspaceInviteEmail: jest.fn(),
     };
 
+    const mockSubscriptionsService = {
+      getOrCreateSubscription: jest.fn(),
+      getSubscriptionStatus: jest.fn(),
+      canCreateFamilyWorkspace: jest.fn().mockResolvedValue(true),
+      getPlanLimits: jest.fn(),
+    };
+
+    const mockUsageService = {
+      getUsageInfo: jest.fn(),
+      canCreate: jest.fn().mockResolvedValue(true),
+      enforceQuota: jest.fn(),
+      incrementUsage: jest.fn(),
+      decrementUsage: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkspacesService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: SubscriptionsService, useValue: mockSubscriptionsService },
+        { provide: UsageService, useValue: mockUsageService },
       ],
     }).compile();
 

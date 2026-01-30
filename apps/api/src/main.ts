@@ -18,7 +18,17 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // Increase body parser limit for base64 encoded image uploads
-  app.use(json({ limit: '50mb' }));
+  // Capture raw body for Stripe webhook signature verification
+  app.use(
+    json({
+      limit: '50mb',
+      verify: (req: any, _res, buf) => {
+        if (buf?.length) {
+          req.rawBody = buf;
+        }
+      },
+    })
+  );
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // Enable CORS - supports comma-separated list of origins

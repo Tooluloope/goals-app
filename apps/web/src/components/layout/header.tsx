@@ -47,6 +47,8 @@ import { useAuthStore, useViewMode } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
 import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
 import { cn } from '@/lib/utils';
+import { useSubscriptionStatus } from '@/hooks/use-subscription';
+import { getPlanRequirement, hasPlanAccess } from '@/lib/plan-guard';
 
 // Navigation items for personal workspaces
 const personalNavigation = [
@@ -112,6 +114,9 @@ export function Header({ title }: HeaderProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const { setTheme, theme, resolvedTheme } = useTheme();
   const viewMode = useViewMode();
+  const { data: subscription } = useSubscriptionStatus();
+  const userPlan = subscription?.plan ?? 'FREE';
+  const isFreePlan = userPlan === 'FREE';
 
   const getInitials = (name: string) => {
     return name
@@ -195,15 +200,20 @@ export function Header({ title }: HeaderProps) {
             <ScrollArea className="h-[calc(100vh-200px)]">
               <nav className="flex flex-col gap-1 p-4">
                 {(() => {
-                  // Determine which navigation array to use based on viewMode and workspace type
-                  if (viewMode === 'focus') {
-                    return currentWorkspace?.type === 'family'
-                      ? focusFamilyNavigation
-                      : focusNavigation;
-                  }
-                  return currentWorkspace?.type === 'family'
-                    ? familyNavigation
-                    : personalNavigation;
+                  const baseNavigation =
+                    viewMode === 'focus'
+                      ? currentWorkspace?.type === 'family'
+                        ? focusFamilyNavigation
+                        : focusNavigation
+                      : currentWorkspace?.type === 'family'
+                        ? familyNavigation
+                        : personalNavigation;
+
+                  return baseNavigation.filter((item) => {
+                    const requirement = getPlanRequirement(item.href);
+                    if (!requirement) return true;
+                    return hasPlanAccess(userPlan, requirement.requiredPlan);
+                  });
                 })().map((item) => {
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                   return (
@@ -225,23 +235,23 @@ export function Header({ title }: HeaderProps) {
                 })}
               </nav>
 
-              {/* Upgrade Prompt - Only in Focus Mode */}
-              {viewMode === 'focus' && (
+              {/* Upgrade Prompt - Only for FREE plan */}
+              {isFreePlan && (
                 <div className="px-4 pb-4">
                   <div className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <Zap className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">Unlock Power Mode</span>
+                      <span className="font-medium text-sm">Upgrade to Pro</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                      Get AI insights, reviews, calendar, dependencies, and advanced analytics
+                      Unlock AI, reviews, calendar, roadmap, and dependency mapping.
                     </p>
                     <Button
                       size="sm"
                       className="w-full"
                       onClick={() => {
                         setSheetOpen(false);
-                        router.push('/settings#viewMode');
+                        router.push('/settings#subscription');
                       }}
                     >
                       <Sparkles className="mr-2 h-3.5 w-3.5" />

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { UsageService } from '../usage/usage.service';
 import {
   CreateHabitDto,
   UpdateHabitDto,
@@ -62,7 +63,8 @@ export class HabitsService {
 
   constructor(
     private prisma: PrismaService,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private usageService: UsageService
   ) {}
 
   // Get user's timezone from database, default to UTC
@@ -75,13 +77,16 @@ export class HabitsService {
   }
 
   async create(data: CreateHabitDto, userId: string): Promise<Habit> {
+    // Check if user can create more habits (quota enforcement for FREE tier)
+    await this.usageService.enforceQuota(userId, 'habits');
+
     // Get the max order for user's habits
     const maxOrder = await this.prisma.habit.aggregate({
       where: { userId },
       _max: { order: true },
     });
 
-    return this.prisma.habit.create({
+    const habit = await this.prisma.habit.create({
       data: {
         userId,
         name: data.name,
@@ -95,6 +100,11 @@ export class HabitsService {
         goalArea: data.goalArea,
       },
     });
+
+    // Increment usage counter
+    await this.usageService.incrementUsage(userId, 'habits');
+
+    return habit;
   }
 
   async update(id: string, data: UpdateHabitDto, userId: string): Promise<Habit> {
@@ -129,6 +139,9 @@ export class HabitsService {
     }
 
     await this.prisma.habit.delete({ where: { id } });
+
+    // Decrement usage counter
+    await this.usageService.decrementUsage(userId, 'habits');
   }
 
   async findById(id: string): Promise<Habit> {

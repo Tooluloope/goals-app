@@ -36,6 +36,9 @@ function GlobalComponents() {
   useEffect(() => {
     // Small delay to ensure localStorage is set before checking
     const timer = setTimeout(() => {
+      if (pathname.startsWith('/auth')) {
+        return;
+      }
       const shouldOpen = shouldShowOnboarding() || session?.user?.isNewUser;
       if (shouldOpen) {
         setShowOnboardingModal(true);
@@ -56,6 +59,7 @@ function GlobalComponents() {
 
 function WorkspaceInitializer({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   const { user, isAuthenticated, setUser, logout } = useAuthStore();
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -79,8 +83,10 @@ function WorkspaceInitializer({ children }: { children: React.ReactNode }) {
     }
   }, [status, session?.user?.id, user?.id, isAuthenticated, setUser, logout]);
 
-  // Show loading while checking auth
-  if (status === 'loading' || (status === 'authenticated' && isSyncing)) {
+  const isAuthRoute = pathname.startsWith('/auth');
+
+  // Show loading while checking auth (skip on auth routes to avoid form reset flashes)
+  if (!isAuthRoute && (status === 'loading' || (status === 'authenticated' && isSyncing))) {
     return <AppLoading message="Starting app..." />;
   }
 

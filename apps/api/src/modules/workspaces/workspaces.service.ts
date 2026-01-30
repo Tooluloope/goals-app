@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { UsageService } from '../usage/usage.service';
 import { DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
 import { Workspace, WorkspaceInvite } from '@goals/database';
 import { randomBytes } from 'crypto';
@@ -16,7 +18,9 @@ type WorkspaceWithRole = Workspace & { role: string };
 export class WorkspacesService {
   constructor(
     private prisma: PrismaService,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private subscriptionsService: SubscriptionsService,
+    private usageService: UsageService
   ) {}
 
   async findAllForUser(userId: string): Promise<WorkspaceWithRole[]> {
@@ -62,6 +66,19 @@ export class WorkspacesService {
     userId: string,
     data: { name: string; type: 'personal' | 'family' }
   ): Promise<Workspace> {
+    // Check if user can create family workspace
+    if (data.type === 'family') {
+      const canCreateFamily = await this.subscriptionsService.canCreateFamilyWorkspace(userId);
+      if (!canCreateFamily) {
+        throw new ForbiddenException(
+          'Family workspaces require the FAMILY plan. Please upgrade your subscription.'
+        );
+      }
+    }
+
+    // Check workspace quota
+    await this.usageService.enforceQuota(userId, 'workspaces');
+
     const workspace = await this.prisma.workspace.create({
       data: {
         name: data.name,
@@ -83,6 +100,9 @@ export class WorkspacesService {
         config: DEFAULT_WORKSPACE_CONFIG as any,
       },
     });
+
+    // Increment usage counter
+    await this.usageService.incrementUsage(userId, 'workspaces');
 
     return workspace;
   }

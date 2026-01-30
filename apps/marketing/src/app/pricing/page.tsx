@@ -30,6 +30,7 @@ const plans = [
       '2 member accounts',
       'Unlimited projects',
       'Weekly + monthly reviews',
+      'Calendar integration',
       'Goal dependency mapping',
       'Priority support',
     ],
@@ -44,6 +45,7 @@ const plans = [
     features: [
       'Up to 6 members',
       'Shared calendars + boards',
+      'Calendar integration',
       'Advanced analytics',
       'Custom goal templates',
       'Admin controls',

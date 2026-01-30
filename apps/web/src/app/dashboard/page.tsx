@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { AppLayout } from '@/components/layout/app-layout';
 import { DailyFocus } from '@/components/dashboard/daily-focus';
@@ -13,10 +13,16 @@ import { ProgressStats } from '@/components/dashboard/progress-stats';
 import { AiInsightsPanel } from '@/components/ai/ai-insights-panel';
 import { Card } from '@/components/ui/card';
 import { useAuthStore, useViewMode } from '@/store/auth-store';
+import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/lib/api-client';
+import { setShouldShowOnboarding } from '@/lib/onboarding';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
   const { user, currentWorkspace } = useAuthStore();
+  const updateSettings = useAuthStore((state) => state.updateSettings);
   const viewMode = useViewMode();
   const today = new Date();
   const greeting = getGreeting();
@@ -27,6 +33,70 @@ export default function DashboardPage() {
       router.replace('/family');
     }
   }, [currentWorkspace, router]);
+
+  useEffect(() => {
+    const checkout = searchParams.get('checkout');
+    if (!checkout) {
+      return;
+    }
+
+    let isActive = true;
+    const syncSubscription = async () => {
+      try {
+        setShouldShowOnboarding(true);
+        if (checkout === 'cancelled') {
+          await updateSettings({ viewMode: 'focus' });
+          toast({
+            title: 'Checkout cancelled',
+            description: 'Your subscription was not completed. You can upgrade anytime.',
+            variant: 'default',
+          });
+          return;
+        }
+
+        let subscription = await apiClient.getSubscriptionStatus();
+        if (checkout === 'success' && subscription.plan === 'FREE') {
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            subscription = await apiClient.getSubscriptionStatus();
+            if (subscription.plan !== 'FREE') break;
+          }
+        }
+        if (!isActive) return;
+
+        if (subscription.plan !== 'FREE') {
+          await updateSettings({ viewMode: 'power' });
+          toast({
+            title: 'Subscription active',
+            description: 'Power Mode is now enabled on your account.',
+            variant: 'success',
+          });
+        } else {
+          toast({
+            title: 'Subscription pending',
+            description: 'Your payment is still processing. Please refresh in a moment.',
+            variant: 'default',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to sync subscription status:', error);
+        if (isActive) {
+          toast({
+            title: 'Subscription check failed',
+            description: 'We could not confirm your plan yet. Try refreshing soon.',
+            variant: 'default',
+          });
+        }
+      } finally {
+        router.replace('/dashboard');
+      }
+    };
+
+    syncSubscription();
+    return () => {
+      isActive = false;
+    };
+  }, [searchParams, updateSettings, toast, router]);
 
   function getGreeting() {
     const hour = today.getHours();

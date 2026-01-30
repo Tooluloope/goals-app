@@ -51,6 +51,8 @@ import { useUnreadNotificationsCount } from '@/hooks/use-notifications';
 import { getModifierKey } from '@/hooks/use-keyboard-shortcuts';
 import { projectKeys } from '@/hooks/use-projects';
 import { taskKeys } from '@/hooks/use-tasks';
+import { useSubscriptionStatus } from '@/hooks/use-subscription';
+import { getPlanRequirement, hasPlanAccess } from '@/lib/plan-guard';
 
 // Navigation items for personal workspaces
 const personalNavigation = [
@@ -120,6 +122,9 @@ export function Sidebar() {
   const modKey = useMemo(() => getModifierKey(), []);
   const { setTheme, theme, resolvedTheme } = useTheme();
   const viewMode = useViewMode();
+  const { data: subscription } = useSubscriptionStatus();
+  const userPlan = subscription?.plan ?? 'FREE';
+  const isFreePlan = userPlan === 'FREE';
 
   const handleWorkspaceSwitch = useCallback(
     (workspace: typeof currentWorkspace) => {
@@ -181,6 +186,23 @@ export function Sidebar() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const navigation = useMemo(() => {
+    const baseNavigation =
+      viewMode === 'focus'
+        ? currentWorkspace?.type === 'family'
+          ? focusFamilyNavigation
+          : focusNavigation
+        : currentWorkspace?.type === 'family'
+          ? familyNavigation
+          : personalNavigation;
+
+    return baseNavigation.filter((item) => {
+      const requirement = getPlanRequirement(item.href);
+      if (!requirement) return true;
+      return hasPlanAccess(userPlan, requirement.requiredPlan);
+    });
+  }, [currentWorkspace?.type, userPlan, viewMode]);
 
   return (
     <div className="hidden md:flex md:w-64 md:flex-col">
@@ -250,15 +272,7 @@ export function Sidebar() {
         {/* Navigation */}
         <ScrollArea className="flex-1 px-3">
           <nav className="flex flex-col gap-1 py-2">
-            {(() => {
-              // Determine which navigation array to use based on viewMode and workspace type
-              if (viewMode === 'focus') {
-                return currentWorkspace?.type === 'family'
-                  ? focusFamilyNavigation
-                  : focusNavigation;
-              }
-              return currentWorkspace?.type === 'family' ? familyNavigation : personalNavigation;
-            })().map((item) => {
+            {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link key={item.name} href={item.href}>
@@ -318,21 +332,21 @@ export function Sidebar() {
             </Button>
           </div>
 
-          {/* Upgrade Prompt - Only in Focus Mode */}
-          {viewMode === 'focus' && (
+          {/* Upgrade Prompt - Only for FREE plan */}
+          {isFreePlan && (
             <div className="px-2 pb-2">
               <div className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Zap className="h-4 w-4 text-primary" />
-                  <span className="font-medium text-sm">Unlock Power Mode</span>
+                  <span className="font-medium text-sm">Upgrade to Pro</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                  Get AI insights, reviews, calendar, dependencies, and advanced analytics
+                  Unlock AI, reviews, calendar, roadmap, and dependency mapping.
                 </p>
                 <Button
                   size="sm"
                   className="w-full"
-                  onClick={() => router.push('/settings#viewMode')}
+                  onClick={() => router.push('/settings#subscription')}
                 >
                   <Sparkles className="mr-2 h-3.5 w-3.5" />
                   Upgrade Now

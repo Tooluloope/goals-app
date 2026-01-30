@@ -1,7 +1,9 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequiresPlan } from '../../common/decorators/requires-plan.decorator';
 import {
   CreateWeeklyReviewDto,
   UpdateWeeklyReviewDto,
@@ -13,7 +15,8 @@ import { User, WeeklyReview, MonthlyReview } from '@goals/database';
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
 @Controller('reviews')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@RequiresPlan('PRO')
 export class ReviewsController {
   constructor(private reviewsService: ReviewsService) {}
 

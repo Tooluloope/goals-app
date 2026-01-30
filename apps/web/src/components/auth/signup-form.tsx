@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,10 +31,20 @@ type SignupFormData = z.infer<typeof signupSchema>;
 
 export function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+
+  // Capture plan from URL query parameter
+  useEffect(() => {
+    const plan = searchParams.get('plan');
+    if (plan && ['pro', 'family'].includes(plan.toLowerCase())) {
+      setSelectedPlan(plan.toUpperCase());
+    }
+  }, [searchParams]);
 
   const {
     register,
@@ -46,6 +56,7 @@ export function SignupForm() {
 
   const onSubmit = async (data: SignupFormData) => {
     setIsSubmitting(true);
+    let didNavigate = false;
     try {
       // Detect user's timezone from browser
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -66,6 +77,25 @@ export function SignupForm() {
           variant: 'destructive',
         });
       } else {
+        const ensureSession = async () => {
+          for (let attempt = 0; attempt < 3; attempt += 1) {
+            const session = await getSession();
+            if (session?.user?.id) return session;
+            await new Promise((resolve) => setTimeout(resolve, 400));
+          }
+          return null;
+        };
+
+        const session = await ensureSession();
+        if (!session) {
+          toast({
+            title: 'Signup pending',
+            description: 'We could not start your session yet. Please try again.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
         toast({
           title: 'Account created',
           description: 'Welcome! Your account has been created successfully.',
@@ -73,15 +103,52 @@ export function SignupForm() {
         });
         setShouldShowOnboarding(true);
 
-        // Check for redirect URL (e.g., from invite page)
-        const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
-        if (redirectUrl) {
-          sessionStorage.removeItem('redirectAfterLogin');
-          router.push(redirectUrl);
+        // If user signed up for Pro or Family plan, redirect to Stripe checkout
+        if (selectedPlan && ['PRO', 'FAMILY'].includes(selectedPlan)) {
+          try {
+            // Call API to create Stripe checkout session
+            const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                plan: selectedPlan,
+                successUrl: `${window.location.origin}/dashboard?checkout=success`,
+                cancelUrl: `${window.location.origin}/dashboard?checkout=cancelled`,
+              }),
+            });
+
+            if (!checkoutResponse.ok) {
+              throw new Error('Failed to create checkout session');
+            }
+
+            const { url } = await checkoutResponse.json();
+            if (!url) {
+              throw new Error('Checkout URL not returned');
+            }
+
+            // Redirect to Stripe checkout
+            didNavigate = true;
+            window.location.href = url;
+            return;
+          } catch (error) {
+            console.error('Checkout error:', error);
+            didNavigate = true;
+            router.push('/dashboard?checkout=cancelled');
+            return;
+          }
         } else {
-          router.push('/dashboard');
+          // Free plan or no plan specified - go to dashboard
+          // Check for redirect URL (e.g., from invite page)
+          const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+          if (redirectUrl) {
+            sessionStorage.removeItem('redirectAfterLogin');
+            didNavigate = true;
+            router.push(redirectUrl);
+          } else {
+            didNavigate = true;
+            router.push('/dashboard');
+          }
         }
-        router.refresh(); // Refresh to update server components
       }
     } catch {
       toast({
@@ -90,7 +157,9 @@ export function SignupForm() {
         variant: 'destructive',
       });
     } finally {
-      setIsSubmitting(false);
+      if (!didNavigate) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -115,9 +184,16 @@ export function SignupForm() {
             <div className="flex flex-col gap-3">
               <h1 className="text-4xl font-black leading-[1.1] tracking-[-0.033em] text-foreground lg:text-5xl">
                 Get started
+                {selectedPlan && (
+                  <span className="ml-2 inline-block rounded-full bg-primary/10 px-3 py-1 text-2xl font-bold text-primary">
+                    {selectedPlan}
+                  </span>
+                )}
               </h1>
               <p className="text-lg font-normal leading-normal text-muted-foreground">
-                Create your account and start achieving your family goals
+                {selectedPlan
+                  ? `Create your account and start your ${selectedPlan.toLowerCase()} plan`
+                  : 'Create your account and start achieving your family goals'}
               </p>
             </div>
 
@@ -135,6 +211,7 @@ export function SignupForm() {
                     type="text"
                     placeholder="Enter your full name"
                     autoComplete="name"
+                    disabled={isSubmitting}
                     className="h-14 rounded-xl border-input bg-background pl-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary"
                     {...register('name')}
                   />
@@ -154,6 +231,7 @@ export function SignupForm() {
                     type="email"
                     placeholder="name@example.com"
                     autoComplete="email"
+                    disabled={isSubmitting}
                     className="h-14 rounded-xl border-input bg-background pl-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary"
                     {...register('email')}
                   />
@@ -173,6 +251,7 @@ export function SignupForm() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Create a password"
                     autoComplete="new-password"
+                    disabled={isSubmitting}
                     className="h-14 rounded-xl border-input bg-background pl-12 pr-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary"
                     {...register('password')}
                   />
@@ -202,6 +281,7 @@ export function SignupForm() {
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="Confirm your password"
                     autoComplete="new-password"
+                    disabled={isSubmitting}
                     className="h-14 rounded-xl border-input bg-background pl-12 pr-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary"
                     {...register('confirmPassword')}
                   />
@@ -229,7 +309,11 @@ export function SignupForm() {
                 className="h-14 w-full rounded-xl text-base font-bold shadow-lg shadow-primary/20"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Creating account...' : 'Create Account'}
+                {isSubmitting
+                  ? 'Creating account...'
+                  : selectedPlan
+                    ? `Create Account & Start ${selectedPlan} Plan`
+                    : 'Create Account'}
               </Button>
             </form>
 

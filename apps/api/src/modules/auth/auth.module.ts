@@ -7,10 +7,14 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { NextAuthStrategy } from './strategies/nextauth.strategy';
 import { UsersModule } from '../users/users.module';
+import { StripeModule } from '../stripe/stripe.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     UsersModule,
+    StripeModule,
+    SubscriptionsModule,
     PassportModule.register({ defaultStrategy: ['jwt', 'nextauth'] }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

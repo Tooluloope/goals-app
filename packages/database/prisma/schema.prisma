@@ -48,6 +48,9 @@ model User {
   // NextAuth relations
   accounts             Account[]
   sessions             Session[]
+  // Subscription
+  subscription         Subscription?
+  usageQuota           UsageQuota?
 
   @@index([email])
 }
@@ -133,6 +136,68 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ============================================================
+// SUBSCRIPTION & BILLING
+// ============================================================
+
+model Subscription {
+  id                    String             @id @default(uuid())
+  userId                String             @unique
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId      String             @unique
+  stripeSubscriptionId  String?            @unique
+  stripePriceId         String?
+
+  plan                  SubscriptionPlan   @default(FREE)
+  status                SubscriptionStatus @default(ACTIVE)
+
+  trialEndsAt           DateTime?
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean            @default(false)
+  canceledAt            DateTime?
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([status])
+  @@index([plan])
+}
+
+model UsageQuota {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  goalsCount      Int      @default(0)
+  habitsCount     Int      @default(0)
+  workspacesCount Int      @default(1)
+
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  FAMILY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  UNPAID
 }
 
 // ============================================================

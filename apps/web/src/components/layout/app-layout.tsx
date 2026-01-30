@@ -12,6 +12,9 @@ import { AddProjectModal } from '@/components/shared/add-project-modal';
 import { AddTaskModal } from '@/components/shared/add-task-modal';
 import { AddReviewModal } from '@/components/shared/add-review-modal';
 import { getFocusModeRedirect } from '@/lib/mode-guard';
+import { getPlanRequirement, hasPlanAccess } from '@/lib/plan-guard';
+import { useSubscriptionStatus } from '@/hooks/use-subscription';
+import { UpgradePrompt } from '@/components/subscription/upgrade-prompt';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -24,6 +27,10 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
   const viewMode = useViewMode();
   const pathname = usePathname();
   const router = useRouter();
+  const planRequirement = getPlanRequirement(pathname);
+  const { data: subscription, isLoading: isSubscriptionLoading } = useSubscriptionStatus(
+    Boolean(planRequirement) && isAuthenticated
+  );
 
   // Mode guard - redirect Focus Mode users from Power Mode routes
   useEffect(() => {
@@ -43,6 +50,26 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
     );
   }
 
+  let content = children;
+
+  if (planRequirement) {
+    if (isSubscriptionLoading) {
+      content = (
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    } else if (!hasPlanAccess(subscription?.plan, planRequirement.requiredPlan)) {
+      content = (
+        <UpgradePrompt
+          requiredPlan={planRequirement.requiredPlan}
+          title={planRequirement.title}
+          description={planRequirement.description}
+        />
+      );
+    }
+  }
+
   return (
     <div className="flex h-dvh overflow-hidden">
       {/* Desktop Sidebar */}
@@ -55,7 +82,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0 overscroll-contain">
-          {children}
+          {content}
         </main>
 
         {/* Mobile Bottom Nav */}

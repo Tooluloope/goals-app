@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HabitsService } from './habits.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { UsageService } from '../usage/usage.service';
 import { NotFoundException } from '@nestjs/common';
 import { subDays } from 'date-fns';
 
@@ -68,11 +69,20 @@ describe('HabitsService', () => {
       sendHabitReminderEmail: jest.fn().mockResolvedValue({ success: true }),
     };
 
+    const mockUsageService = {
+      getUsageInfo: jest.fn(),
+      canCreate: jest.fn().mockResolvedValue(true),
+      enforceQuota: jest.fn(),
+      incrementUsage: jest.fn(),
+      decrementUsage: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HabitsService,
         { provide: PrismaService, useValue: mockPrismaService } as any,
         { provide: EmailService, useValue: mockEmailService } as any,
+        { provide: UsageService, useValue: mockUsageService } as any,
       ],
     }).compile();
 

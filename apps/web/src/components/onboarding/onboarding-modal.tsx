@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
@@ -79,15 +79,39 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   const router = useRouter();
   const { update } = useSession();
   const { toast } = useToast();
-  const { currentWorkspace, updateSettings } = useAuthStore();
+  const { currentWorkspace, updateSettings, loadWorkspaces, setCurrentWorkspace } = useAuthStore();
   const { setAreasForWorkspace } = useConfigStore();
 
-  const [step, setStep] = useState<'vision' | 'invite'>('vision');
+  const [step, setStep] = useState<'vision' | 'family' | 'invite'>('vision');
   const [selected, setSelected] = useState<string[]>(['family']);
+  const [familyWorkspaceName, setFamilyWorkspaceName] = useState('');
+  const [familyWorkspaceId, setFamilyWorkspaceId] = useState<string | null>(null);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<'FREE' | 'PRO' | 'FAMILY'>('FREE');
+  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [partnerEmail, setPartnerEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const progress = step === 'vision' ? 50 : 100;
+  const isFamilyPlan = subscriptionPlan === 'FAMILY';
+  const totalSteps = isFamilyPlan ? 3 : 2;
+  const currentStep = useMemo(() => {
+    if (step === 'vision') return 1;
+    if (step === 'family') return 2;
+    return totalSteps;
+  }, [step, totalSteps]);
+  const progress = Math.round((currentStep / totalSteps) * 100);
+
+  useEffect(() => {
+    if (!open) return;
+    setStep('vision');
+    setFamilyWorkspaceId(null);
+    setFamilyWorkspaceName('');
+    setIsLoadingPlan(true);
+    apiClient
+      .getSubscriptionStatus()
+      .then((status) => setSubscriptionPlan(status.plan))
+      .catch(() => setSubscriptionPlan('FREE'))
+      .finally(() => setIsLoadingPlan(false));
+  }, [open]);
 
   const toggleFocus = (id: string) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
@@ -119,6 +143,47 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
       }
     }
 
+    if (isFamilyPlan) {
+      setStep('family');
+    } else {
+      setStep('invite');
+    }
+  };
+
+  const handleFamilyNext = async () => {
+    if (!familyWorkspaceName.trim()) {
+      toast({
+        title: 'Workspace name required',
+        description: 'Give your family workspace a name to continue.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const workspace = await apiClient.createWorkspace({
+        name: familyWorkspaceName.trim(),
+        type: 'family',
+      });
+      setFamilyWorkspaceId(workspace.id);
+      await loadWorkspaces();
+      setCurrentWorkspace(workspace);
+
+      const areas = buildAreaConfigFromFocus(selected);
+      setAreasForWorkspace(workspace.id, areas);
+      await apiClient.updateWorkspaceConfig(workspace.id, { areas });
+    } catch {
+      toast({
+        title: 'Could not create workspace',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
+
     setStep('invite');
   };
 
@@ -134,8 +199,9 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   const handleFinish = async (skipInvite = false) => {
     setIsSubmitting(true);
     try {
-      if (!skipInvite && partnerEmail.trim() && currentWorkspace) {
-        await apiClient.inviteToWorkspace(currentWorkspace.id, partnerEmail.trim());
+      const inviteWorkspaceId = familyWorkspaceId || currentWorkspace?.id;
+      if (!skipInvite && partnerEmail.trim() && inviteWorkspaceId) {
+        await apiClient.inviteToWorkspace(inviteWorkspaceId, partnerEmail.trim());
         toast({
           title: 'Invite sent!',
           description: `We sent an invitation to ${partnerEmail}`,
@@ -164,7 +230,13 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         <div className="border-b bg-muted/30 px-6 py-4">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-foreground">
-              {step === 'vision' ? 'Step 1: Choose Your Focus' : 'Step 2: Invite Partner'}
+              {step === 'vision'
+                ? 'Step 1: Choose Your Focus'
+                : step === 'family'
+                  ? 'Step 2: Name Your Family Workspace'
+                  : isFamilyPlan
+                    ? 'Step 3: Invite Family'
+                    : 'Step 2: Invite Partner'}
             </span>
             <span className="text-muted-foreground">{progress}%</span>
           </div>
@@ -241,8 +313,48 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
               >
                 Skip for now
               </Button>
-              <Button onClick={handleVisionNext} disabled={isSubmitting || selected.length === 0}>
-                {isSubmitting ? 'Saving...' : 'Continue'}
+              <Button
+                onClick={handleVisionNext}
+                disabled={isSubmitting || isLoadingPlan || selected.length === 0}
+              >
+                {isSubmitting ? 'Saving...' : isLoadingPlan ? 'Checking plan...' : 'Continue'}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : step === 'family' ? (
+          <div className="p-6">
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-2xl font-bold">Name Your Family Workspace</DialogTitle>
+              <DialogDescription className="text-base">
+                This is the shared space where your family can track goals, habits, and reviews
+                together.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mb-6 space-y-2">
+              <Label htmlFor="family-workspace" className="text-sm font-medium">
+                Family workspace name
+              </Label>
+              <Input
+                id="family-workspace"
+                type="text"
+                placeholder="The Smith Family"
+                value={familyWorkspaceName}
+                onChange={(e) => setFamilyWorkspaceName(e.target.value)}
+                disabled={isSubmitting || isLoadingPlan}
+              />
+              {isLoadingPlan && (
+                <p className="text-xs text-muted-foreground">Confirming your plan...</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setStep('vision')} disabled={isSubmitting}>
+                Back
+              </Button>
+              <Button onClick={handleFamilyNext} disabled={isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Continue'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>

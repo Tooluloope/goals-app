@@ -7,6 +7,9 @@
     "dev": "nest start --watch",
     "start": "nest start",
     "start:prod": "node dist/main",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "typecheck": "tsc --noEmit"
   },
@@ -38,6 +41,7 @@
     "reflect-metadata": "^0.2.1",
     "resend": "^6.8.0",
     "rxjs": "^7.8.1",
+    "stripe": "^20.3.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

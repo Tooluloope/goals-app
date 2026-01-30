@@ -18,7 +18,7 @@ services:
     container_name: goals-api
     restart: unless-stopped
     env_file:
-      - .env.docker
+      - apps/api/.env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/goals_db
       API_PORT: 3001
@@ -35,6 +35,8 @@ services:
         NEXT_PUBLIC_API_URL: http://localhost:3001
     container_name: goals-web
     restart: unless-stopped
+    env_file:
+      - apps/web/.env
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
       PORT: 3000

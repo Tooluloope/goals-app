@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
+import { UsageService } from '../usage/usage.service';
 import { CreateProjectDto, UpdateProjectDto, AddReviewDto } from '@goals/shared';
 import { Project, ProjectDependency } from '@goals/database';
 import { differenceInDays } from 'date-fns';
@@ -34,7 +35,8 @@ export class ProjectsService {
     private prisma: PrismaService,
     private workspacesService: WorkspacesService,
     private notificationsService: NotificationsService,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private usageService: UsageService
   ) {}
 
   async findAllForWorkspace(workspaceId: string, userId: string): Promise<Project[]> {
@@ -138,6 +140,12 @@ export class ProjectsService {
   async create(data: CreateProjectDto, userId: string): Promise<Project> {
     await this.workspacesService.verifyAccess(data.workspaceId, userId);
 
+    // Check if user can create more goals (quota enforcement for FREE tier)
+    const workspace = await this.prisma.workspace.findUnique({ where: { id: data.workspaceId } });
+    if (workspace) {
+      await this.usageService.enforceQuota(workspace.ownerId, 'goals');
+    }
+
     const project = await this.prisma.project.create({
       data: {
         ...data,
@@ -152,6 +160,12 @@ export class ProjectsService {
         reviewNotes: true,
       },
     });
+
+    // Increment usage counter for workspace owner
+    if (workspace) {
+      await this.usageService.incrementUsage(workspace.ownerId, 'goals');
+    }
+
     return transformProjectChecklist(project);
   }
 
@@ -307,8 +321,17 @@ export class ProjectsService {
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    await this.findById(id, userId);
+    const project = await this.findById(id, userId);
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: project.workspaceId },
+    });
+
     await this.prisma.project.delete({ where: { id } });
+
+    // Decrement usage counter for workspace owner
+    if (workspace) {
+      await this.usageService.decrementUsage(workspace.ownerId, 'goals');
+    }
   }
 
   async addRequirement(projectId: string, text: string, userId: string): Promise<Project> {

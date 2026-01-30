@@ -20,7 +20,23 @@
       "Bash(pnpm --version:*)",
       "Bash(find:*)",
       "Bash(pnpm --filter @goals/e2e exec playwright test:*)",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(node --version:*)",
+      "Bash(source:*)",
+      "Bash(nvm use:*)",
+      "Bash(ls:*)",
+      "Bash(/Users/tolulopeadetula/.nvm/versions/node/v18.20.3/bin/npx prisma migrate dev)",
+      "Bash(pnpm exec prisma migrate dev:*)",
+      "Bash(~/.nvm/versions/node/v22.11.0/bin/node ~/.nvm/versions/node/v22.11.0/bin/npx prisma migrate dev:*)",
+      "Bash(~/.nvm/versions/node/v22.11.0/bin/npx turbo run db:migrate --filter=@goals/database)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(pnpm --filter @goals/api test)",
+      "Bash(npm install:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm --filter @goals/web build:*)",
+      "Bash(docker-compose:*)",
+      "Bash(pnpm lint:*)"
     ]
   }
 }

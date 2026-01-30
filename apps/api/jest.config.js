@@ -19,6 +19,7 @@ module.exports = {
   moduleNameMapper: {
     '^@goals/database$': '<rootDir>/../../packages/database/src',
     '^@goals/shared$': '<rootDir>/../../packages/shared/src',
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],

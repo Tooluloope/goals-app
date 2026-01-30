@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
+import { UsageService } from '../usage/usage.service';
 
 describe('ProjectsService', () => {
   let service: ProjectsService;
@@ -88,6 +89,14 @@ describe('ProjectsService', () => {
       sendGoalCompletedEmail: jest.fn().mockResolvedValue({ success: true }),
     };
 
+    const mockUsageService = {
+      getUsageInfo: jest.fn(),
+      canCreate: jest.fn().mockResolvedValue(true),
+      enforceQuota: jest.fn(),
+      incrementUsage: jest.fn(),
+      decrementUsage: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProjectsService,
@@ -95,6 +104,7 @@ describe('ProjectsService', () => {
         { provide: WorkspacesService, useValue: mockWorkspacesService } as any,
         { provide: NotificationsService, useValue: mockNotificationsService } as any,
         { provide: EmailService, useValue: mockEmailService } as any,
+        { provide: UsageService, useValue: mockUsageService } as any,
       ],
     }).compile();
 

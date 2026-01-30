@@ -497,6 +497,44 @@ export const dismissInsightSchema = z.object({
 });
 
 // ============================================================
+// SUBSCRIPTION SCHEMAS
+// ============================================================
+
+export const subscriptionPlanEnum = z.enum(['FREE', 'PRO', 'FAMILY']);
+export const subscriptionStatusEnum = z.enum([
+  'ACTIVE',
+  'TRIALING',
+  'PAST_DUE',
+  'CANCELED',
+  'INCOMPLETE',
+  'INCOMPLETE_EXPIRED',
+  'UNPAID',
+]);
+
+export const createCheckoutSessionSchema = z.object({
+  plan: subscriptionPlanEnum,
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+});
+
+export const createPortalSessionSchema = z.object({
+  returnUrl: z.string().url().optional(),
+});
+
+export const updateSubscriptionSchema = z.object({
+  plan: subscriptionPlanEnum,
+});
+
+export const cancelSubscriptionSchema = z.object({
+  cancelAtPeriodEnd: z.boolean().default(true),
+});
+
+// Usage quota check
+export const checkQuotaSchema = z.object({
+  resource: z.enum(['goals', 'habits', 'workspaces']),
+});
+
+// ============================================================
 // TYPE EXPORTS
 // ============================================================
 
@@ -539,3 +577,12 @@ export type SendAiMessageDto = z.infer<typeof sendAiMessageSchema>;
 export type GenerateSummaryDto = z.infer<typeof generateSummarySchema>;
 export type GenerateInsightsDto = z.infer<typeof generateInsightsSchema>;
 export type DismissInsightDto = z.infer<typeof dismissInsightSchema>;
+
+// Subscription DTOs
+export type SubscriptionPlan = z.infer<typeof subscriptionPlanEnum>;
+export type SubscriptionStatus = z.infer<typeof subscriptionStatusEnum>;
+export type CreateCheckoutSessionDto = z.infer<typeof createCheckoutSessionSchema>;
+export type CreatePortalSessionDto = z.infer<typeof createPortalSessionSchema>;
+export type UpdateSubscriptionDto = z.infer<typeof updateSubscriptionSchema>;
+export type CancelSubscriptionDto = z.infer<typeof cancelSubscriptionSchema>;
+export type CheckQuotaDto = z.infer<typeof checkQuotaSchema>;

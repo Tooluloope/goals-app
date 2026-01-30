@@ -28,6 +28,8 @@ import {
   Eye,
   EyeOff,
   Zap,
+  CreditCard,
+  Crown,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
@@ -152,6 +154,7 @@ function CollapsibleCard({
 
 type SectionId =
   | 'profile'
+  | 'subscription'
   | 'email'
   | 'password'
   | 'regional'
@@ -165,6 +168,8 @@ type SectionId =
 // Map URL hash values to section IDs
 const HASH_TO_SECTION: Record<string, SectionId> = {
   profile: 'profile',
+  subscription: 'subscription',
+  billing: 'subscription', // Alias for subscription section
   email: 'email',
   password: 'password',
   security: 'password', // Alias for password section
@@ -281,6 +286,17 @@ export default function SettingsPage() {
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
 
+  // Subscription state
+  const [subscription, setSubscription] = useState<{
+    plan: 'FREE' | 'PRO' | 'FAMILY';
+    status: string;
+    trialEndsAt: string | null;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  } | null>(null);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const [isOpeningBillingPortal, setIsOpeningBillingPortal] = useState(false);
+
   // Get family workspace
   const familyWorkspace = workspaces.find((w) => w.type === 'family');
 
@@ -335,6 +351,23 @@ export default function SettingsPage() {
     setAvatarUrl(user?.avatar || '');
     setNewEmail(user?.email || '');
   }, [user]);
+
+  // Fetch subscription status
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        setIsLoadingSubscription(true);
+        const data = await apiClient.getSubscriptionStatus();
+        setSubscription(data);
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error);
+      } finally {
+        setIsLoadingSubscription(false);
+      }
+    };
+
+    fetchSubscription();
+  }, []);
 
   const config = currentWorkspace ? getConfig(currentWorkspace.id) : null;
 
@@ -733,6 +766,41 @@ export default function SettingsPage() {
     }
   };
 
+  const handleManageBilling = async () => {
+    setIsOpeningBillingPortal(true);
+    try {
+      const { url } = await apiClient.createBillingPortalSession();
+      window.location.href = url;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to open billing portal';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+      setIsOpeningBillingPortal(false);
+    }
+  };
+
+  const handleUpgrade = async (plan: 'PRO' | 'FAMILY') => {
+    try {
+      const appUrl = window.location.origin;
+      const { url } = await apiClient.createCheckoutSession(
+        plan,
+        `${appUrl}/settings#subscription`,
+        `${appUrl}/settings#subscription`
+      );
+      window.location.href = url;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to start checkout';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <AppLayout title="Settings">
       <div className="container max-w-2xl px-4 py-6">
@@ -810,6 +878,245 @@ export default function SettingsPage() {
               </Button>
             </div>
           </div>
+        </CollapsibleCard>
+
+        {/* Subscription / Billing */}
+        <CollapsibleCard
+          id="subscription"
+          icon={<CreditCard className="h-5 w-5" />}
+          title="Subscription & Billing"
+          description="Manage your subscription plan and billing"
+          isExpanded={expandedSections.has('subscription')}
+          onToggle={() => toggleSection('subscription')}
+        >
+          {isLoadingSubscription ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Current Plan */}
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    {subscription?.plan === 'FREE' ? (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                        <User className="h-6 w-6" />
+                      </div>
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 text-white">
+                        <Crown className="h-6 w-6" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold">
+                          {subscription?.plan || 'FREE'} Plan
+                        </h3>
+                        {subscription?.plan !== 'FREE' && (
+                          <Badge variant="secondary" className="uppercase">
+                            {subscription?.status || 'Active'}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {subscription?.plan === 'FREE'
+                          ? 'Limited goals and habits'
+                          : subscription?.plan === 'PRO'
+                            ? 'Unlimited goals and habits'
+                            : 'Unlimited goals, habits, and family sharing'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional subscription info */}
+                {subscription?.plan !== 'FREE' && (
+                  <div className="mt-4 space-y-2 border-t pt-4">
+                    {subscription?.currentPeriodEnd && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {subscription?.cancelAtPeriodEnd ? 'Ends on' : 'Renews on'}
+                        </span>
+                        <span className="font-medium">
+                          {new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {subscription?.trialEndsAt && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Trial ends</span>
+                        <span className="font-medium">
+                          {new Date(subscription.trialEndsAt).toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {subscription?.cancelAtPeriodEnd && (
+                      <div className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">
+                        Your subscription will be cancelled at the end of the billing period.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="space-y-3">
+                {subscription?.plan === 'FREE' ? (
+                  <>
+                    <Button onClick={() => handleUpgrade('PRO')} className="w-full" size="lg">
+                      <Crown className="mr-2 h-4 w-4" />
+                      Upgrade to PRO
+                    </Button>
+                    <Button
+                      onClick={() => handleUpgrade('FAMILY')}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Upgrade to FAMILY
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={handleManageBilling}
+                    variant="outline"
+                    className="w-full"
+                    disabled={isOpeningBillingPortal}
+                  >
+                    {isOpeningBillingPortal ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Opening...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Manage Billing
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              {/* Plan comparison */}
+              {subscription?.plan === 'FREE' && (
+                <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+                  <h4 className="mb-3 font-semibold">Upgrade Benefits</h4>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <div className="mt-0.5 rounded-full bg-green-500 p-0.5">
+                        <svg
+                          className="h-3 w-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                      <span>Unlimited goals and habits</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="mt-0.5 rounded-full bg-green-500 p-0.5">
+                        <svg
+                          className="h-3 w-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                      <span>AI-powered insights and summaries</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="mt-0.5 rounded-full bg-green-500 p-0.5">
+                        <svg
+                          className="h-3 w-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                      <span>Advanced analytics and reviews</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="mt-0.5 rounded-full bg-green-500 p-0.5">
+                        <svg
+                          className="h-3 w-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                      <span>Priority support</span>
+                    </li>
+                    {subscription?.plan === 'FREE' && (
+                      <li className="flex items-start gap-2">
+                        <div className="mt-0.5 rounded-full bg-purple-500 p-0.5">
+                          <svg
+                            className="h-3 w-3 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </div>
+                        <span>
+                          <strong>FAMILY plan:</strong> Share with family members
+                        </span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </CollapsibleCard>
 
         {/* Email Change */}

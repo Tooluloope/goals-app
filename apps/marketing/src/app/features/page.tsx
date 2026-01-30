@@ -26,7 +26,7 @@ const pillars = [
   {
     title: 'Shared Rhythms',
     description:
-      'Daily, weekly, and monthly reviews sync everyone on the same cadence with lightweight prompts.',
+      'Daily, weekly, and monthly reviews sync everyone on the same cadence with shared calendars.',
     icon: CalendarCheck2,
   },
   {

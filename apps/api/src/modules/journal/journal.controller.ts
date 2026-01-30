@@ -1,14 +1,17 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { JournalService } from './journal.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequiresPlan } from '../../common/decorators/requires-plan.decorator';
 import { CreateJournalEntryDto, UpdateJournalEntryDto } from '@goals/shared';
 import { User, JournalEntry } from '@goals/database';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
 @Controller('journal')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@RequiresPlan('PRO')
 export class JournalController {
   constructor(private journalService: JournalService) {}
 

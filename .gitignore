@@ -27,6 +27,12 @@ yarn-error.log*
 # Local env files
 .env*.local
 .env
+.env.prod
+
+# App-specific env files
+apps/*/.env
+apps/*/.env.prod
+apps/*/.env*.local
 
 # Vercel
 .vercel
@@ -46,5 +52,3 @@ packages/database/prisma/*.db
 packages/database/prisma/*.db-journal
 **/test-results
 **/playwright-report
-
-.env.prod

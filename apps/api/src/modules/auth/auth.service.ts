@@ -13,6 +13,8 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
+import { StripeService } from '../stripe/stripe.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { LoginDto, SignupDto, AuthTokens, DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -40,7 +42,9 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private prisma: PrismaService,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private stripeService: StripeService,
+    private subscriptionsService: SubscriptionsService
   ) {}
 
   async validateUser(email: string, password: string): Promise<UserWithoutPassword | null> {
@@ -131,6 +135,19 @@ export class AuthService {
     });
 
     const { passwordHash: _hash, ...userWithoutPassword } = result;
+
+    // Initialize subscription and usage quota for new user
+    try {
+      const stripeCustomer = await this.stripeService.createOrGetCustomer(
+        result.id,
+        result.email,
+        result.name
+      );
+      await this.subscriptionsService.initializeForNewUser(result.id, stripeCustomer, 'FREE');
+    } catch (error) {
+      this.logger.error(`Failed to initialize subscription for new user ${result.id}:`, error);
+      // Don't fail signup if subscription initialization fails
+    }
 
     // Auto-join any pending workspace invites for this email
     const pendingInvites = await this.prisma.workspaceInvite.findMany({

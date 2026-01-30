@@ -12,6 +12,8 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { StripeService } from '../stripe/stripe.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 // Mock bcrypt
 jest.mock('bcrypt', () => ({
@@ -90,6 +92,27 @@ describe('AuthService', () => {
       sendMagicLinkEmail: jest.fn().mockResolvedValue({}),
     };
 
+    const mockStripeService = {
+      createOrGetCustomer: jest.fn().mockResolvedValue('cus_123'),
+      createCheckoutSession: jest.fn(),
+      createPortalSession: jest.fn(),
+      cancelSubscription: jest.fn(),
+      handleSubscriptionUpdate: jest.fn(),
+      handleSubscriptionDeleted: jest.fn(),
+      constructWebhookEvent: jest.fn(),
+    };
+
+    const mockSubscriptionsService = {
+      getOrCreateSubscription: jest.fn(),
+      getSubscriptionStatus: jest.fn(),
+      requiresPlan: jest.fn(),
+      enforceplan: jest.fn(),
+      canAccessAI: jest.fn(),
+      canCreateFamilyWorkspace: jest.fn(),
+      getPlanLimits: jest.fn(),
+      initializeForNewUser: jest.fn().mockResolvedValue({}),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -98,6 +121,8 @@ describe('AuthService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: UsersService, useValue: mockUsersService },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: StripeService, useValue: mockStripeService },
+        { provide: SubscriptionsService, useValue: mockSubscriptionsService },
       ],
     }).compile();
 
