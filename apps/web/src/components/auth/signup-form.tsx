@@ -40,7 +40,7 @@ export function SignupForm() {
 
   // Capture plan from URL query parameter
   useEffect(() => {
-    const plan = searchParams.get('plan');
+    const plan = searchParams?.get('plan');
     if (plan && ['pro', 'family'].includes(plan.toLowerCase())) {
       setSelectedPlan(plan.toUpperCase());
     }

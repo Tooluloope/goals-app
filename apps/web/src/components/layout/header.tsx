@@ -215,7 +215,7 @@ export function Header({ title }: HeaderProps) {
                     return hasPlanAccess(userPlan, requirement.requiredPlan);
                   });
                 })().map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                  const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
                   return (
                     <Link key={item.name} href={item.href} onClick={() => setSheetOpen(false)}>
                       <Button

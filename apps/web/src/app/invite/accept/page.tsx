@@ -18,7 +18,7 @@ interface InvitePreview {
 export default function AcceptInvitePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams?.get('token');
   const { isAuthenticated, user, loadWorkspaces } = useAuthStore();
   const { toast } = useToast();
 

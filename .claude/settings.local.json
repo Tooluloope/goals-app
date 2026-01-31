@@ -37,7 +37,8 @@
       "Bash(pnpm --filter @goals/web build:*)",
       "Bash(docker-compose:*)",
       "Bash(pnpm lint:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(pnpm build:*)"
     ]
   }
 }

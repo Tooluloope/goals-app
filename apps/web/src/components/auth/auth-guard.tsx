@@ -18,7 +18,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const { status } = useSession();
 
   const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith('/auth/')
+    (route) => pathname === route || pathname?.startsWith('/auth/')
   );
 
   useEffect(() => {

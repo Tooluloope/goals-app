@@ -71,8 +71,8 @@ import {
 export default function TaskDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const projectId = params.id as string;
-  const taskId = params.taskId as string;
+  const projectId = params?.id as string;
+  const taskId = params?.taskId as string;
 
   const { data: task, isLoading: taskLoading } = useTask(taskId);
   const { data: project, isLoading: projectLoading } = useProject(projectId);

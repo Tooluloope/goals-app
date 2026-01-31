@@ -145,12 +145,12 @@ export function Sidebar() {
       queryClient.invalidateQueries({ queryKey: taskKeys.all });
 
       // Check if on a detail page with workspace-specific data (e.g., /project/[id])
-      const isOnDetailPage = workspaceDetailPaths.some((path) => pathname.startsWith(path));
+      const isOnDetailPage = workspaceDetailPaths.some((path) => pathname?.startsWith(path));
       if (isOnDetailPage) {
         // Redirect to the list page for the new workspace
-        if (pathname.startsWith('/project/')) {
+        if (pathname?.startsWith('/project/')) {
           router.push('/projects');
-        } else if (pathname.startsWith('/ai/')) {
+        } else if (pathname?.startsWith('/ai/')) {
           router.push('/ai');
         }
         return;
@@ -160,7 +160,7 @@ export function Sidebar() {
       if (isCurrentlyPersonal && isSwitchingToFamily) {
         // Switching from personal to family
         const isOnPersonalOnlyPage = personalOnlyPaths.some(
-          (path) => pathname === path || pathname.startsWith(path + '/')
+          (path) => pathname === path || pathname?.startsWith(path + '/')
         );
         if (isOnPersonalOnlyPage) {
           router.push('/family');
@@ -168,7 +168,7 @@ export function Sidebar() {
       } else if (!isCurrentlyPersonal && isSwitchingToPersonal) {
         // Switching from family to personal
         const isOnFamilyOnlyPage = familyOnlyPaths.some(
-          (path) => pathname === path || pathname.startsWith(path + '/')
+          (path) => pathname === path || pathname?.startsWith(path + '/')
         );
         if (isOnFamilyOnlyPage) {
           router.push('/dashboard');

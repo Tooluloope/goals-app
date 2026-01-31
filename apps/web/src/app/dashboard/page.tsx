@@ -35,7 +35,7 @@ export default function DashboardPage() {
   }, [currentWorkspace, router]);
 
   useEffect(() => {
-    const checkout = searchParams.get('checkout');
+    const checkout = searchParams?.get('checkout');
     if (!checkout) {
       return;
     }

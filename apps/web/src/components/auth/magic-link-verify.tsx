@@ -25,7 +25,7 @@ export function MagicLinkVerify() {
     if (verificationAttempted.current) return;
     verificationAttempted.current = true;
 
-    const token = searchParams.get('token');
+    const token = searchParams?.get('token');
 
     if (!token) {
       setState('error');

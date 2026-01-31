@@ -69,7 +69,7 @@ const AREA_GRADIENTS: Record<string, string> = {
 export default function AreaProjectsPage() {
   const params = useParams();
   const router = useRouter();
-  const areaId = params.areaId as string;
+  const areaId = params?.areaId as string;
 
   const { data: projects, isLoading } = useProjects();
   const { currentWorkspace } = useAuthStore();

@@ -49,13 +49,10 @@ export function VerifyEmail() {
     if (attempted.current) return;
     attempted.current = true;
 
-    const token = searchParams.get('token');
+    const token = searchParams?.get('token');
 
     if (!token) {
-      setState('error');
-      setTimeout(() => {
-        router.replace('/400');
-      }, 800);
+      onVerificationError();
       return;
     }
 

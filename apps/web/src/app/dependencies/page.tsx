@@ -35,7 +35,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 export default function DependenciesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const showDebug = searchParams.get('debug') === '1';
+  const showDebug = searchParams?.get('debug') === '1';
   const { data: projects, isLoading } = useProjects();
   const { currentWorkspace } = useAuthStore();
   const { getStatusById, getPriorityById } = useConfigStore();

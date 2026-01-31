@@ -28,7 +28,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
   const viewMode = useViewMode();
   const pathname = usePathname();
   const router = useRouter();
-  const planRequirement = getPlanRequirement(pathname);
+  const planRequirement = getPlanRequirement(pathname ?? '');
   const { data: subscription, isLoading: isSubscriptionLoading } = useSubscriptionStatus(
     Boolean(planRequirement) && isAuthenticated
   );
@@ -36,7 +36,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
 
   // Mode guard - redirect Focus Mode users from Power Mode routes
   useEffect(() => {
-    const redirectPath = getFocusModeRedirect(pathname, viewMode);
+    const redirectPath = getFocusModeRedirect(pathname ?? '', viewMode);
     if (redirectPath) {
       router.replace(redirectPath);
     }

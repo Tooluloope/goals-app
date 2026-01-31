@@ -25,7 +25,7 @@ const errorMessages: Record<string, string> = {
 
 function ErrorContent() {
   const searchParams = useSearchParams();
-  const error = searchParams.get('error');
+  const error = searchParams?.get('error') ?? null;
 
   const errorMessage = error
     ? errorMessages[error] || errorMessages.Default

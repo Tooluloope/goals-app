@@ -13,7 +13,7 @@ import { useUIStore } from '@/store/ui-store';
 
 export default function ProjectPage() {
   const params = useParams();
-  const projectId = params.id as string;
+  const projectId = params?.id as string;
   const { data: project, isLoading, error } = useProject(projectId);
   const { openAddTaskModal, openAddReviewModal } = useUIStore();
 
