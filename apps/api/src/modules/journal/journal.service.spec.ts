@@ -1,7 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { JournalService } from './journal.service';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
 import { PrismaService } from '../../prisma/prisma.service';
+
+import { JournalService } from './journal.service';
 
 describe('JournalService', () => {
   let service: JournalService;

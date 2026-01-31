@@ -1,8 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+
+import type { WorkspaceConfig } from '@goals/database';
+import type { UpdateWorkspaceConfigDto } from '@goals/shared';
+import { DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { WorkspacesService } from '../workspaces/workspaces.service';
-import { UpdateWorkspaceConfigDto, DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
-import { WorkspaceConfig } from '@goals/database';
 
 @Injectable()
 export class ConfigService {

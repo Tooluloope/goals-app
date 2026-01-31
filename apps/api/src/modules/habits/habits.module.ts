@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
-import { HabitsService } from './habits.service';
-import { HabitsController } from './habits.controller';
-import { UsageModule } from '../usage/usage.module';
+
 import { EmailModule } from '../email/email.module';
+import { UsageModule } from '../usage/usage.module';
+
+import { HabitsController } from './habits.controller';
+import { HabitsService } from './habits.service';
 
 @Module({
   imports: [UsageModule, EmailModule],

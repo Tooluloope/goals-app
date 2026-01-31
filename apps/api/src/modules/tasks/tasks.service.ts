@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { addDays, addMonths, addWeeks, addYears, setDay, startOfDay } from 'date-fns';
+
+import type { RecurrenceType as PrismaRecurrenceType, Task, TaskDependency } from '@goals/database';
+import type { CreateTaskDto, RecurrenceType, UpdateTaskDto } from '@goals/shared';
+
+import { normalizeImageAttachments } from '../../common/utils/image-validation';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
-import { CreateTaskDto, UpdateTaskDto, RecurrenceType } from '@goals/shared';
-import { Task, TaskDependency, RecurrenceType as PrismaRecurrenceType } from '@goals/database';
-import { addDays, addWeeks, addMonths, addYears, setDay, startOfDay } from 'date-fns';
-import { normalizeImageAttachments } from '../../common/utils/image-validation';
 
 @Injectable()
 export class TasksService {

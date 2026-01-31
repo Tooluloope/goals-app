@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
-import { JournalService } from './journal.service';
-import { JournalController } from './journal.controller';
+
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+
+import { JournalController } from './journal.controller';
+import { JournalService } from './journal.service';
 
 @Module({
   imports: [SubscriptionsModule],

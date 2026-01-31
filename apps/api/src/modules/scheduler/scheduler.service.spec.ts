@@ -1,7 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SchedulerService } from './scheduler.service';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+
+import { SchedulerService } from './scheduler.service';
 
 describe('SchedulerService', () => {
   let service: SchedulerService;

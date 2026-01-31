@@ -1,10 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { WorkspacesService } from './workspaces.service';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { UsageService } from '../usage/usage.service';
+
+import { WorkspacesService } from './workspaces.service';
 
 describe('WorkspacesService', () => {
   let service: WorkspacesService;

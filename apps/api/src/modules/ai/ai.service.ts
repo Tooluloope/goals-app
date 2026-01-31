@@ -1,24 +1,21 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AnthropicProvider, StreamEvent } from './providers/anthropic.provider';
-import {
-  DataAggregatorService,
-  WeeklyData,
-  MonthlyData,
-  YearlyData,
-  UserContext,
-} from './services/data-aggregator.service';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { endOfMonth, endOfWeek, endOfYear, format, parseISO, startOfDay } from 'date-fns';
 import { Observable } from 'rxjs';
-import {
-  SummaryType,
-  MessageRole,
-  InsightType,
-  AiSummary,
-  AiInsight,
-  AiConversation,
-  AiMessage,
-} from '@goals/database';
-import { startOfDay, parseISO, format, endOfWeek, endOfMonth, endOfYear } from 'date-fns';
+
+import type { AiConversation, AiInsight, AiMessage, AiSummary, InsightType } from '@goals/database';
+import { MessageRole, SummaryType } from '@goals/database';
+
+import { PrismaService } from '../../prisma/prisma.service';
+
+import type { StreamEvent } from './providers/anthropic.provider';
+import { AnthropicProvider } from './providers/anthropic.provider';
+import type {
+  MonthlyData,
+  UserContext,
+  WeeklyData,
+  YearlyData,
+} from './services/data-aggregator.service';
+import { DataAggregatorService } from './services/data-aggregator.service';
 
 // Explicit return types for Prisma queries
 interface ConversationWithLastMessage extends AiConversation {

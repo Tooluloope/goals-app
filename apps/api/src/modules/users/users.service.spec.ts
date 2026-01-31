@@ -1,7 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
 import { PrismaService } from '../../prisma/prisma.service';
+
+import { UsersService } from './users.service';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -82,6 +85,7 @@ describe('UsersService', () => {
           defaultWorkspaceId: true,
           hasSetPassword: true,
           timezone: true,
+          emailVerifiedAt: true,
           settings: true,
           createdAt: true,
           updatedAt: true,
@@ -287,6 +291,7 @@ describe('UsersService', () => {
           defaultWorkspaceId: true,
           hasSetPassword: true,
           timezone: true,
+          emailVerifiedAt: true,
           settings: true,
           createdAt: true,
           updatedAt: true,

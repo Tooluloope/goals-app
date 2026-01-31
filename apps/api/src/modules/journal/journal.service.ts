@@ -1,15 +1,17 @@
 import {
+  BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
-  ConflictException,
-  BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreateJournalEntryDto, UpdateJournalEntryDto } from '@goals/shared';
-import { JournalEntry, Mood } from '@goals/database';
-import { startOfDay, parseISO } from 'date-fns';
+import { parseISO, startOfDay } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+
+import type { JournalEntry, Mood } from '@goals/database';
+import type { CreateJournalEntryDto, UpdateJournalEntryDto } from '@goals/shared';
+
 import { validateImageUrl } from '../../common/utils/image-validation';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class JournalService {

@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { WorkspacesService } from '../workspaces/workspaces.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { EmailService } from '../email/email.service';
-import { UsageService } from '../usage/usage.service';
-import { CreateProjectDto, UpdateProjectDto, AddReviewDto } from '@goals/shared';
-import { Project, ProjectDependency } from '@goals/database';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { differenceInDays } from 'date-fns';
+
+import type { Project, ProjectDependency } from '@goals/database';
+import type { AddReviewDto, CreateProjectDto, UpdateProjectDto } from '@goals/shared';
+
 import { normalizeImageAttachments } from '../../common/utils/image-validation';
+import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { UsageService } from '../usage/usage.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 
 // Status IDs that indicate completion
 const COMPLETED_STATUS_IDS = ['status-done', 'status-completed'];

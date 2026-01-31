@@ -1,20 +1,23 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
+  Patch,
   Post,
   Put,
-  Patch,
-  Delete,
-  Body,
-  Param,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { TasksService } from './tasks.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import type { Task, TaskDependency, User } from '@goals/database';
+import { CompleteRecurringTaskDto, CreateTaskDto, UpdateTaskDto } from '@goals/shared';
+
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { CreateTaskDto, UpdateTaskDto, CompleteRecurringTaskDto } from '@goals/shared';
-import { User, Task, TaskDependency } from '@goals/database';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import { TasksService } from './tasks.service';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 

@@ -1,7 +1,9 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Observable } from 'rxjs';
+import { Subject } from 'rxjs';
+
 import Anthropic from '@anthropic-ai/sdk';
-import { Observable, Subject } from 'rxjs';
 
 export interface StreamEvent {
   type: 'chunk' | 'done' | 'error';

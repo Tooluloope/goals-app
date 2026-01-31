@@ -1,7 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+
+import type { ResourceType } from '../../modules/usage/usage.service';
+import { UsageService } from '../../modules/usage/usage.service';
 import { CHECK_QUOTA_KEY } from '../decorators/check-quota.decorator';
-import { UsageService, ResourceType } from '../../modules/usage/usage.service';
 
 @Injectable()
 export class QuotaGuard implements CanActivate {

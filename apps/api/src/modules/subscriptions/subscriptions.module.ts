@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
-import { SubscriptionsService } from './subscriptions.service';
-import { SubscriptionsController } from './subscriptions.controller';
+
 import { PrismaModule } from '../../prisma/prisma.module';
+
+import { SubscriptionsController } from './subscriptions.controller';
+import { SubscriptionsService } from './subscriptions.service';
 
 @Module({
   imports: [PrismaModule],

@@ -1,8 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { StripeService } from './stripe.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import Stripe from 'stripe';
+
+import { PrismaService } from '../../prisma/prisma.service';
+
+import { StripeService } from './stripe.service';
 
 type PrismaSubscription = {
   id: string;

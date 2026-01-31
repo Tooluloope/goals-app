@@ -1,10 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { HabitsService } from './habits.service';
+import { NotFoundException } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import { subDays } from 'date-fns';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { UsageService } from '../usage/usage.service';
-import { NotFoundException } from '@nestjs/common';
-import { subDays } from 'date-fns';
+
+import { HabitsService } from './habits.service';
 
 describe('HabitsService', () => {
   let service: HabitsService;

@@ -1,10 +1,12 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-custom';
 import { ConfigService } from '@nestjs/config';
-import { UsersService } from '../../users/users.service';
-import { User } from '@goals/database';
+import { PassportStrategy } from '@nestjs/passport';
 import * as jwt from 'jsonwebtoken';
+import { Strategy } from 'passport-custom';
+
+import type { User } from '@goals/database';
+
+import { UsersService } from '../../users/users.service';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 

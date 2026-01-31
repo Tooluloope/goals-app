@@ -1,17 +1,19 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { getDay, startOfWeek, subDays } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+
+import type { Habit, HabitLog } from '@goals/database';
+import type {
+  CreateHabitDto,
+  HabitFrequency,
+  HabitWithStats,
+  ToggleHabitLogDto,
+  UpdateHabitDto,
+} from '@goals/shared';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { UsageService } from '../usage/usage.service';
-import {
-  CreateHabitDto,
-  UpdateHabitDto,
-  ToggleHabitLogDto,
-  HabitWithStats,
-  HabitFrequency,
-} from '@goals/shared';
-import { Habit, HabitLog } from '@goals/database';
-import { subDays, startOfWeek, getDay } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
 
 // Streak milestones that trigger celebration emails
 const STREAK_MILESTONES = [7, 30, 100, 365] as const;

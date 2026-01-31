@@ -1,20 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
-import {
-  emailTemplates,
+
+import type {
   BaseEmailData,
-  SummaryData,
-  ReminderData,
-  InviteData,
-  SecurityData,
-  StreakData,
-  GoalData,
-  InsightData,
-  InactivityData,
-  StaleProjectData,
-  ReviewDueData,
   EmailTemplateKey,
+  GoalData,
+  InactivityData,
+  InsightData,
+  InviteData,
+  ReminderData,
+  ReviewDueData,
+  SecurityData,
+  StaleProjectData,
+  StreakData,
+  SummaryData,
 } from '../../emails/templates';
+import { emailTemplates } from '../../emails/templates';
 
 // Union type of all possible email data
 type EmailData =

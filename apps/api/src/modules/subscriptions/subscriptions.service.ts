@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+
 import { PrismaService } from '../../prisma/prisma.service';
 
 export type SubscriptionPlan = 'FREE' | 'PRO' | 'FAMILY';

@@ -1,17 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../../prisma/prisma.service';
-import { EmailService } from '../email/email.service';
 import {
+  endOfMonth,
+  endOfWeek,
+  format,
+  startOfMonth,
+  startOfWeek,
   subDays,
   subWeeks,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  format,
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+
+import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 interface EmailPreferences {
   habitReminders?: boolean;

@@ -1,36 +1,33 @@
+import type { MessageEvent } from '@nestjs/common';
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Patch,
-  Param,
-  Query,
   Body,
-  UseGuards,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
   Sse,
-  MessageEvent,
+  UseGuards,
 } from '@nestjs/common';
-import { Observable, map } from 'rxjs';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { SubscriptionGuard } from '../../common/guards/subscription.guard';
+import { map, Observable } from 'rxjs';
+
+import type { AiConversation, AiInsight, AiMessage, AiSummary, InsightType } from '@goals/database';
+import { SummaryType } from '@goals/database';
+
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequiresPlan } from '../../common/decorators/requires-plan.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SubscriptionGuard } from '../../common/guards/subscription.guard';
+
 import { AiService } from './ai.service';
 import {
   CreateConversationDto,
-  SendMessageDto,
   GenerateSummaryDto,
+  SendMessageDto,
   SummaryTypeEnum,
 } from './dto/ai.dto';
-import {
-  SummaryType,
-  InsightType,
-  AiSummary,
-  AiInsight,
-  AiConversation,
-  AiMessage,
-} from '@goals/database';
 
 interface UserWithoutPassword {
   id: string;

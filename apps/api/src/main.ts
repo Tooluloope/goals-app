@@ -1,8 +1,10 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { json, urlencoded } from 'express';
-import cookieParser from 'cookie-parser';
 import * as nodeCrypto from 'node:crypto';
+
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
+import { json, urlencoded } from 'express';
+
 import { AppModule } from './app.module';
 
 // Ensure global crypto exists for libraries expecting Web Crypto.

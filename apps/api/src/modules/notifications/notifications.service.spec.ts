@@ -1,7 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationsService } from './notifications.service';
-import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
+import { PrismaService } from '../../prisma/prisma.service';
+
+import { NotificationsService } from './notifications.service';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;

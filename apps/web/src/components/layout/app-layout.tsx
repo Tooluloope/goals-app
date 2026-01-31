@@ -15,6 +15,7 @@ import { getFocusModeRedirect } from '@/lib/mode-guard';
 import { getPlanRequirement, hasPlanAccess } from '@/lib/plan-guard';
 import { useSubscriptionStatus } from '@/hooks/use-subscription';
 import { UpgradePrompt } from '@/components/subscription/upgrade-prompt';
+import { EmailVerificationPrompt } from '@/components/auth/email-verification-prompt';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, title, showHeader = true }: AppLayoutProps) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const viewMode = useViewMode();
   const pathname = usePathname();
   const router = useRouter();
@@ -31,6 +32,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
   const { data: subscription, isLoading: isSubscriptionLoading } = useSubscriptionStatus(
     Boolean(planRequirement) && isAuthenticated
   );
+  const isEmailVerified = Boolean(user?.emailVerifiedAt);
 
   // Mode guard - redirect Focus Mode users from Power Mode routes
   useEffect(() => {
@@ -52,7 +54,9 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
 
   let content = children;
 
-  if (planRequirement) {
+  if (isAuthenticated && user && !isEmailVerified) {
+    content = <EmailVerificationPrompt email={user.email} />;
+  } else if (planRequirement) {
     if (isSubscriptionLoading) {
       content = (
         <div className="flex min-h-[70vh] items-center justify-center">

@@ -1,8 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TasksService } from './tasks.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+
+import { TasksService } from './tasks.service';
 
 describe('TasksService', () => {
   let service: TasksService;

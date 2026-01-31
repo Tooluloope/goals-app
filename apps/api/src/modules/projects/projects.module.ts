@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ProjectsService } from './projects.service';
-import { ProjectsController } from './projects.controller';
-import { WorkspacesModule } from '../workspaces/workspaces.module';
+
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsageModule } from '../usage/usage.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
+
+import { ProjectsController } from './projects.controller';
+import { ProjectsService } from './projects.service';
 
 @Module({
   imports: [WorkspacesModule, NotificationsModule, UsageModule],

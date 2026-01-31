@@ -12,6 +12,7 @@ const transformUser = (apiUser: any): User => ({
   defaultWorkspaceId: apiUser.defaultWorkspaceId,
   timezone: apiUser.timezone ?? 'UTC',
   hasSetPassword: apiUser.hasSetPassword ?? true,
+  emailVerifiedAt: apiUser.emailVerifiedAt ? new Date(apiUser.emailVerifiedAt) : null,
   settings: apiUser.settings,
   createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
   updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date(),

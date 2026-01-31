@@ -1,8 +1,11 @@
-import { Controller, Get, Patch, Delete, Param, UseGuards } from '@nestjs/common';
-import { NotificationsService } from './notifications.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Controller, Delete, Get, Param, Patch, UseGuards } from '@nestjs/common';
+
+import type { Notification, User } from '@goals/database';
+
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { User, Notification } from '@goals/database';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import { NotificationsService } from './notifications.service';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 

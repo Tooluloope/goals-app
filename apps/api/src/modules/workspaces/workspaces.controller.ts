@@ -1,19 +1,22 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
   Body,
-  UseGuards,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { WorkspacesService } from './workspaces.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import type { User, Workspace, WorkspaceInvite } from '@goals/database';
+
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-import { User, Workspace, WorkspaceInvite } from '@goals/database';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import { WorkspacesService } from './workspaces.service';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 type WorkspaceWithRole = Workspace & { role: string };

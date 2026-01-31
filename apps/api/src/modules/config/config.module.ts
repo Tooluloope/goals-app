@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from './config.service';
-import { ConfigController } from './config.controller';
+
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+
+import { ConfigController } from './config.controller';
+import { ConfigService } from './config.service';
 
 @Module({
   imports: [WorkspacesModule],

@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { HabitsService } from './habits.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+
+import type { Habit, HabitLog, User } from '@goals/database';
+import type { HabitWithStats } from '@goals/shared';
+import { CreateHabitDto, ToggleHabitLogDto, UpdateHabitDto } from '@goals/shared';
+
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { CreateHabitDto, UpdateHabitDto, ToggleHabitLogDto, HabitWithStats } from '@goals/shared';
-import { User, Habit, HabitLog } from '@goals/database';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import { HabitsService } from './habits.service';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 

@@ -1,11 +1,11 @@
 import {
-  IsString,
-  IsOptional,
-  MaxLength,
-  MinLength,
   IsBoolean,
   IsEnum,
+  IsOptional,
+  IsString,
   IsUUID,
+  MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class CreateConversationDto {

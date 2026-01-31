@@ -1,9 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
+
+import type { User } from '@goals/database';
+
 import { UsersService } from '../../users/users.service';
-import { User } from '@goals/database';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 

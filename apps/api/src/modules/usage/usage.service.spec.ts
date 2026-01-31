@@ -1,8 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
-import { UsageService } from './usage.service';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+
+import { UsageService } from './usage.service';
 
 describe('UsageService', () => {
   let service: UsageService;

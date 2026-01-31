@@ -1,9 +1,12 @@
-import { Controller, Get, Put, Post, Param, Body, UseGuards } from '@nestjs/common';
-import { ConfigService } from './config.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+
+import type { User, WorkspaceConfig } from '@goals/database';
 import { UpdateWorkspaceConfigDto } from '@goals/shared';
-import { User, WorkspaceConfig } from '@goals/database';
+
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import { ConfigService } from './config.service';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 

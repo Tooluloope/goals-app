@@ -1,24 +1,27 @@
 import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
   BadRequestException,
-  Logger,
+  ConflictException,
   ForbiddenException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+
+import type { User } from '@goals/database';
+import type { AuthTokens, LoginDto, SignupDto } from '@goals/shared';
+import { DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
+
 import { PrismaService } from '../../prisma/prisma.service';
-import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
 import { StripeService } from '../stripe/stripe.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { LoginDto, SignupDto, AuthTokens, DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
-import { ChangeEmailDto } from './dto/change-email.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { User } from '@goals/database';
+
+import type { ChangeEmailDto } from './dto/change-email.dto';
+import type { ChangePasswordDto } from './dto/change-password.dto';
 
 // Response types for Auth
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
@@ -38,7 +41,6 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
     private prisma: PrismaService,
@@ -191,6 +193,11 @@ export class AuthService {
     // Send welcome email (non-blocking)
     this.emailService.sendWelcomeEmail(result.email, result.name).catch((err) => {
       this.logger.error(`Failed to send welcome email to ${result.email}:`, err);
+    });
+
+    // Send verification email (non-blocking)
+    this.sendEmailVerification(result.id, result.email, result.name).catch((err) => {
+      this.logger.error(`Failed to send verification email to ${result.email}:`, err);
     });
 
     return {
@@ -357,6 +364,12 @@ export class AuthService {
 
     // If user exists, log them in
     if (magicLinkToken.user) {
+      if (!magicLinkToken.user.emailVerifiedAt) {
+        await this.prisma.user.update({
+          where: { id: magicLinkToken.user.id },
+          data: { emailVerifiedAt: new Date() },
+        });
+      }
       const { passwordHash: _passwordHash, ...userWithoutPassword } = magicLinkToken.user;
       const tokens = await this.generateTokens(magicLinkToken.user.id, magicLinkToken.user.email);
       await this.saveRefreshToken(magicLinkToken.user.id, tokens.refreshToken);
@@ -383,6 +396,7 @@ export class AuthService {
           name: userName,
           passwordHash,
           hasSetPassword: false,
+          emailVerifiedAt: new Date(),
           settings: {
             theme: 'light',
             compactMode: false,
@@ -479,6 +493,49 @@ export class AuthService {
     };
   }
 
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const verificationToken = await this.prisma.verificationToken.findUnique({
+      where: { token },
+    });
+
+    if (!verificationToken || verificationToken.expires < new Date()) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    const userId = verificationToken.identifier;
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      throw new BadRequestException('Invalid verification token');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { emailVerifiedAt: user.emailVerifiedAt ?? new Date() },
+      }),
+      this.prisma.verificationToken.delete({
+        where: { token },
+      }),
+    ]);
+
+    return { message: 'Email verified successfully' };
+  }
+
+  async resendVerificationEmail(userId: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    if (user.emailVerifiedAt) {
+      return { message: 'Email is already verified' };
+    }
+
+    await this.sendEmailVerification(user.id, user.email, user.name);
+    return { message: 'Verification email sent' };
+  }
+
   private async generateTokens(userId: string, email: string): Promise<AuthTokens> {
     const payload = { sub: userId, email };
 
@@ -523,8 +580,12 @@ export class AuthService {
 
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: { email: data.email },
+      data: { email: data.email, emailVerifiedAt: null },
       select: { id: true, email: true },
+    });
+
+    this.sendEmailVerification(userId, data.email, user.name).catch((err) => {
+      this.logger.error(`Failed to send verification email to ${data.email}:`, err);
     });
 
     // Invalidate refresh tokens so user reauthenticates
@@ -598,6 +659,28 @@ export class AuthService {
       );
 
     return { message: 'Password set successfully. Please log in again.' };
+  }
+
+  private async sendEmailVerification(userId: string, email: string, name: string): Promise<void> {
+    await this.prisma.verificationToken.deleteMany({
+      where: { identifier: userId },
+    });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 24);
+
+    await this.prisma.verificationToken.create({
+      data: {
+        identifier: userId,
+        token,
+        expires,
+      },
+    });
+
+    this.emailService.sendVerificationEmail(email, name, token).catch((err) => {
+      this.logger.error(`Failed to send verification email to ${email}:`, err);
+    });
   }
 
   async deleteAccount(userId: string, password: string): Promise<{ message: string }> {

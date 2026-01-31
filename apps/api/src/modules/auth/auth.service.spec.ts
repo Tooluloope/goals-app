@@ -1,19 +1,22 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import {
-  UnauthorizedException,
-  ConflictException,
   BadRequestException,
+  ConflictException,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
-import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.service';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { StripeService } from '../stripe/stripe.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { UsersService } from '../users/users.service';
+
+import { AuthService } from './auth.service';
 
 // Mock bcrypt
 jest.mock('bcrypt', () => ({
@@ -26,6 +29,7 @@ describe('AuthService', () => {
   let prismaService: any;
   let jwtService: any;
   let _configService: any;
+  let emailService: any;
 
   const mockUser = {
     id: 'user-1',
@@ -70,6 +74,12 @@ describe('AuthService', () => {
         upsert: jest.fn(),
         deleteMany: jest.fn(),
       },
+      verificationToken: {
+        create: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn(),
+        delete: jest.fn().mockResolvedValue({}),
+      },
       $transaction: jest.fn(),
     };
 
@@ -87,6 +97,7 @@ describe('AuthService', () => {
 
     const mockEmailService = {
       sendWelcomeEmail: jest.fn().mockResolvedValue({}),
+      sendVerificationEmail: jest.fn().mockResolvedValue({}),
       sendPasswordResetEmail: jest.fn().mockResolvedValue({}),
       sendPasswordChangedEmail: jest.fn().mockResolvedValue({}),
       sendMagicLinkEmail: jest.fn().mockResolvedValue({}),
@@ -130,6 +141,7 @@ describe('AuthService', () => {
     prismaService = module.get(PrismaService);
     jwtService = module.get(JwtService);
     _configService = module.get(ConfigService);
+    emailService = module.get(EmailService);
     prismaService.workspaceInvite.findMany.mockResolvedValue([]);
     prismaService.$transaction.mockImplementation(async (cb: any) => cb(prismaService));
   });
@@ -234,9 +246,14 @@ describe('AuthService', () => {
         password: 'password123',
       });
 
+      // Allow non-blocking async calls (sendEmailVerification) to complete
+      await new Promise(process.nextTick);
+
       expect(result).toHaveProperty('user');
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
+      expect(prismaService.verificationToken.create).toHaveBeenCalled();
+      expect(emailService.sendVerificationEmail).toHaveBeenCalled();
     });
 
     it('should throw ConflictException if email already exists', async () => {
@@ -527,6 +544,57 @@ describe('AuthService', () => {
       });
 
       await expect(service.verifyMagicLink('expired-token')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('email verification', () => {
+    it('should verify email with valid token', async () => {
+      prismaService.verificationToken.findUnique.mockResolvedValue({
+        token: 'verify-token',
+        identifier: mockUser.id,
+        expires: new Date(Date.now() + 86400000),
+      });
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      prismaService.user.update.mockResolvedValue({ ...mockUser, emailVerifiedAt: new Date() });
+      prismaService.verificationToken.delete.mockResolvedValue({});
+      prismaService.$transaction.mockImplementation(async (actions: any[]) => Promise.all(actions));
+
+      const result = await service.verifyEmail('verify-token');
+
+      expect(result.message).toContain('Email verified');
+      expect(prismaService.user.update).toHaveBeenCalled();
+      expect(prismaService.verificationToken.delete).toHaveBeenCalledWith({
+        where: { token: 'verify-token' },
+      });
+    });
+
+    it('should reject invalid verification token', async () => {
+      prismaService.verificationToken.findUnique.mockResolvedValue(null);
+
+      await expect(service.verifyEmail('invalid-token')).rejects.toThrow(BadRequestException);
+    });
+
+    it('should resend verification email for unverified user', async () => {
+      prismaService.user.findUnique.mockResolvedValue({ ...mockUser, emailVerifiedAt: null });
+      prismaService.verificationToken.deleteMany.mockResolvedValue({});
+      prismaService.verificationToken.create.mockResolvedValue({});
+
+      const result = await service.resendVerificationEmail(mockUser.id);
+
+      expect(result.message).toContain('Verification email sent');
+      expect(emailService.sendVerificationEmail).toHaveBeenCalled();
+    });
+
+    it('should return early if email already verified', async () => {
+      prismaService.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        emailVerifiedAt: new Date(),
+      });
+
+      const result = await service.resendVerificationEmail(mockUser.id);
+
+      expect(result.message).toContain('already verified');
+      expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
     });
   });
 

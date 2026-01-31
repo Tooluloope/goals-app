@@ -256,6 +256,20 @@ class ApiClient {
     return { user: data.user, isNewUser: data.isNewUser };
   }
 
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    return this.fetch<{ message: string }>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+      requiresAuth: false,
+    });
+  }
+
+  async resendVerificationEmail(): Promise<{ message: string }> {
+    return this.fetch<{ message: string }>('/auth/verify-email/resend', {
+      method: 'POST',
+    });
+  }
+
   // ============================================================
   // USERS
   // ============================================================

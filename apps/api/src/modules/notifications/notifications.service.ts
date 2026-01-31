@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+
+import type { Notification } from '@goals/database';
+import type { NotificationType } from '@goals/shared';
+
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationType } from '@goals/shared';
-import { Notification } from '@goals/database';
 
 @Injectable()
 export class NotificationsService {

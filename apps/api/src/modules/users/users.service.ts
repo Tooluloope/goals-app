@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { UpdateUserSettingsDto } from '@goals/shared';
-import { User } from '@goals/database';
+
+import type { User } from '@goals/database';
+import type { UpdateUserSettingsDto } from '@goals/shared';
+
 import { validateImageUrl } from '../../common/utils/image-validation';
+import { PrismaService } from '../../prisma/prisma.service';
 
 type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
@@ -20,6 +22,7 @@ export class UsersService {
         avatar: true,
         defaultWorkspaceId: true,
         timezone: true,
+        emailVerifiedAt: true,
         settings: true,
         hasSetPassword: true,
         createdAt: true,
@@ -78,6 +81,7 @@ export class UsersService {
         avatar: true,
         defaultWorkspaceId: true,
         timezone: true,
+        emailVerifiedAt: true,
         settings: true,
         hasSetPassword: true,
         createdAt: true,
@@ -114,6 +118,7 @@ export class UsersService {
         avatar: true,
         defaultWorkspaceId: true,
         timezone: true,
+        emailVerifiedAt: true,
         settings: true,
         hasSetPassword: true,
         createdAt: true,

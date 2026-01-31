@@ -14,8 +14,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
-import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+
 import { StripeService } from './stripe.service';
+
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 @Controller('stripe')
 export class StripeController {

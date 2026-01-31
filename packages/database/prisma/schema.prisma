@@ -20,6 +20,7 @@ model User {
   avatar             String?
   defaultWorkspaceId String?
   timezone           String    @default("UTC") // IANA timezone string (e.g., "America/New_York")
+  emailVerifiedAt    DateTime?
   settings           Json      @default("{\"theme\": \"light\", \"compactMode\": false, \"showWelcomeOnLogin\": true, \"viewMode\": \"focus\", \"emailPreferences\": {\"habitReminders\": true, \"taskDueReminders\": true, \"weeklySummary\": true, \"monthlySummary\": true, \"staleProjectAlerts\": true, \"reviewDueReminders\": true, \"streakMilestones\": true, \"aiInsights\": true, \"inactivityReminders\": false}}")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt

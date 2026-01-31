@@ -1,16 +1,18 @@
 import {
+  BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  ForbiddenException,
-  BadRequestException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
+
+import type { Workspace, WorkspaceInvite } from '@goals/database';
+import { DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
+
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { UsageService } from '../usage/usage.service';
-import { DEFAULT_WORKSPACE_CONFIG } from '@goals/shared';
-import { Workspace, WorkspaceInvite } from '@goals/database';
-import { randomBytes } from 'crypto';
 
 type WorkspaceWithRole = Workspace & { role: string };
 

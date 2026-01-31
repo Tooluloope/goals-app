@@ -1,10 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+
+import type { SubscriptionPlan } from '../../modules/subscriptions/subscriptions.service';
+import { SubscriptionsService } from '../../modules/subscriptions/subscriptions.service';
 import { REQUIRES_PLAN_KEY } from '../decorators/requires-plan.decorator';
-import {
-  SubscriptionsService,
-  SubscriptionPlan,
-} from '../../modules/subscriptions/subscriptions.service';
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {

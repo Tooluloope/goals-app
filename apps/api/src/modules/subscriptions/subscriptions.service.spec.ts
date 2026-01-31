@@ -1,7 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
-import { SubscriptionsService } from './subscriptions.service';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
 import { PrismaService } from '../../prisma/prisma.service';
+
+import { SubscriptionsService } from './subscriptions.service';
 
 describe('SubscriptionsService', () => {
   let service: SubscriptionsService;

@@ -1,9 +1,13 @@
-import { Controller, Post, Delete, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Body, Controller, Delete, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+
+import type { User } from '@goals/database';
+import type { AuthTokens } from '@goals/shared';
+import { LoginDto, SignupDto } from '@goals/shared';
+
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { LoginDto, SignupDto, AuthTokens } from '@goals/shared';
-import { User } from '@goals/database';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import { AuthService } from './auth.service';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
@@ -106,6 +110,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyMagicLink(@Body('token') token: string): Promise<MagicLinkAuthResponse> {
     return this.authService.verifyMagicLink(token);
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body('token') token: string): Promise<{ message: string }> {
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post('verify-email/resend')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async resendVerificationEmail(
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<{ message: string }> {
+    return this.authService.resendVerificationEmail(user.id);
   }
 
   @Delete('account')

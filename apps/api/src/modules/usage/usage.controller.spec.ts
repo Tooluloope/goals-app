@@ -1,7 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { Request } from 'express';
+
 import { UsageController } from './usage.controller';
 import { UsageService } from './usage.service';
-import { Request } from 'express';
 
 describe('UsageController', () => {
   let controller: UsageController;
