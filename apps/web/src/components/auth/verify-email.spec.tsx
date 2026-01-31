@@ -26,7 +26,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/lib/api-client', () => ({
   apiClient: {
     verifyEmail: jest.fn(),
-    hasTokens: jest.fn(),
+    getCurrentUser: jest.fn(),
   },
 }));
 
@@ -38,28 +38,38 @@ const mockApiClient = apiClient as jest.Mocked<typeof apiClient>;
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
 
 const mockRefreshUser = jest.fn();
+const mockSetUser = jest.fn();
 
 describe('VerifyEmail', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSearchParams = new URLSearchParams();
     mockUseAuthStore.mockImplementation((selector?: any) =>
-      selector ? selector({ refreshUser: mockRefreshUser }) : { refreshUser: mockRefreshUser }
+      selector
+        ? selector({ refreshUser: mockRefreshUser, setUser: mockSetUser })
+        : { refreshUser: mockRefreshUser, setUser: mockSetUser }
     );
   });
 
-  it('shows error when token is missing', async () => {
+  it('shows error when token is missing and redirects to 400', async () => {
+    jest.useFakeTimers();
     render(<VerifyEmail />);
 
     expect(await screen.findByText('Verification failed')).toBeInTheDocument();
-    expect(screen.getByText('No verification token provided.')).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(800);
+    });
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/400');
+    jest.useRealTimers();
   });
 
   it('verifies token and redirects to dashboard when signed in', async () => {
     jest.useFakeTimers();
     mockSearchParams = new URLSearchParams('token=valid-token');
     mockApiClient.verifyEmail.mockResolvedValue({ message: 'ok' });
-    mockApiClient.hasTokens.mockReturnValue(true);
+    mockApiClient.getCurrentUser.mockResolvedValue({ id: 'user-1' } as any);
 
     render(<VerifyEmail />);
 
@@ -68,8 +78,10 @@ describe('VerifyEmail', () => {
     });
 
     await waitFor(() => {
-      expect(mockRefreshUser).toHaveBeenCalled();
+      expect(mockApiClient.getCurrentUser).toHaveBeenCalled();
     });
+
+    expect(mockSetUser).toHaveBeenCalled();
 
     act(() => {
       jest.advanceTimersByTime(1200);

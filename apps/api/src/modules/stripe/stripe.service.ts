@@ -191,12 +191,12 @@ export class StripeService {
    */
   async handleSubscriptionUpdate(stripeSubscription: Stripe.Subscription): Promise<void> {
     try {
-      const userId = stripeSubscription.metadata.userId;
+      const userId = await this.resolveUserIdFromStripeSubscription(stripeSubscription);
       const plan = stripeSubscription.metadata.plan as 'FREE' | 'PRO' | 'FAMILY';
       const effectivePlan: 'FREE' | 'PRO' | 'FAMILY' = plan || 'PRO';
 
       if (!userId) {
-        this.logger.warn(`Subscription ${stripeSubscription.id} has no userId in metadata`);
+        this.logger.warn(`Subscription ${stripeSubscription.id} could not resolve a userId`);
         return;
       }
 
@@ -385,10 +385,10 @@ export class StripeService {
    */
   async handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
     try {
-      const userId = subscription.metadata.userId;
+      const userId = await this.resolveUserIdFromStripeSubscription(subscription);
 
       if (!userId) {
-        this.logger.warn(`Subscription ${subscription.id} has no userId in metadata`);
+        this.logger.warn(`Subscription ${subscription.id} could not resolve a userId`);
         return;
       }
 
@@ -426,5 +426,66 @@ export class StripeService {
       this.logger.error(`Webhook signature verification failed: ${error.message}`);
       throw error;
     }
+  }
+
+  private async resolveUserIdFromStripeSubscription(
+    stripeSubscription: Stripe.Subscription
+  ): Promise<string | null> {
+    const metadataUserId = stripeSubscription.metadata?.userId;
+    if (metadataUserId) {
+      const userId = await this.getExistingUserId(metadataUserId);
+      if (userId) {
+        return metadataUserId;
+      }
+      this.logger.warn(
+        `Subscription ${stripeSubscription.id} references missing userId ${metadataUserId}`
+      );
+    }
+
+    const bySubscriptionId = await this.prisma.subscription.findUnique({
+      where: { stripeSubscriptionId: stripeSubscription.id },
+      select: { userId: true },
+    });
+    if (bySubscriptionId?.userId) {
+      const userId = await this.getExistingUserId(bySubscriptionId.userId);
+      if (userId) {
+        return userId;
+      }
+      this.logger.warn(
+        `Subscription ${stripeSubscription.id} maps to missing userId ${bySubscriptionId.userId}`
+      );
+    }
+
+    const customerId =
+      typeof stripeSubscription.customer === 'string'
+        ? stripeSubscription.customer
+        : stripeSubscription.customer?.id;
+
+    if (!customerId) {
+      return null;
+    }
+
+    const byCustomerId = await this.prisma.subscription.findUnique({
+      where: { stripeCustomerId: customerId },
+      select: { userId: true },
+    });
+
+    if (byCustomerId?.userId) {
+      const userId = await this.getExistingUserId(byCustomerId.userId);
+      if (userId) {
+        return userId;
+      }
+      this.logger.warn(`Customer ${customerId} maps to missing userId ${byCustomerId.userId}`);
+    }
+
+    return null;
+  }
+
+  private async getExistingUserId(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    return user?.id ?? null;
   }
 }

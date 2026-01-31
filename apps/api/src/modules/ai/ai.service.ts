@@ -710,6 +710,29 @@ Generate a comprehensive year in review celebrating achievements and identifying
     workspaceId: string,
     types?: InsightType[]
   ): Promise<AiInsight[]> {
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingToday = await this.prisma.aiInsight.findMany({
+      where: {
+        userId,
+        workspaceId,
+        ...(types ? { type: { in: types } } : {}),
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (existingToday.length > 0) {
+      return existingToday;
+    }
+
     const userContext = await this.dataAggregator.getUserContext(userId, workspaceId);
 
     const prompt = `Analyze this user's data and generate insights:

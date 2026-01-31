@@ -26,12 +26,13 @@ export class SubscriptionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (!user || !user.userId) {
+    const userId = user?.userId ?? user?.id ?? user?.sub;
+    if (!userId) {
       return false; // User not authenticated
     }
 
     // Will throw ForbiddenException if plan requirement not met
-    await this.subscriptionsService.enforceplan(user.userId, requiredPlan);
+    await this.subscriptionsService.enforceplan(userId, requiredPlan);
 
     return true;
   }

@@ -987,26 +987,39 @@ export default function SettingsPage() {
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    onClick={handleManageBilling}
-                    variant="outline"
-                    className="w-full"
-                    disabled={isOpeningBillingPortal}
-                  >
-                    {isOpeningBillingPortal ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Opening...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Manage Billing
-                      </>
+                  <>
+                    {subscription?.plan === 'PRO' && (
+                      <Button onClick={() => handleUpgrade('FAMILY')} className="w-full" size="lg">
+                        <Users className="mr-2 h-4 w-4" />
+                        Upgrade to FAMILY
+                      </Button>
                     )}
-                  </Button>
+                    <Button
+                      onClick={handleManageBilling}
+                      variant={subscription?.plan === 'PRO' ? 'outline' : 'default'}
+                      className="w-full"
+                      disabled={isOpeningBillingPortal}
+                    >
+                      {isOpeningBillingPortal ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Opening...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          {subscription?.plan === 'FAMILY' ? 'Manage Plan' : 'Manage Billing'}
+                        </>
+                      )}
+                    </Button>
+                  </>
                 )}
               </div>
+              {subscription?.plan !== 'FREE' && (
+                <p className="text-xs text-muted-foreground">
+                  Use “Manage Plan” to downgrade, update payment method, or cancel.
+                </p>
+              )}
 
               {/* Plan comparison */}
               {subscription?.plan === 'FREE' && (

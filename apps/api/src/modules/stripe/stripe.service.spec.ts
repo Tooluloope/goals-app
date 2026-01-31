@@ -442,6 +442,7 @@ describe('StripeService', () => {
 
       const mockSubscription = createMockSubscription();
       jest.spyOn(prismaService.subscription, 'upsert').mockResolvedValue(mockSubscription as any);
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({ id: mockUserId } as any);
 
       await service.handleSubscriptionUpdate(mockStripeSubscription);
 
@@ -487,6 +488,7 @@ describe('StripeService', () => {
 
       const mockSubscription = createMockSubscription();
       jest.spyOn(prismaService.subscription, 'upsert').mockResolvedValue(mockSubscription as any);
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({ id: mockUserId } as any);
 
       await service.handleSubscriptionUpdate(mockStripeSubscription);
 
@@ -523,11 +525,17 @@ describe('StripeService', () => {
       } as unknown as Stripe.Subscription;
 
       const mockSubscription = createMockSubscription();
-      jest.spyOn(prismaService.subscription, 'upsert').mockResolvedValue(mockSubscription as any);
-      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({
-        settings: { theme: 'light', compactMode: false, showWelcomeOnLogin: true },
-      } as any);
-      jest.spyOn(prismaService.user, 'update').mockResolvedValue({} as any);
+      (prismaService.subscription.upsert as jest.Mock).mockResolvedValue(mockSubscription as any);
+      // First call checks user exists (getExistingUserId), second call gets user settings
+      (prismaService.user.findUnique as jest.Mock).mockImplementation(async (args: any) => {
+        if (args?.select?.id) {
+          return { id: mockUserId } as any;
+        }
+        return {
+          settings: { theme: 'light', compactMode: false, showWelcomeOnLogin: true },
+        } as any;
+      });
+      (prismaService.user.update as jest.Mock).mockResolvedValue({} as any);
 
       await service.handleSubscriptionUpdate(mockStripeSubscription);
 
@@ -560,6 +568,90 @@ describe('StripeService', () => {
 
       expect(prismaService.subscription.upsert).not.toHaveBeenCalled();
     });
+
+    it('should fallback to existing subscription by customer ID when metadata is missing', async () => {
+      const mockStripeSubscription = {
+        id: mockSubscriptionId,
+        customer: mockCustomerId,
+        status: 'active',
+        metadata: {},
+        items: {
+          data: [{ price: { id: mockPriceId } }],
+        },
+        trial_end: null,
+        current_period_start: Math.floor(Date.now() / 1000),
+        current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+        cancel_at_period_end: false,
+      } as unknown as Stripe.Subscription;
+
+      (prismaService.subscription.findUnique as jest.Mock).mockImplementation(async (args: any) => {
+        if (args?.where?.stripeCustomerId === mockCustomerId) {
+          return { userId: mockUserId } as any;
+        }
+        return null;
+      });
+      // Mock user existence check
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ id: mockUserId } as any);
+
+      const mockSubscription = createMockSubscription();
+      (prismaService.subscription.upsert as jest.Mock).mockResolvedValue(mockSubscription as any);
+
+      await service.handleSubscriptionUpdate(mockStripeSubscription);
+
+      expect(prismaService.subscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: mockUserId },
+        })
+      );
+    });
+
+    it('should skip update when metadata userId is missing and no fallback exists', async () => {
+      const mockStripeSubscription = {
+        id: mockSubscriptionId,
+        customer: mockCustomerId,
+        status: 'active',
+        metadata: {
+          userId: 'missing-user',
+          plan: 'PRO',
+        },
+        items: {
+          data: [{ price: { id: mockPriceId } }],
+        },
+        cancel_at_period_end: false,
+      } as unknown as Stripe.Subscription;
+
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(null as any);
+      jest.spyOn(prismaService.subscription, 'findUnique').mockResolvedValue(null as any);
+
+      await service.handleSubscriptionUpdate(mockStripeSubscription);
+
+      expect(prismaService.subscription.upsert).not.toHaveBeenCalled();
+    });
+
+    it('should skip update when fallback subscription user does not exist', async () => {
+      const mockStripeSubscription = {
+        id: mockSubscriptionId,
+        customer: mockCustomerId,
+        status: 'active',
+        metadata: {},
+        items: {
+          data: [{ price: { id: mockPriceId } }],
+        },
+        cancel_at_period_end: false,
+      } as unknown as Stripe.Subscription;
+
+      (prismaService.subscription.findUnique as jest.Mock).mockImplementation(async (args: any) => {
+        if (args?.where?.stripeCustomerId === mockCustomerId) {
+          return { userId: 'missing-user' } as any;
+        }
+        return null;
+      });
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(null as any);
+
+      await service.handleSubscriptionUpdate(mockStripeSubscription);
+
+      expect(prismaService.subscription.upsert).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleSubscriptionDeleted', () => {
@@ -573,6 +665,7 @@ describe('StripeService', () => {
 
       const mockSubscription = createMockSubscription();
       jest.spyOn(prismaService.subscription, 'update').mockResolvedValue(mockSubscription as any);
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({ id: mockUserId } as any);
 
       await service.handleSubscriptionDeleted(mockStripeSubscription);
 
@@ -593,6 +686,51 @@ describe('StripeService', () => {
         id: mockSubscriptionId,
         metadata: {},
       } as unknown as Stripe.Subscription;
+
+      await service.handleSubscriptionDeleted(mockStripeSubscription);
+
+      expect(prismaService.subscription.update).not.toHaveBeenCalled();
+    });
+
+    it('should fallback to existing subscription by subscription ID', async () => {
+      const mockStripeSubscription = {
+        id: mockSubscriptionId,
+        metadata: {},
+      } as unknown as Stripe.Subscription;
+
+      (prismaService.subscription.findUnique as jest.Mock).mockImplementation(async (args: any) => {
+        if (args?.where?.stripeSubscriptionId === mockSubscriptionId) {
+          return { userId: mockUserId } as any;
+        }
+        return null;
+      });
+
+      const mockSubscription = createMockSubscription();
+      jest.spyOn(prismaService.subscription, 'update').mockResolvedValue(mockSubscription as any);
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({ id: mockUserId } as any);
+
+      await service.handleSubscriptionDeleted(mockStripeSubscription);
+
+      expect(prismaService.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: mockUserId },
+        })
+      );
+    });
+
+    it('should skip delete when fallback user does not exist', async () => {
+      const mockStripeSubscription = {
+        id: mockSubscriptionId,
+        metadata: {},
+      } as unknown as Stripe.Subscription;
+
+      (prismaService.subscription.findUnique as jest.Mock).mockImplementation(async (args: any) => {
+        if (args?.where?.stripeSubscriptionId === mockSubscriptionId) {
+          return { userId: 'missing-user' } as any;
+        }
+        return null;
+      });
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(null as any);
 
       await service.handleSubscriptionDeleted(mockStripeSubscription);
 
@@ -712,11 +850,13 @@ describe('StripeService', () => {
         cancel_at_period_end: false,
       } as unknown as Stripe.Subscription;
 
-      jest
-        .spyOn(prismaService.subscription, 'findUnique')
-        .mockResolvedValue(mockSubscription as any);
+      (prismaService.subscription.findUnique as jest.Mock).mockResolvedValue(
+        mockSubscription as any
+      );
+      // Mock user existence check
+      (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ id: mockUserId } as any);
       mockStripeSubscriptionsRetrieve.mockResolvedValue(mockStripeSubscription);
-      jest.spyOn(prismaService.subscription, 'upsert').mockResolvedValue(mockSubscription as any);
+      (prismaService.subscription.upsert as jest.Mock).mockResolvedValue(mockSubscription as any);
 
       await service.syncSubscriptionFromStripe(mockUserId);
 

@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
@@ -17,26 +16,34 @@ export function VerifyEmail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [state, setState] = useState<VerifyState>('loading');
-  const [errorMessage, setErrorMessage] = useState('');
   const attempted = useRef(false);
   const refreshUser = useAuthStore((state) => state.refreshUser);
+  const setUser = useAuthStore((state) => state.setUser);
 
-  const onVerificationSuccess = useEffectEvent(async () => {
-    if (apiClient.hasTokens()) {
-      await refreshUser();
-      setTimeout(() => {
-        router.push('/dashboard');
-        router.refresh();
-      }, 1200);
+  const onVerificationSuccess = useCallback(async () => {
+    try {
+      const apiUser = await apiClient.getCurrentUser();
+      if (apiUser) {
+        await setUser(apiUser);
+        setTimeout(() => {
+          router.push('/dashboard');
+          router.refresh();
+        }, 1200);
+        return;
+      }
+    } catch {
+      // Ignore - user might not be logged in yet
     }
-  });
 
-  const onVerificationError = useEffectEvent((error: unknown) => {
+    await refreshUser();
+  }, [refreshUser, router, setUser]);
+
+  const onVerificationError = useCallback(() => {
     setState('error');
-    setErrorMessage(
-      error instanceof Error ? error.message : 'Invalid or expired verification link'
-    );
-  });
+    setTimeout(() => {
+      router.replace('/400');
+    }, 800);
+  }, [router]);
 
   useEffect(() => {
     if (attempted.current) return;
@@ -46,7 +53,9 @@ export function VerifyEmail() {
 
     if (!token) {
       setState('error');
-      setErrorMessage('No verification token provided.');
+      setTimeout(() => {
+        router.replace('/400');
+      }, 800);
       return;
     }
 
@@ -95,10 +104,6 @@ export function VerifyEmail() {
               <XCircle className="h-8 w-8 text-destructive" />
             </div>
             <h1 className="text-2xl font-semibold">Verification failed</h1>
-            <p className="text-sm text-muted-foreground">{errorMessage}</p>
-            <Link href="/auth/login" className="block">
-              <Button className="w-full">Back to login</Button>
-            </Link>
           </div>
         )}
       </div>
