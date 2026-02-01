@@ -33,14 +33,16 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
     Boolean(planRequirement) && isAuthenticated
   );
   const isEmailVerified = Boolean(user?.emailVerifiedAt);
+  const isViewModeReady = isAuthenticated && Boolean(user);
 
   // Mode guard - redirect Focus Mode users from Power Mode routes
   useEffect(() => {
+    if (!isViewModeReady) return;
     const redirectPath = getFocusModeRedirect(pathname ?? '', viewMode);
     if (redirectPath) {
       router.replace(redirectPath);
     }
-  }, [pathname, viewMode, router]);
+  }, [pathname, viewMode, router, isViewModeReady]);
 
   // AuthGuard handles redirect to login and saves return URL
   // Show loading while auth is being checked
