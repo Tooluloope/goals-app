@@ -64,11 +64,39 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const now = new Date();
+    const isSuperAdmin = this.isSuperAdminEmail(user.email);
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: now,
+        loginCount: { increment: 1 },
+        ...(isSuperAdmin && user.role !== 'SUPER_ADMIN' ? { role: 'SUPER_ADMIN' } : {}),
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        defaultWorkspaceId: true,
+        role: true,
+        timezone: true,
+        emailVerifiedAt: true,
+        lastLoginAt: true,
+        loginCount: true,
+        settings: true,
+        hasSetPassword: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
     const tokens = await this.generateTokens(user.id, user.email);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      user,
+      user: updatedUser,
       ...tokens,
     };
   }
@@ -86,6 +114,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(signupDto.password, 10);
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const now = new Date();
       // Create user
       const newUser = await tx.user.create({
         data: {
@@ -93,6 +122,9 @@ export class AuthService {
           name: signupDto.name,
           passwordHash,
           timezone: signupDto.timezone || 'UTC', // Use provided timezone or default to UTC
+          role: this.isSuperAdminEmail(signupDto.email) ? 'SUPER_ADMIN' : 'USER',
+          lastLoginAt: now,
+          loginCount: 1,
           settings: {
             theme: 'light',
             compactMode: false,
@@ -364,15 +396,24 @@ export class AuthService {
 
     // If user exists, log them in
     if (magicLinkToken.user) {
-      if (!magicLinkToken.user.emailVerifiedAt) {
-        await this.prisma.user.update({
-          where: { id: magicLinkToken.user.id },
-          data: { emailVerifiedAt: new Date() },
-        });
-      }
-      const { passwordHash: _passwordHash, ...userWithoutPassword } = magicLinkToken.user;
-      const tokens = await this.generateTokens(magicLinkToken.user.id, magicLinkToken.user.email);
-      await this.saveRefreshToken(magicLinkToken.user.id, tokens.refreshToken);
+      const now = new Date();
+      const isSuperAdmin = this.isSuperAdminEmail(magicLinkToken.user.email);
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: magicLinkToken.user.id },
+        data: {
+          ...(magicLinkToken.user.emailVerifiedAt ? {} : { emailVerifiedAt: now }),
+          lastLoginAt: now,
+          loginCount: { increment: 1 },
+          ...(isSuperAdmin && magicLinkToken.user.role !== 'SUPER_ADMIN'
+            ? { role: 'SUPER_ADMIN' }
+            : {}),
+        },
+      });
+
+      const { passwordHash: _passwordHash, ...userWithoutPassword } = updatedUser;
+      const tokens = await this.generateTokens(updatedUser.id, updatedUser.email);
+      await this.saveRefreshToken(updatedUser.id, tokens.refreshToken);
 
       return {
         user: userWithoutPassword,
@@ -389,6 +430,7 @@ export class AuthService {
     const userName = magicLinkToken.name || magicLinkToken.email.split('@')[0];
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const now = new Date();
       // Create user (with hasSetPassword: false since they signed up via magic link)
       const newUser = await tx.user.create({
         data: {
@@ -397,6 +439,9 @@ export class AuthService {
           passwordHash,
           hasSetPassword: false,
           emailVerifiedAt: new Date(),
+          role: this.isSuperAdminEmail(magicLinkToken.email) ? 'SUPER_ADMIN' : 'USER',
+          lastLoginAt: now,
+          loginCount: 1,
           settings: {
             theme: 'light',
             compactMode: false,
@@ -559,6 +604,14 @@ export class AuthService {
       update: { expiresAt },
       create: { token, userId, expiresAt },
     });
+  }
+
+  private isSuperAdminEmail(email: string): boolean {
+    const configured = this.configService.get<string>('SUPER_ADMIN_EMAIL');
+    if (!configured) {
+      return false;
+    }
+    return configured.trim().toLowerCase() === email.trim().toLowerCase();
   }
 
   async changeEmail(

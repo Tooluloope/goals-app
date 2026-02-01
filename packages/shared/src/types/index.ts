@@ -13,11 +13,16 @@ export interface User {
   defaultWorkspaceId: string;
   timezone: string; // IANA timezone string (e.g., "America/New_York")
   hasSetPassword: boolean; // false for users who signed up via magic link
+  role?: UserRole;
   emailVerifiedAt?: Date | string | null;
+  lastLoginAt?: Date | string | null;
+  loginCount?: number;
   settings: UserSettings;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
 
 export interface EmailPreferences {
   habitReminders: boolean;

@@ -36,7 +36,10 @@ describe('AuthService', () => {
     email: 'test@example.com',
     name: 'Test User',
     passwordHash: 'hashed-password',
+    role: 'USER',
     timezone: 'UTC',
+    lastLoginAt: new Date('2024-01-01T00:00:00.000Z'),
+    loginCount: 2,
     settings: {},
     defaultWorkspaceId: 'workspace-1',
     createdAt: new Date(),
@@ -143,6 +146,7 @@ describe('AuthService', () => {
     _configService = module.get(ConfigService);
     emailService = module.get(EmailService);
     prismaService.workspaceInvite.findMany.mockResolvedValue([]);
+    prismaService.user.update.mockResolvedValue(mockUser);
     prismaService.$transaction.mockImplementation(async (cb: any) => cb(prismaService));
   });
 

@@ -29,6 +29,7 @@ import {
   Sun,
   Sparkles,
   Zap,
+  Shield,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -197,12 +198,18 @@ export function Sidebar() {
           ? familyNavigation
           : personalNavigation;
 
-    return baseNavigation.filter((item) => {
+    const filtered = baseNavigation.filter((item) => {
       const requirement = getPlanRequirement(item.href);
       if (!requirement) return true;
       return hasPlanAccess(userPlan, requirement.requiredPlan);
     });
-  }, [currentWorkspace?.type, userPlan, viewMode]);
+
+    if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') {
+      filtered.push({ name: 'Admin', href: '/admin', icon: Shield });
+    }
+
+    return filtered;
+  }, [currentWorkspace?.type, userPlan, viewMode, user?.role]);
 
   return (
     <div className="hidden md:flex md:w-64 md:flex-col">

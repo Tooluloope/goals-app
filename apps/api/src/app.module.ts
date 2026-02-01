@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { AdminModule } from './modules/admin/admin.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule as AppConfigModule } from './modules/config/config.module';
@@ -32,6 +33,7 @@ const schedulerEnabled = process.env.ENABLE_SCHEDULER !== 'false';
     PrismaModule,
     EmailModule,
     AuthModule,
+    AdminModule,
     UsersModule,
     WorkspacesModule,
     ProjectsModule,

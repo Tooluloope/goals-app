@@ -323,7 +323,7 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
               </p>
               <span className="text-[11px] text-muted-foreground">Tap to set</span>
             </div>
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 sm:grid sm:grid-cols-5 sm:overflow-visible sm:pb-0 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+            <div className="mt-3 flex gap-2 overflow-x-auto overscroll-x-contain pb-2 -mx-1 px-1 sm:grid sm:grid-cols-5 sm:overflow-visible sm:pb-0 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               {MOOD_OPTIONS.map((option) => {
                 const isSelected = mood === option.value;
                 return (
@@ -425,7 +425,7 @@ export function DailyJournalRhythm2({ selectedDate }: DailyJournalRhythm2Props) 
                       </div>
                     </div>
 
-                    <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+                    <div className="flex gap-1 overflow-x-auto overscroll-x-contain pb-1 -mx-1 px-1">
                       {EMOJI_CATEGORIES.map((cat, idx) => (
                         <button
                           key={cat.name}

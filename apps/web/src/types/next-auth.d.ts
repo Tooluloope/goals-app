@@ -8,6 +8,7 @@ declare module 'next-auth' {
     timezone?: string;
     hasSetPassword?: boolean;
     isNewUser?: boolean;
+    role?: string;
   }
 
   interface Session {
@@ -20,6 +21,7 @@ declare module 'next-auth' {
       timezone?: string;
       hasSetPassword?: boolean;
       isNewUser?: boolean;
+      role?: string;
     };
   }
 }
@@ -31,5 +33,6 @@ declare module 'next-auth/jwt' {
     timezone?: string;
     hasSetPassword?: boolean;
     isNewUser?: boolean;
+    role?: string;
   }
 }

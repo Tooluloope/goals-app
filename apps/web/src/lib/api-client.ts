@@ -362,6 +362,48 @@ class ApiClient {
   }
 
   // ============================================================
+  // ADMIN
+  // ============================================================
+
+  getAdminOverview(params?: { limit?: number; offset?: number; includeEmail?: boolean }): Promise<{
+    totals: {
+      users: number;
+      plans: Record<'FREE' | 'PRO' | 'FAMILY', number>;
+      statuses: Record<string, number>;
+    };
+    users: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      createdAt: string;
+      lastLoginAt: string | null;
+      loginCount: number;
+      plan: 'FREE' | 'PRO' | 'FAMILY';
+      subscriptionStatus: string;
+      trialEndsAt: string | null;
+      currentPeriodEnd: string | null;
+    }>;
+  }> {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    if (params?.includeEmail) query.set('includeEmail', 'true');
+    const qs = query.toString();
+    return this.fetch(`/admin/overview${qs ? `?${qs}` : ''}`);
+  }
+
+  updateUserRole(payload: { userId: string; role: 'USER' | 'ADMIN' }): Promise<{
+    id: string;
+    role: string;
+  }> {
+    return this.fetch('/admin/users/role', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // ============================================================
   // WORKSPACES
   // ============================================================
 

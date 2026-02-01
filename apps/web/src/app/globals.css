@@ -71,6 +71,7 @@
   * {
     @apply border-border;
   }
+  html,
   body {
     @apply bg-background text-foreground;
     font-feature-settings:
@@ -78,6 +79,8 @@
       'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
   }
 }
 
@@ -88,6 +91,9 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  .scrollbar-stable {
+    scrollbar-gutter: stable;
   }
 }
 
@@ -153,6 +159,18 @@
 .ProseMirror {
   outline: none;
   min-height: inherit;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.ProseMirror p,
+.ProseMirror div {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  max-width: 100%;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -197,4 +215,29 @@
 
 .ProseMirror h3 {
   @apply text-base font-semibold;
+}
+
+/* Fix for mobile virtual keyboard causing layout shifts */
+@supports (height: 100dvh) {
+  html {
+    height: 100dvh;
+  }
+}
+
+/* Prevent horizontal scroll on mobile when typing */
+@media (max-width: 768px) {
+  html,
+  body {
+    position: relative;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  /* When virtual keyboard is open, prevent fixed elements from causing shifts */
+  @supports (height: 100dvh) {
+    .fixed {
+      /* Use transform to avoid reflow */
+      will-change: transform;
+    }
+  }
 }

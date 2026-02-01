@@ -26,7 +26,8 @@ const proseClasses = cn(
   'prose-blockquote:my-2 prose-blockquote:border-l-primary/30 prose-blockquote:italic prose-blockquote:text-muted-foreground',
   'prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono',
   'prose-strong:font-semibold prose-em:italic',
-  'prose-a:text-primary prose-a:hover:underline'
+  'prose-a:text-primary prose-a:hover:underline',
+  'overflow-hidden break-words'
 );
 
 const SANITIZE_CONFIG: sanitizeHtml.IOptions = {

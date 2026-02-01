@@ -44,6 +44,12 @@ export class EmailService {
   private readonly fromEmail: string;
   private readonly fromName: string;
   private readonly appUrl: string;
+  private static sendQueue: Promise<void> = Promise.resolve();
+  private static lastSentAt = 0;
+  private static readonly minIntervalMs = Math.max(
+    100,
+    parseInt(process.env.EMAIL_MIN_INTERVAL_MS || '500', 10)
+  );
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;
@@ -102,27 +108,59 @@ export class EmailService {
       return { success: true, messageId: 'dev-mode-no-send' };
     }
 
-    try {
-      const { data: result, error } = await this.resend.emails.send({
-        from: `${this.fromName} <${this.fromEmail}>`,
-        to,
-        subject,
-        html,
-        text,
-      });
+    return this.runThrottled(async () => {
+      try {
+        const { data: result, error } = await this.resend!.emails.send({
+          from: `${this.fromName} <${this.fromEmail}>`,
+          to,
+          subject,
+          html,
+          text,
+        });
 
-      if (error) {
-        this.logger.error(`Failed to send email to ${to}: ${error.message}`);
-        return { success: false, error: error.message };
+        if (error) {
+          this.logger.error(`Failed to send email to ${to}: ${error.message}`);
+          return { success: false, error: error.message };
+        }
+
+        this.logger.log(`Email sent successfully to ${to} (${type}): ${result?.id}`);
+        return { success: true, messageId: result?.id };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Email send error: ${message}`);
+        return { success: false, error: message };
       }
+    });
+  }
 
-      this.logger.log(`Email sent successfully to ${to} (${type}): ${result?.id}`);
-      return { success: true, messageId: result?.id };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Email send error: ${message}`);
-      return { success: false, error: message };
+  private async runThrottled<T>(task: () => Promise<T>): Promise<T> {
+    if (process.env.NODE_ENV === 'test') {
+      return task();
     }
+
+    return new Promise<T>((resolve, reject) => {
+      EmailService.sendQueue = EmailService.sendQueue
+        .then(async () => {
+          const now = Date.now();
+          const wait = Math.max(0, EmailService.lastSentAt + EmailService.minIntervalMs - now);
+          if (wait > 0) {
+            await new Promise((waitResolve) => setTimeout(waitResolve, wait));
+          }
+
+          try {
+            const result = await task();
+            EmailService.lastSentAt = Date.now();
+            resolve(result);
+          } catch (error) {
+            EmailService.lastSentAt = Date.now();
+            reject(error);
+          }
+        })
+        .catch((error) => {
+          this.logger.warn(`Email rate limiter queue error: ${String(error)}`);
+          EmailService.lastSentAt = Date.now();
+        });
+    });
   }
 
   // ============================================================

@@ -85,7 +85,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
         {showHeader && <Header title={title} />}
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0 overscroll-contain">
+        <main className="flex-1 overflow-y-scroll overflow-x-hidden pb-20 md:pb-0 overscroll-contain scrollbar-stable">
           {content}
         </main>
 

@@ -297,7 +297,7 @@ export default function Rhythm2Page() {
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Week rhythm
                 </p>
-                <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 sm:grid sm:grid-cols-7 sm:gap-2 sm:overflow-visible sm:pb-0">
+                <div className="mt-4 flex gap-1.5 overflow-x-auto overscroll-x-contain pb-1 -mx-1 px-1 sm:grid sm:grid-cols-7 sm:gap-2 sm:overflow-visible sm:pb-0">
                   {weekDates.map((date) => {
                     const dateStr = format(date, 'yyyy-MM-dd');
                     const isSelected = dateStr === selectedDateStr;

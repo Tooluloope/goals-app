@@ -182,6 +182,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           defaultWorkspaceId: user.defaultWorkspaceId,
           timezone: user.timezone,
           hasSetPassword: user.hasSetPassword,
+          role: user.role,
         };
       },
     }),
@@ -210,6 +211,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           defaultWorkspaceId: result.user.defaultWorkspaceId,
           timezone: result.user.timezone,
           hasSetPassword: result.user.hasSetPassword,
+          role: result.user.role,
           isNewUser: result.isNewUser,
         };
       },
@@ -248,6 +250,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             defaultWorkspaceId: user.defaultWorkspaceId,
             timezone: user.timezone,
             hasSetPassword: user.hasSetPassword,
+            role: user.role,
             isNewUser: true,
           };
         } catch {
@@ -265,6 +268,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.timezone = user.timezone;
         token.hasSetPassword = user.hasSetPassword;
         token.isNewUser = user.isNewUser;
+        token.role = user.role;
       }
 
       // Handle session updates (e.g., after profile changes)
@@ -275,6 +279,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.timezone = session.timezone ?? token.timezone;
         token.hasSetPassword = session.hasSetPassword ?? token.hasSetPassword;
         token.isNewUser = session.isNewUser ?? token.isNewUser;
+        token.role = session.role ?? token.role;
       }
 
       return token;
@@ -286,6 +291,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.timezone = token.timezone as string;
         session.user.hasSetPassword = token.hasSetPassword as boolean;
         session.user.isNewUser = token.isNewUser as boolean | undefined;
+        session.user.role = token.role as string | undefined;
       }
       return session;
     },

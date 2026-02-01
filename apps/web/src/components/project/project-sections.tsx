@@ -121,7 +121,7 @@ export function ProjectSections({ project }: ProjectSectionsProps) {
               </Badge>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4">
+          <AccordionContent className="px-4 pb-4 pt-2">
             <TasksSection projectId={project.id} tasks={tasks} />
           </AccordionContent>
         </AccordionItem>

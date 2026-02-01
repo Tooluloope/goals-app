@@ -233,15 +233,16 @@ const RichTextEditor = React.forwardRef<HTMLDivElement, RichTextEditorProps>(
       editorProps: {
         attributes: {
           class: cn(
-            'prose prose-sm dark:prose-invert max-w-none focus:outline-none',
+            'prose prose-sm dark:prose-invert max-w-none focus:outline-none break-words whitespace-pre-wrap',
             'prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0',
             'prose-blockquote:my-2 prose-blockquote:border-l-primary/30',
             disabled && 'opacity-60 cursor-not-allowed'
           ),
         },
-        // Prevent jarring scroll jumps on mobile when focusing the editor
-        scrollThreshold: 100,
-        scrollMargin: 50,
+        // Prevent jarring vertical scroll jumps on mobile when focusing the editor
+        // Avoid horizontal scroll shifts by keeping left/right margins at 0.
+        scrollThreshold: { top: 100, bottom: 100, left: 0, right: 0 },
+        scrollMargin: { top: 50, bottom: 50, left: 0, right: 0 },
       },
     });
 
@@ -290,7 +291,7 @@ const RichTextEditor = React.forwardRef<HTMLDivElement, RichTextEditorProps>(
           {/* Editor Container */}
           <div
             className={cn(
-              'w-full rounded-xl border bg-background text-sm transition-all duration-200',
+              'w-full rounded-xl border bg-background text-sm transition-all duration-200 overflow-hidden',
               isFocused
                 ? 'border-primary/50 ring-2 ring-primary/20'
                 : 'border-input hover:border-muted-foreground/30',
@@ -324,8 +325,8 @@ const RichTextEditor = React.forwardRef<HTMLDivElement, RichTextEditorProps>(
             )}
 
             {/* Editor Content */}
-            <div className="px-4 py-3" style={{ minHeight }}>
-              <EditorContent editor={editor} className="min-h-full" />
+            <div className="px-4 py-3 overflow-hidden" style={{ minHeight }}>
+              <EditorContent editor={editor} className="min-h-full overflow-hidden" />
             </div>
           </div>
         </div>
