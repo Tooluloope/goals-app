@@ -870,7 +870,7 @@ class ApiClient {
 
   upsertWeeklyReview(data: CreateWeeklyReviewDto): Promise<WeeklyReview> {
     return this.fetch<WeeklyReview>('/reviews/weekly/upsert', {
-      method: 'POST',
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   }
@@ -930,7 +930,7 @@ class ApiClient {
 
   upsertMonthlyReview(data: CreateMonthlyReviewDto): Promise<MonthlyReview> {
     return this.fetch<MonthlyReview>('/reviews/monthly/upsert', {
-      method: 'POST',
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   }
