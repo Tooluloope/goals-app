@@ -655,6 +655,8 @@ model WeeklyReview {
   lessonsLearned String?  @db.Text
   gratitude      String?  @db.Text
   rating         Int?     // 1-5 star rating
+  submitted      Boolean  @default(false)
+  submittedAt    DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -676,6 +678,8 @@ model MonthlyReview {
   lessonsLearned    String?  @db.Text
   gratitude         String?  @db.Text
   rating            Int?     // 1-5 star rating
+  submitted         Boolean  @default(false)
+  submittedAt       DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

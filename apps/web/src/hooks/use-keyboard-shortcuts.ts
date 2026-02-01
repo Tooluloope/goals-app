@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUIStore } from '@/store/ui-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -38,6 +38,18 @@ export function useKeyboardShortcuts() {
     shortcutsHelpOpen,
     setShortcutsHelpOpen,
   } = useUIStore();
+  const navPrefixRef = useRef(false);
+  const navPrefixTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navPrefixKey = 'g';
+  const navPrefixTimeoutMs = 1000;
+
+  const resetNavPrefix = useCallback(() => {
+    navPrefixRef.current = false;
+    if (navPrefixTimeoutRef.current) {
+      clearTimeout(navPrefixTimeoutRef.current);
+      navPrefixTimeoutRef.current = null;
+    }
+  }, []);
 
   // Define all shortcuts
   const shortcuts: ShortcutConfig[] = [
@@ -73,7 +85,7 @@ export function useKeyboardShortcuts() {
       category: 'general',
     },
 
-    // Navigation (g + key for "go to")
+    // Navigation (g then key for "go to")
     {
       key: 'd',
       action: () => router.push('/dashboard'),
@@ -179,12 +191,32 @@ export function useKeyboardShortcuts() {
       // Don't trigger if not authenticated
       if (!isAuthenticated) return;
 
+      const isNavPrefixKey =
+        event.key.toLowerCase() === navPrefixKey &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.shiftKey;
+
+      if (isNavPrefixKey) {
+        navPrefixRef.current = true;
+        if (navPrefixTimeoutRef.current) {
+          clearTimeout(navPrefixTimeoutRef.current);
+        }
+        navPrefixTimeoutRef.current = setTimeout(() => {
+          navPrefixRef.current = false;
+          navPrefixTimeoutRef.current = null;
+        }, navPrefixTimeoutMs);
+        return;
+      }
+
       // Check each shortcut
       for (const shortcut of shortcuts) {
         const metaMatch = shortcut.meta ? event.metaKey : !event.metaKey;
         const ctrlMatch = shortcut.ctrl ? event.ctrlKey : !event.ctrlKey;
         const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey;
         const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
+        const isNavigationShortcut =
+          shortcut.category === 'navigation' && !shortcut.meta && !shortcut.ctrl && !shortcut.shift;
 
         // Special handling for Cmd/Ctrl+K
         if ((shortcut.meta || shortcut.ctrl) && keyMatch) {
@@ -212,8 +244,24 @@ export function useKeyboardShortcuts() {
           }
         }
 
-        // For simple key shortcuts (navigation)
+        // For simple key shortcuts
         if (!shortcut.meta && !shortcut.ctrl && !shortcut.shift) {
+          if (isNavigationShortcut) {
+            if (!navPrefixRef.current) {
+              continue;
+            }
+            if (keyMatch && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+              if (commandPaletteOpen || shortcutsHelpOpen) {
+                resetNavPrefix();
+                return;
+              }
+              event.preventDefault();
+              resetNavPrefix();
+              shortcut.action();
+              return;
+            }
+            continue;
+          }
           if (keyMatch && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
             // Don't trigger navigation if command palette is open
             if (commandPaletteOpen || shortcutsHelpOpen) {
@@ -228,6 +276,10 @@ export function useKeyboardShortcuts() {
           }
         }
       }
+
+      if (navPrefixRef.current) {
+        resetNavPrefix();
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- shortcuts contains inline functions that would cause infinite re-renders
     [
@@ -238,6 +290,7 @@ export function useKeyboardShortcuts() {
       setShortcutsHelpOpen,
       setAddProjectModalOpen,
       router,
+      resetNavPrefix,
     ]
   );
 
@@ -263,6 +316,7 @@ export function getModifierKey(): string {
 // Export shortcut definitions for help modal (OS-aware)
 export function getShortcutDefinitions() {
   const mod = getModifierKey();
+  const navPrefix = 'G';
   return {
     general: [
       { keys: [mod, 'K'], description: 'Open command palette' },
@@ -270,19 +324,19 @@ export function getShortcutDefinitions() {
       { keys: ['Esc'], description: 'Close dialogs' },
     ],
     navigation: [
-      { keys: ['D'], description: 'Go to Dashboard' },
-      { keys: ['A'], description: 'Go to AI Assistant' },
-      { keys: ['R'], description: 'Go to Daily Rhythm' },
-      { keys: ['H'], description: 'Go to Habit Manager' },
-      { keys: ['B'], description: 'Go to Board' },
-      { keys: ['P'], description: 'Go to Projects' },
-      { keys: ['O'], description: 'Go to Roadmap' },
-      { keys: ['E'], description: 'Go to Dependencies' },
-      { keys: ['C'], description: 'Go to Calendar' },
-      { keys: ['W'], description: 'Go to Weekly Review' },
-      { keys: ['M'], description: 'Go to Monthly Review' },
-      { keys: ['N'], description: 'Go to Notifications' },
-      { keys: ['S'], description: 'Go to Settings' },
+      { keys: [navPrefix, 'D'], description: 'Go to Dashboard' },
+      { keys: [navPrefix, 'A'], description: 'Go to AI Assistant' },
+      { keys: [navPrefix, 'R'], description: 'Go to Daily Rhythm' },
+      { keys: [navPrefix, 'H'], description: 'Go to Habit Manager' },
+      { keys: [navPrefix, 'B'], description: 'Go to Board' },
+      { keys: [navPrefix, 'P'], description: 'Go to Projects' },
+      { keys: [navPrefix, 'O'], description: 'Go to Roadmap' },
+      { keys: [navPrefix, 'E'], description: 'Go to Dependencies' },
+      { keys: [navPrefix, 'C'], description: 'Go to Calendar' },
+      { keys: [navPrefix, 'W'], description: 'Go to Weekly Review' },
+      { keys: [navPrefix, 'M'], description: 'Go to Monthly Review' },
+      { keys: [navPrefix, 'N'], description: 'Go to Notifications' },
+      { keys: [navPrefix, 'S'], description: 'Go to Settings' },
     ],
     actions: [{ keys: ['⇧', 'N'], description: 'New project' }],
   };
@@ -296,19 +350,19 @@ export const SHORTCUT_DEFINITIONS = {
     { keys: ['Esc'], description: 'Close dialogs' },
   ],
   navigation: [
-    { keys: ['D'], description: 'Go to Dashboard' },
-    { keys: ['A'], description: 'Go to AI Assistant' },
-    { keys: ['R'], description: 'Go to Daily Rhythm' },
-    { keys: ['H'], description: 'Go to Habit Manager' },
-    { keys: ['B'], description: 'Go to Board' },
-    { keys: ['P'], description: 'Go to Projects' },
-    { keys: ['O'], description: 'Go to Roadmap' },
-    { keys: ['E'], description: 'Go to Dependencies' },
-    { keys: ['C'], description: 'Go to Calendar' },
-    { keys: ['W'], description: 'Go to Weekly Review' },
-    { keys: ['M'], description: 'Go to Monthly Review' },
-    { keys: ['N'], description: 'Go to Notifications' },
-    { keys: ['S'], description: 'Go to Settings' },
+    { keys: ['G', 'D'], description: 'Go to Dashboard' },
+    { keys: ['G', 'A'], description: 'Go to AI Assistant' },
+    { keys: ['G', 'R'], description: 'Go to Daily Rhythm' },
+    { keys: ['G', 'H'], description: 'Go to Habit Manager' },
+    { keys: ['G', 'B'], description: 'Go to Board' },
+    { keys: ['G', 'P'], description: 'Go to Projects' },
+    { keys: ['G', 'O'], description: 'Go to Roadmap' },
+    { keys: ['G', 'E'], description: 'Go to Dependencies' },
+    { keys: ['G', 'C'], description: 'Go to Calendar' },
+    { keys: ['G', 'W'], description: 'Go to Weekly Review' },
+    { keys: ['G', 'M'], description: 'Go to Monthly Review' },
+    { keys: ['G', 'N'], description: 'Go to Notifications' },
+    { keys: ['G', 'S'], description: 'Go to Settings' },
   ],
   actions: [{ keys: ['⇧', 'N'], description: 'New project' }],
 };
