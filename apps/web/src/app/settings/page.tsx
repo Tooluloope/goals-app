@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User,
@@ -296,6 +296,8 @@ export default function SettingsPage() {
   } | null>(null);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const [isOpeningBillingPortal, setIsOpeningBillingPortal] = useState(false);
+  const lastSubscriptionRefreshRef = useRef(0);
+  const billingReturnKey = 'refreshSubscriptionOnReturn';
 
   // Get family workspace
   const familyWorkspace = workspaces.find((w) => w.type === 'family');
@@ -352,22 +354,59 @@ export default function SettingsPage() {
     setNewEmail(user?.email || '');
   }, [user]);
 
+  const fetchSubscription = useCallback(async (options?: { silent?: boolean }) => {
+    try {
+      if (!options?.silent) {
+        setIsLoadingSubscription(true);
+      }
+      const data = await apiClient.getSubscriptionStatus();
+      setSubscription(data);
+    } catch (error) {
+      console.error('Failed to fetch subscription:', error);
+    } finally {
+      if (!options?.silent) {
+        setIsLoadingSubscription(false);
+      }
+    }
+  }, []);
+
   // Fetch subscription status
   useEffect(() => {
-    const fetchSubscription = async () => {
-      try {
-        setIsLoadingSubscription(true);
-        const data = await apiClient.getSubscriptionStatus();
-        setSubscription(data);
-      } catch (error) {
-        console.error('Failed to fetch subscription:', error);
-      } finally {
-        setIsLoadingSubscription(false);
+    fetchSubscription();
+  }, [fetchSubscription]);
+
+  // Refresh after returning from the billing portal
+  useEffect(() => {
+    const maybeRefreshSubscription = () => {
+      if (typeof window === 'undefined') return;
+      if (!sessionStorage.getItem(billingReturnKey)) return;
+      const now = Date.now();
+      if (now - lastSubscriptionRefreshRef.current < 2000) return;
+      lastSubscriptionRefreshRef.current = now;
+      sessionStorage.removeItem(billingReturnKey);
+      fetchSubscription({ silent: true });
+    };
+
+    maybeRefreshSubscription();
+
+    const handleFocus = () => {
+      maybeRefreshSubscription();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        maybeRefreshSubscription();
       }
     };
 
-    fetchSubscription();
-  }, []);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchSubscription]);
 
   const config = currentWorkspace ? getConfig(currentWorkspace.id) : null;
 
@@ -769,6 +808,9 @@ export default function SettingsPage() {
   const handleManageBilling = async () => {
     setIsOpeningBillingPortal(true);
     try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(billingReturnKey, '1');
+      }
       const { url } = await apiClient.createBillingPortalSession();
       window.location.href = url;
     } catch (error) {

@@ -86,7 +86,7 @@ export class StripeController {
     try {
       const { id } = req.user;
       const appUrl = this.configService.get<string>('NEXT_PUBLIC_APP_URL');
-      const returnUrl = `${appUrl}/settings#billing`;
+      const returnUrl = `${appUrl}/settings#subscription`;
 
       const session = await this.stripeService.createPortalSession(id, returnUrl);
 

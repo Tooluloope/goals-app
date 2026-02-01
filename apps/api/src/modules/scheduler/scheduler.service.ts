@@ -162,6 +162,8 @@ export class SchedulerService {
     const users = await this.prisma.user.findMany({
       where: {
         timezone: { in: timezones },
+        // Only send scheduled emails to verified users
+        emailVerifiedAt: { not: null },
       },
       select: {
         id: true,
@@ -215,6 +217,10 @@ export class SchedulerService {
     defaultValue = true
   ): Promise<UserWithPrefs[]> {
     const users = await this.prisma.user.findMany({
+      where: {
+        // Only send scheduled emails to verified users
+        emailVerifiedAt: { not: null },
+      },
       select: {
         id: true,
         email: true,

@@ -16,6 +16,7 @@ describe('SchedulerService', () => {
     email: 'test@example.com',
     name: 'Test User',
     timezone: 'America/New_York',
+    emailVerifiedAt: new Date('2024-01-01'),
     settings: {
       emailPreferences: {
         habitReminders: true,
@@ -138,10 +139,13 @@ describe('SchedulerService', () => {
       expect(result).toEqual([]);
     });
 
-    it('should filter users by timezone', async () => {
+    it('should filter users by timezone and verified email', async () => {
       const _result = await service['getUsersInTimezones'](['America/New_York'], 'habitReminders');
       expect(prisma.user.findMany).toHaveBeenCalledWith({
-        where: { timezone: { in: ['America/New_York'] } },
+        where: {
+          timezone: { in: ['America/New_York'] },
+          emailVerifiedAt: { not: null },
+        },
         select: expect.any(Object),
       });
     });

@@ -202,7 +202,7 @@ describe('StripeController', () => {
       });
       expect(mockStripeService.createPortalSession).toHaveBeenCalledWith(
         'user-123',
-        'https://example.com/settings#billing'
+        'https://example.com/settings#subscription'
       );
     });
 
