@@ -26,12 +26,15 @@ interface EmailPreferences {
   inactivityReminders?: boolean;
 }
 
+type SubscriptionPlan = 'FREE' | 'PRO' | 'FAMILY';
+
 interface UserWithPrefs {
   id: string;
   email: string;
   name: string;
   timezone: string;
   emailPreferences: EmailPreferences;
+  plan: SubscriptionPlan;
 }
 
 // Common IANA timezones to check (covers most users)
@@ -146,12 +149,13 @@ export class SchedulerService {
 
   /**
    * Query users in specific timezones with a specific email preference enabled.
-   * Filters at DB level for efficiency.
+   * Optionally filters by subscription plan for PRO-only features.
    */
   private async getUsersInTimezones(
     timezones: string[],
     prefKey: keyof EmailPreferences,
-    defaultValue = true
+    defaultValue = true,
+    requiredPlan?: SubscriptionPlan
   ): Promise<UserWithPrefs[]> {
     if (timezones.length === 0) return [];
 
@@ -165,23 +169,40 @@ export class SchedulerService {
         name: true,
         timezone: true,
         settings: true,
+        subscription: {
+          select: { plan: true },
+        },
       },
     });
+
+    const PLAN_LEVEL: Record<SubscriptionPlan, number> = {
+      FREE: 0,
+      PRO: 1,
+      FAMILY: 2,
+    };
 
     return users
       .map((user) => {
         const settings = user.settings as Record<string, unknown> | null;
         const emailPrefs = (settings?.emailPreferences || {}) as EmailPreferences;
+        const plan = (user.subscription?.plan as SubscriptionPlan) || 'FREE';
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           timezone: user.timezone,
           emailPreferences: emailPrefs,
+          plan,
         };
       })
       .filter((user) => {
-        return user.emailPreferences[prefKey] ?? defaultValue;
+        const hasPref = user.emailPreferences[prefKey] ?? defaultValue;
+        if (!hasPref) return false;
+        // If a required plan is specified, check user meets the minimum plan level
+        if (requiredPlan && PLAN_LEVEL[user.plan] < PLAN_LEVEL[requiredPlan]) {
+          return false;
+        }
+        return true;
       });
   }
 
@@ -200,6 +221,9 @@ export class SchedulerService {
         name: true,
         timezone: true,
         settings: true,
+        subscription: {
+          select: { plan: true },
+        },
       },
     });
 
@@ -207,12 +231,14 @@ export class SchedulerService {
       .map((user) => {
         const settings = user.settings as Record<string, unknown> | null;
         const emailPrefs = (settings?.emailPreferences || {}) as EmailPreferences;
+        const plan = (user.subscription?.plan as SubscriptionPlan) || 'FREE';
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           timezone: user.timezone,
           emailPreferences: emailPrefs,
+          plan,
         };
       })
       .filter((user) => {
@@ -396,7 +422,8 @@ export class SchedulerService {
     this.logger.log(`Running weekly summaries for timezones: ${matchingTimezones.join(', ')}`);
 
     try {
-      const users = await this.getUsersInTimezones(matchingTimezones, 'weeklySummary');
+      // Weekly review page requires PRO plan, so only email PRO+ users
+      const users = await this.getUsersInTimezones(matchingTimezones, 'weeklySummary', true, 'PRO');
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
       const weekEnd = endOfWeek(new Date(), { weekStartsOn: 0 });
 
@@ -465,7 +492,13 @@ export class SchedulerService {
     this.logger.log(`Running monthly summaries for timezones: ${matchingTimezones.join(', ')}`);
 
     try {
-      const users = await this.getUsersInTimezones(matchingTimezones, 'monthlySummary');
+      // Monthly review page requires PRO plan, so only email PRO+ users
+      const users = await this.getUsersInTimezones(
+        matchingTimezones,
+        'monthlySummary',
+        true,
+        'PRO'
+      );
       const lastMonth = subDays(new Date(), 1);
       const monthStart = startOfMonth(lastMonth);
       const monthEnd = endOfMonth(lastMonth);

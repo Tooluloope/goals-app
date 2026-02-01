@@ -27,6 +27,7 @@ describe('SchedulerService', () => {
         inactivityReminders: false,
       },
     },
+    subscription: { plan: 'PRO' },
   };
 
   const mockHabit = {
