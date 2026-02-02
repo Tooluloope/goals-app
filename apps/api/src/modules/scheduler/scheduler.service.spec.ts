@@ -288,6 +288,15 @@ describe('SchedulerService', () => {
   });
 
   describe('sendWeeklySummaries', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-02-01T23:00:00.000Z'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('should be defined', () => {
       expect(service.sendWeeklySummaries).toBeDefined();
     });
@@ -304,7 +313,7 @@ describe('SchedulerService', () => {
         'test@example.com',
         'Test User',
         expect.objectContaining({
-          periodLabel: expect.any(String),
+          periodLabel: 'Week of Jan 25 - Jan 31',
           highlights: expect.any(Array),
           metrics: expect.any(Array),
         })

@@ -9,7 +9,7 @@ import {
   subDays,
   subWeeks,
 } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
@@ -430,11 +430,15 @@ export class SchedulerService {
     try {
       // Weekly review page requires PRO plan, so only email PRO+ users
       const users = await this.getUsersInTimezones(matchingTimezones, 'weeklySummary', true, 'PRO');
-      const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
-      const weekEnd = endOfWeek(new Date(), { weekStartsOn: 0 });
-
       for (const user of users) {
         try {
+          const now = new Date();
+          const zonedNow = toZonedTime(now, user.timezone);
+          const currentWeekStartLocal = startOfWeek(zonedNow, { weekStartsOn: 0 });
+          const previousWeekStartLocal = subWeeks(currentWeekStartLocal, 1);
+          const previousWeekEndLocal = endOfWeek(previousWeekStartLocal, { weekStartsOn: 0 });
+          const weekStart = fromZonedTime(previousWeekStartLocal, user.timezone);
+          const weekEnd = fromZonedTime(previousWeekEndLocal, user.timezone);
           const [completedTasks, completedHabits, journalEntries] = await Promise.all([
             this.prisma.task.count({
               where: {
@@ -467,7 +471,11 @@ export class SchedulerService {
 
           if (highlights.length > 0) {
             await this.emailService.sendWeeklySummaryEmail(user.email, user.name, {
-              periodLabel: `Week of ${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
+              periodLabel: `Week of ${formatInTimeZone(weekStart, user.timezone, 'MMM d')} - ${formatInTimeZone(
+                weekEnd,
+                user.timezone,
+                'MMM d'
+              )}`,
               highlights,
               metrics: [
                 { label: 'Tasks Done', value: String(completedTasks) },

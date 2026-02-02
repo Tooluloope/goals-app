@@ -44,6 +44,7 @@ export class EmailService {
   private readonly fromEmail: string;
   private readonly fromName: string;
   private readonly appUrl: string;
+  private readonly marketingUrl: string;
   private static sendQueue: Promise<void> = Promise.resolve();
   private static lastSentAt = 0;
   private static readonly minIntervalMs = Math.max(
@@ -56,6 +57,10 @@ export class EmailService {
     this.fromEmail = process.env.EMAIL_FROM || 'noreply@alignia.app';
     this.fromName = process.env.EMAIL_FROM_NAME || 'Alignia';
     this.appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    this.marketingUrl =
+      process.env.NEXT_PUBLIC_MARKETING_URL ||
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      'https://alignia.xyz';
 
     if (apiKey) {
       this.resend = new Resend(apiKey);
@@ -80,8 +85,8 @@ export class EmailService {
     // Merge with default data
     const emailData: T & BaseEmailData = {
       appName: this.fromName,
-      supportUrl: `${this.appUrl}/support`,
-      unsubscribeUrl: `${this.appUrl}/settings/notifications`,
+      supportUrl: `${this.marketingUrl}/contact`,
+      unsubscribeUrl: `${this.appUrl}/settings#email-preferences`,
       ...data,
     };
 
