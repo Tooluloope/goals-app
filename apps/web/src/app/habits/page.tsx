@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { AddHabitModal } from '@/components/habits/add-habit-modal';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetClose, SheetContent } from '@/components/ui/sheet';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,12 +60,48 @@ const HABIT_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 };
 
 const COLOR_OPTIONS = [
-  { name: 'primary', class: 'bg-primary', text: 'text-primary', hover: 'hover:bg-primary/80' },
-  { name: 'blue', class: 'bg-blue-500', text: 'text-blue-500', hover: 'hover:bg-blue-400' },
-  { name: 'green', class: 'bg-green-500', text: 'text-green-500', hover: 'hover:bg-green-400' },
-  { name: 'orange', class: 'bg-orange-500', text: 'text-orange-500', hover: 'hover:bg-orange-400' },
-  { name: 'pink', class: 'bg-pink-500', text: 'text-pink-500', hover: 'hover:bg-pink-400' },
-  { name: 'purple', class: 'bg-purple-500', text: 'text-purple-500', hover: 'hover:bg-purple-400' },
+  {
+    name: 'primary',
+    class: 'bg-primary',
+    text: 'text-primary',
+    textOnColor: 'text-primary-foreground',
+    hover: 'hover:bg-primary/80',
+  },
+  {
+    name: 'blue',
+    class: 'bg-blue-500',
+    text: 'text-blue-500',
+    textOnColor: 'text-white',
+    hover: 'hover:bg-blue-400',
+  },
+  {
+    name: 'green',
+    class: 'bg-green-500',
+    text: 'text-green-500',
+    textOnColor: 'text-white',
+    hover: 'hover:bg-green-400',
+  },
+  {
+    name: 'orange',
+    class: 'bg-orange-500',
+    text: 'text-orange-500',
+    textOnColor: 'text-white',
+    hover: 'hover:bg-orange-400',
+  },
+  {
+    name: 'pink',
+    class: 'bg-pink-500',
+    text: 'text-pink-500',
+    textOnColor: 'text-white',
+    hover: 'hover:bg-pink-400',
+  },
+  {
+    name: 'purple',
+    class: 'bg-purple-500',
+    text: 'text-purple-500',
+    textOnColor: 'text-white',
+    hover: 'hover:bg-purple-400',
+  },
 ];
 
 function getColorClass(colorName: string) {
@@ -93,6 +130,7 @@ export default function HabitManagerPage() {
     () => habits.find((h) => h.id === selectedHabitId) || null,
     [habits, selectedHabitId]
   );
+  const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
   const [deleteHabitId, setDeleteHabitId] = useState<string | null>(null);
   const habitToDelete = useMemo(
     () => (deleteHabitId ? habits.find((h) => h.id === deleteHabitId) || null : null),
@@ -105,6 +143,12 @@ export default function HabitManagerPage() {
       setSelectedHabitId(habits[0].id);
     }
   }, [habits, selectedHabitId]);
+
+  useEffect(() => {
+    if (!selectedHabit) {
+      setIsMobileDetailOpen(false);
+    }
+  }, [selectedHabit]);
 
   // Calculate overall stats
   const overallStats = useMemo(() => {
@@ -127,6 +171,13 @@ export default function HabitManagerPage() {
 
   const handleToggle = (habitId: string, date: string) => {
     toggleLog.mutate({ habitId, date });
+  };
+
+  const handleSelectHabit = (habitId: string) => {
+    setSelectedHabitId(habitId);
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+      setIsMobileDetailOpen(true);
+    }
   };
 
   const confirmDeleteHabit = () => {
@@ -232,7 +283,7 @@ export default function HabitManagerPage() {
                     key={habit.id}
                     habit={habit}
                     isSelected={selectedHabitId === habit.id}
-                    onSelect={() => setSelectedHabitId(habit.id)}
+                    onSelect={() => handleSelectHabit(habit.id)}
                     onDelete={() => handleDeleteHabit(habit.id)}
                     onToggle={(date) => handleToggle(habit.id, date)}
                   />
@@ -242,7 +293,7 @@ export default function HabitManagerPage() {
           </div>
 
           {/* Habit Detail Panel */}
-          <div className="lg:col-span-1">
+          <div className="hidden lg:block lg:col-span-1">
             {selectedHabit ? (
               <HabitDetailPanel habit={selectedHabit} onToggle={handleToggle} />
             ) : (
@@ -255,6 +306,48 @@ export default function HabitManagerPage() {
             )}
           </div>
         </div>
+
+        {/* Mobile Habit Detail Sheet */}
+        <Sheet open={isMobileDetailOpen && !!selectedHabit} onOpenChange={setIsMobileDetailOpen}>
+          <SheetContent
+            side="bottom"
+            className="h-[100dvh] p-0"
+            onInteractOutside={(event) => event.preventDefault()}
+            onEscapeKeyDown={(event) => event.preventDefault()}
+          >
+            {selectedHabit ? (
+              <div className="flex h-full flex-col">
+                <div className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Habit details</p>
+                      <p className="truncate text-sm font-semibold">{selectedHabit.name}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={selectedHabit.completedToday ? 'default' : 'outline'}
+                        onClick={() =>
+                          handleToggle(selectedHabit.id, format(new Date(), 'yyyy-MM-dd'))
+                        }
+                      >
+                        {selectedHabit.completedToday ? 'Completed today' : 'Mark today'}
+                      </Button>
+                      <SheetClose asChild>
+                        <Button size="sm" variant="ghost">
+                          Close
+                        </Button>
+                      </SheetClose>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 pb-10">
+                  <HabitDetailPanel habit={selectedHabit} onToggle={handleToggle} sticky={false} />
+                </div>
+              </div>
+            ) : null}
+          </SheetContent>
+        </Sheet>
 
         <AlertDialog
           open={!!deleteHabitId}
@@ -332,12 +425,12 @@ function HabitCard({
   return (
     <Card
       className={cn(
-        'group cursor-pointer transition-all hover:shadow-md overflow-hidden',
-        isSelected && 'ring-2 ring-primary'
+        'group w-full min-w-0 cursor-pointer transition-all hover:shadow-md overflow-hidden',
+        isSelected && 'ring-2 ring-inset ring-primary'
       )}
       onClick={onSelect}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-4 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className={cn('rounded-lg p-2 shrink-0', `${color.class}/10`)}>
@@ -375,7 +468,7 @@ function HabitCard({
               className={cn(
                 'flex h-8 w-8 items-center justify-center rounded-full transition-all',
                 habit.completedToday
-                  ? `${color.class} text-white`
+                  ? `${color.class} ${color.textOnColor}`
                   : 'border-2 border-border hover:border-primary/50'
               )}
             >
@@ -431,9 +524,11 @@ function HabitCard({
 function HabitDetailPanel({
   habit,
   onToggle,
+  sticky = true,
 }: {
   habit: HabitWithStats;
   onToggle: (habitId: string, date: string) => void;
+  sticky?: boolean;
 }) {
   const IconComponent = HABIT_ICONS[habit.icon] || Target;
   const color = getColorClass(habit.color);
@@ -486,7 +581,7 @@ function HabitDetailPanel({
   }, [last30Days]);
 
   return (
-    <Card className="sticky top-20 overflow-hidden">
+    <Card className={cn('overflow-hidden', sticky && 'sticky top-20')}>
       <CardHeader className="pb-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className={cn('rounded-lg p-3 shrink-0', `${color.class}/10`)}>
@@ -579,7 +674,9 @@ function HabitDetailPanel({
                         onClick={() => onToggle(habit.id, dateStr)}
                         className={cn(
                           'aspect-square rounded-md text-xs font-medium transition-all hover:scale-110',
-                          isCompleted ? `${color.class} text-white` : 'bg-muted hover:bg-muted/80',
+                          isCompleted
+                            ? `${color.class} ${color.textOnColor}`
+                            : 'bg-muted hover:bg-muted/80',
                           isToday && !isCompleted && 'ring-2 ring-primary/50'
                         )}
                         title={`${format(day, 'MMM d')}: ${isCompleted ? 'Completed' : 'Not completed'}`}

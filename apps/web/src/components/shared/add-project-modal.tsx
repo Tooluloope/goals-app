@@ -197,10 +197,13 @@ export function AddProjectModal() {
       setSelectedTagIds([]);
       setAddProjectModalOpen(false);
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to create goal. Please try again.';
+      const isLimitError = message.toLowerCase().includes('limit');
       toast({
-        title: 'Error',
-        description: 'Failed to create goal. Please try again.',
-        variant: 'destructive',
+        title: isLimitError ? 'Upgrade required' : 'Error',
+        description: message,
+        variant: isLimitError ? 'default' : 'destructive',
       });
     }
   };

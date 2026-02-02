@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import {
   Plus,
   BookOpen,
@@ -89,6 +90,7 @@ interface AddHabitModalProps {
 
 export function AddHabitModal({ trigger, onSuccess }: AddHabitModalProps) {
   const createHabit = useCreateHabit();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -104,30 +106,41 @@ export function AddHabitModal({ trigger, onSuccess }: AddHabitModalProps) {
   const handleSubmit = async () => {
     if (!formData.name.trim()) return;
 
-    await createHabit.mutateAsync({
-      name: formData.name.trim(),
-      icon: formData.icon,
-      color: formData.color,
-      frequency: formData.frequency,
-      frequencyDays: formData.frequency === 'specific_days' ? formData.frequencyDays : [],
-      reminderEnabled: formData.reminderEnabled,
-      reminderTime: formData.reminderEnabled ? formData.reminderTime : undefined,
-      goalArea: formData.goalArea || undefined,
-    });
+    try {
+      await createHabit.mutateAsync({
+        name: formData.name.trim(),
+        icon: formData.icon,
+        color: formData.color,
+        frequency: formData.frequency,
+        frequencyDays: formData.frequency === 'specific_days' ? formData.frequencyDays : [],
+        reminderEnabled: formData.reminderEnabled,
+        reminderTime: formData.reminderEnabled ? formData.reminderTime : undefined,
+        goalArea: formData.goalArea || undefined,
+      });
 
-    // Reset form
-    setFormData({
-      name: '',
-      icon: 'target',
-      color: 'primary',
-      frequency: 'daily',
-      frequencyDays: [],
-      reminderEnabled: false,
-      reminderTime: '09:00',
-      goalArea: '',
-    });
-    setIsOpen(false);
-    onSuccess?.();
+      // Reset form
+      setFormData({
+        name: '',
+        icon: 'target',
+        color: 'primary',
+        frequency: 'daily',
+        frequencyDays: [],
+        reminderEnabled: false,
+        reminderTime: '09:00',
+        goalArea: '',
+      });
+      setIsOpen(false);
+      onSuccess?.();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to create habit. Please try again.';
+      const isLimitError = message.toLowerCase().includes('limit');
+      toast({
+        title: isLimitError ? 'Upgrade required' : 'Error',
+        description: message,
+        variant: isLimitError ? 'default' : 'destructive',
+      });
+    }
   };
 
   const toggleDay = (day: number) => {

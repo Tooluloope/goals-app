@@ -1065,7 +1065,7 @@ export default function SettingsPage() {
 
               {/* Plan comparison */}
               {subscription?.plan === 'FREE' && (
-                <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+                <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-purple-50 p-4 dark:border-slate-700/60 dark:from-slate-900/60 dark:to-slate-800/60">
                   <h4 className="mb-3 font-semibold">Upgrade Benefits</h4>
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start gap-2">
