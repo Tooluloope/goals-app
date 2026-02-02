@@ -3,7 +3,11 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { appUrls } from '@/lib/config';
 
-const highlights = ['Track goals & habits', 'AI-powered insights', 'Family workspaces'];
+const highlights = [
+  'Clarity on what matters',
+  'Aligned habits that stick',
+  'Progress you can feel',
+];
 
 export function Hero() {
   return (
@@ -20,18 +24,18 @@ export function Hero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
             </span>
-            Now with AI-powered insights
+            Built for aligned living
           </div>
 
           {/* Headline */}
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
-            Achieve Your Goals with <span className="gradient-text">Alignia</span>
+            Bring your vision to life with <span className="gradient-text">Alignia</span>
           </h1>
 
           {/* Subheadline */}
           <p className="mb-8 text-lg text-muted-foreground md:text-xl">
-            The personal goal tracking app for individuals and families. Set meaningful goals, build
-            lasting habits, and track your progress with AI-powered insights.
+            Alignia turns self-awareness into aligned action. Get clear on what matters, follow
+            through with meaningful routines, and see your growth in one connected system.
           </p>
 
           {/* Highlights */}
@@ -63,7 +67,7 @@ export function Hero() {
 
           {/* Social proof */}
           <p className="mt-8 text-sm text-muted-foreground">
-            No credit card required. Start for free.
+            Start free. Build momentum that lasts.
           </p>
         </div>
 

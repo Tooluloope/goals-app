@@ -14,47 +14,44 @@ const features = [
     icon: Target,
     title: 'Goal Management',
     description:
-      'Set and track meaningful goals with visual boards. Break down big goals into actionable tasks and milestones.',
+      'Turn your vision into clear steps you can finish. Keep goals visible and moving forward.',
   },
   {
     icon: CheckSquare,
     title: 'Habit Tracking',
     description:
-      'Build lasting habits with daily tracking, streak counters, and gentle reminders to keep you on track.',
+      'Build routines that match your values and actually stick, one small win at a time.',
   },
   {
     icon: BookOpen,
     title: 'Daily Journal',
     description:
-      'Reflect on your day with guided prompts. Track your mood, wins, challenges, and gratitude.',
+      'Capture wins, emotions, and insights so you can grow with intention, not guesswork.',
   },
   {
     icon: Calendar,
     title: 'Weekly & Monthly Reviews',
-    description: 'Regular reflection cycles help you learn from the past and plan for the future.',
+    description: 'Close the loop each week. Learn faster, realign, and plan with confidence.',
   },
   {
     icon: Brain,
     title: 'AI-Powered Insights',
-    description:
-      'Get personalized advice, summaries, and pattern detection powered by advanced AI.',
+    description: 'Spot patterns, get guidance, and stay aligned when life shifts.',
   },
   {
     icon: Users,
     title: 'Family Workspaces',
-    description:
-      'Share goals with family members. Track progress together and celebrate wins as a team.',
+    description: 'Share goals, build accountability, and celebrate progress together.',
   },
   {
     icon: BarChart3,
     title: 'Progress Analytics',
-    description: 'Visualize your progress with charts and statistics. See how far you have come.',
+    description: 'See momentum at a glance and celebrate real, measurable growth.',
   },
   {
     icon: Bell,
     title: 'Smart Reminders',
-    description:
-      'Never miss a deadline with intelligent email reminders for tasks, habits, and reviews.',
+    description: 'Gentle nudges that keep you on track without the overwhelm.',
   },
 ];
 
@@ -65,11 +62,10 @@ export function Features() {
         {/* Section Header */}
         <div className="mx-auto mb-16 max-w-2xl text-center">
           <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">
-            Everything you need to achieve your goals
+            What Alignia does for you
           </h2>
           <p className="text-lg text-muted-foreground">
-            A comprehensive toolkit designed to help you set, track, and achieve your personal and
-            professional goals.
+            Clarity, consistency, and confidence - all in one connected system.
           </p>
         </div>
 

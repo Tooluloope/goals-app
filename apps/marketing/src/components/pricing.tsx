@@ -8,7 +8,7 @@ const tiers = [
     name: 'Free',
     price: '$0',
     period: 'forever',
-    description: 'Perfect for getting started with goal tracking.',
+    description: 'Build clarity and a steady routine without the noise.',
     features: [
       'Up to 5 habits',
       'Up to 3 goals',
@@ -25,7 +25,7 @@ const tiers = [
     name: 'Pro',
     price: '$7',
     period: '/month',
-    description: 'For serious goal-setters who want the full experience.',
+    description: 'For sustained momentum, insights, and deeper reflection.',
     features: [
       'Unlimited habits',
       'Unlimited goals',
@@ -44,7 +44,7 @@ const tiers = [
     name: 'Family',
     price: '$14',
     period: '/month',
-    description: 'For households working on goals together.',
+    description: 'For families who want shared alignment and accountability.',
     features: [
       'Everything in Pro',
       'Up to 6 family members',
@@ -66,10 +66,10 @@ export function Pricing() {
         {/* Section Header */}
         <div className="mx-auto mb-16 max-w-2xl text-center">
           <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">
-            Simple, transparent pricing
+            Choose the outcomes you want
           </h2>
           <p className="text-lg text-muted-foreground">
-            Start for free, upgrade when you need more. No hidden fees.
+            Start free for clarity. Upgrade for momentum. Add family for shared alignment.
           </p>
         </div>
 

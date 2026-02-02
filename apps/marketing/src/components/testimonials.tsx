@@ -1,21 +1,21 @@
 const testimonials = [
   {
     quote:
-      'Alignia has completely transformed how I approach my goals. The AI insights are incredibly helpful for staying motivated.',
+      'Alignia helped me focus on what matters and actually follow through. I feel calmer and more consistent.',
     author: 'Sarah M.',
     role: 'Product Manager',
     avatar: 'SM',
   },
   {
     quote:
-      "Our family uses Alignia to track our shared goals. It's brought us closer together and keeps everyone accountable.",
+      'We finally have one place for our family goals. It keeps us aligned and turns good intentions into action.',
     author: 'James K.',
     role: 'Father of 3',
     avatar: 'JK',
   },
   {
     quote:
-      "The habit tracking with streaks is addictive in the best way. I've finally built consistent morning routines.",
+      'I stopped feeling scattered. The weekly reviews and habits helped me build real momentum.',
     author: 'Emily R.',
     role: 'Entrepreneur',
     avatar: 'ER',
@@ -29,10 +29,10 @@ export function Testimonials() {
         {/* Section Header */}
         <div className="mx-auto mb-16 max-w-2xl text-center">
           <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">
-            Loved by goal achievers
+            Real progress, real stories
           </h2>
           <p className="text-lg text-muted-foreground">
-            See what our users have to say about their experience with Alignia.
+            People use Alignia to feel clear, aligned, and proud of their growth.
           </p>
         </div>
 

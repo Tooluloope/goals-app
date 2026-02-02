@@ -13,21 +13,21 @@ export function CTA() {
 
           <div className="relative">
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-primary-foreground md:text-4xl">
-              Ready to achieve your goals?
+              Ready to feel aligned every week?
             </h2>
             <p className="mx-auto mb-8 max-w-xl text-lg text-primary-foreground/80">
-              Join thousands of people who are building better habits, tracking meaningful goals,
-              and achieving more with Alignia.
+              Turn reflection into action, build momentum you trust, and see real progress with
+              Alignia.
             </p>
             <Link
               href={appUrls.register}
               className="group inline-flex items-center gap-2 rounded-lg bg-background px-6 py-3 text-sm font-medium text-foreground transition-all hover:bg-background/90 hover:gap-3"
             >
-              Start Your Free Account
+              Start Free
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <p className="mt-4 text-sm text-primary-foreground/60">
-              Free forever. No credit card required.
+              No credit card required. Cancel anytime.
             </p>
           </div>
         </div>
