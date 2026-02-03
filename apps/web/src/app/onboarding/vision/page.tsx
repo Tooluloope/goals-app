@@ -105,7 +105,7 @@ export default function OnboardingVisionPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0f0f0f] text-white">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#0f0f0f] text-white">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-24 top-[-10%] h-[380px] w-[380px] rounded-full bg-amber-400/20 blur-[140px]" />
         <div className="absolute right-[-15%] top-[20%] h-[420px] w-[420px] rounded-full bg-amber-200/10 blur-[160px]" />

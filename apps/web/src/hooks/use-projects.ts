@@ -14,13 +14,22 @@ export const projectKeys = {
 };
 
 // Fetch projects for current workspace
-export function useProjects() {
+type UseProjectsOptions = {
+  refetchOnWindowFocus?: boolean | 'always';
+  refetchOnMount?: boolean | 'always';
+  staleTime?: number;
+};
+
+export function useProjects(options: UseProjectsOptions = {}) {
   const { currentWorkspace } = useAuthStore();
 
   return useQuery({
     queryKey: projectKeys.workspace(currentWorkspace?.id ?? ''),
     queryFn: () => apiClient.getProjectsForWorkspace(currentWorkspace?.id ?? ''),
     enabled: !!currentWorkspace,
+    refetchOnWindowFocus: options.refetchOnWindowFocus,
+    refetchOnMount: options.refetchOnMount,
+    staleTime: options.staleTime,
   });
 }
 

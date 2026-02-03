@@ -41,19 +41,30 @@ import {
   StatusConfig,
 } from '@/types/config';
 
-const projectSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  objective: z.string().min(1, 'Objective is required'),
-  areaIds: z.array(z.string()).min(1, 'At least one area is required'),
-  statusId: z.string().min(1, 'Status is required'),
-  priorityId: z.string().min(1, 'Priority is required'),
-  cadenceId: z.string().min(1, 'Cadence is required'),
-  confidenceId: z.string().min(1, 'Confidence is required'),
-  startDate: z.string(),
-  targetDate: z.string(),
-  successMetric: z.string(),
-  ownerId: z.string().optional(),
-});
+const projectSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    objective: z.string().min(1, 'Objective is required'),
+    areaIds: z.array(z.string()).min(1, 'At least one area is required'),
+    statusId: z.string().min(1, 'Status is required'),
+    priorityId: z.string().min(1, 'Priority is required'),
+    cadenceId: z.string().min(1, 'Cadence is required'),
+    confidenceId: z.string().min(1, 'Confidence is required'),
+    startDate: z.string().min(1, 'Start date is required'),
+    targetDate: z.string().min(1, 'Target date is required'),
+    successMetric: z.string(),
+    ownerId: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.startDate || !data.targetDate) return true;
+      return data.targetDate > data.startDate;
+    },
+    {
+      message: 'Target date must be after start date',
+      path: ['targetDate'],
+    }
+  );
 
 type ProjectFormData = z.infer<typeof projectSchema>;
 
@@ -329,11 +340,17 @@ export function AddProjectModal() {
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start date</Label>
                 <Input id="startDate" type="date" {...register('startDate')} />
+                {errors.startDate && (
+                  <p className="text-sm text-destructive">{errors.startDate.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="targetDate">Target date</Label>
                 <Input id="targetDate" type="date" {...register('targetDate')} />
+                {errors.targetDate && (
+                  <p className="text-sm text-destructive">{errors.targetDate.message}</p>
+                )}
               </div>
             </div>
 

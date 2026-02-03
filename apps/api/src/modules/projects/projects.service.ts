@@ -148,11 +148,30 @@ export class ProjectsService {
       await this.usageService.enforceQuota(workspace.ownerId, 'goals');
     }
 
+    if (!data.startDate) {
+      throw new BadRequestException('Start date is required');
+    }
+    const startDate = new Date(data.startDate);
+    if (Number.isNaN(startDate.getTime())) {
+      throw new BadRequestException('Invalid start date');
+    }
+
+    if (!data.targetDate) {
+      throw new BadRequestException('Target date is required');
+    }
+    const targetDate = new Date(data.targetDate);
+    if (Number.isNaN(targetDate.getTime())) {
+      throw new BadRequestException('Invalid target date');
+    }
+    if (targetDate <= startDate) {
+      throw new BadRequestException('Target date must be after start date');
+    }
+
     const project = await this.prisma.project.create({
       data: {
         ...data,
-        startDate: new Date(data.startDate),
-        targetDate: new Date(data.targetDate),
+        startDate,
+        targetDate,
         metrics: { create: {} },
       },
       include: {
@@ -173,11 +192,32 @@ export class ProjectsService {
 
   async update(id: string, data: UpdateProjectDto, userId: string): Promise<Project> {
     // Verify project exists and user has access
-    await this.findById(id, userId);
+    const existingProject = await this.findById(id, userId);
 
     const updateData: any = { ...data };
-    if (data.startDate) updateData.startDate = new Date(data.startDate);
-    if (data.targetDate) updateData.targetDate = new Date(data.targetDate);
+    const updatingDates = Boolean(data.startDate || data.targetDate);
+    let startDate = existingProject.startDate;
+    let targetDate = existingProject.targetDate;
+
+    if (data.startDate) {
+      startDate = new Date(data.startDate);
+      if (Number.isNaN(startDate.getTime())) {
+        throw new BadRequestException('Invalid start date');
+      }
+      updateData.startDate = startDate;
+    }
+
+    if (data.targetDate) {
+      targetDate = new Date(data.targetDate);
+      if (Number.isNaN(targetDate.getTime())) {
+        throw new BadRequestException('Invalid target date');
+      }
+      updateData.targetDate = targetDate;
+    }
+
+    if (updatingDates && targetDate <= startDate) {
+      throw new BadRequestException('Target date must be after start date');
+    }
     const imageInput = (data as any).images;
     if (imageInput !== undefined) {
       const imageData = normalizeImageAttachments(imageInput, {

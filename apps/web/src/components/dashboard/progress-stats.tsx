@@ -7,7 +7,7 @@ import { useHabits } from '@/hooks/use-habits';
 import { useJournalStreak } from '@/hooks/use-journal';
 import { useWeeklyReviewStats } from '@/hooks/use-reviews';
 import { cn } from '@/lib/utils';
-import { TrendingUp, Flame, BookOpen, Target, Calendar, CheckCircle2, Loader2 } from 'lucide-react';
+import { TrendingUp, Flame, BookOpen, Target, Calendar, CheckCircle2 } from 'lucide-react';
 
 export function ProgressStats() {
   const { data: habitsData, isLoading: habitsLoading } = useHabits();
@@ -72,18 +72,8 @@ export function ProgressStats() {
     };
   }, [habits]);
 
-  // Only block on essential data (habits/journal), let weekly stats load independently
-  const isLoading = habitsLoading || journalLoading;
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
+  const showHabitSkeleton = habitsLoading;
+  const showJournalSkeleton = journalLoading;
 
   return (
     <div className="space-y-4">
@@ -97,9 +87,13 @@ export function ProgressStats() {
                 <CheckCircle2 className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
-                  {habitStats.todayCompleted}/{habitStats.todayTotal}
-                </p>
+                {showHabitSkeleton ? (
+                  <div className="h-7 w-16 animate-pulse rounded bg-muted" />
+                ) : (
+                  <p className="text-2xl font-bold">
+                    {habitStats.todayCompleted}/{habitStats.todayTotal}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">Today's Habits</p>
               </div>
             </div>
@@ -114,7 +108,11 @@ export function ProgressStats() {
                 <Flame className="h-4 w-4 text-orange-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{habitStats.currentStreak}</p>
+                {showHabitSkeleton ? (
+                  <div className="h-7 w-10 animate-pulse rounded bg-muted" />
+                ) : (
+                  <p className="text-2xl font-bold">{habitStats.currentStreak}</p>
+                )}
                 <p className="text-xs text-muted-foreground">Day Streak</p>
               </div>
             </div>
@@ -129,7 +127,11 @@ export function ProgressStats() {
                 <BookOpen className="h-4 w-4 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{journalStreak?.currentStreak || 0}</p>
+                {showJournalSkeleton ? (
+                  <div className="h-7 w-10 animate-pulse rounded bg-muted" />
+                ) : (
+                  <p className="text-2xl font-bold">{journalStreak?.currentStreak || 0}</p>
+                )}
                 <p className="text-xs text-muted-foreground">Journal Streak</p>
               </div>
             </div>
@@ -162,7 +164,7 @@ export function ProgressStats() {
       </div>
 
       {/* Weekly Progress Chart */}
-      {habits.length > 0 && (
+      {!habitsLoading && habits.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -219,7 +221,7 @@ export function ProgressStats() {
       )}
 
       {/* Empty state */}
-      {habits.length === 0 && (
+      {!habitsLoading && habits.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8 text-center">
             <Target className="mb-3 h-10 w-10 text-muted-foreground/50" />

@@ -225,7 +225,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
+      <DialogContent className="max-h-[90vh] max-w-2xl gap-0 overflow-y-auto overflow-x-hidden p-0">
         {/* Progress bar */}
         <div className="border-b bg-muted/30 px-6 py-4">
           <div className="flex items-center justify-between text-sm">

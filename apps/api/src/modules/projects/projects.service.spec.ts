@@ -186,6 +186,26 @@ describe('ProjectsService', () => {
       expect(result.id).toBe(mockProject.id);
       expect(workspacesService.verifyAccess).toHaveBeenCalled();
     });
+
+    it('should throw BadRequestException when target date is before start date', async () => {
+      workspacesService.verifyAccess.mockResolvedValue(undefined);
+
+      await expect(
+        service.create(
+          {
+            name: 'New Project',
+            description: 'Description',
+            workspaceId: 'workspace-1',
+            statusId: 'status-doing',
+            areaIds: ['area-1'],
+            priority: 1,
+            startDate: '2024-12-31',
+            targetDate: '2024-01-01',
+          } as any,
+          'user-1'
+        )
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('update', () => {
@@ -198,6 +218,20 @@ describe('ProjectsService', () => {
       const result = await service.update('project-1', { name: 'Updated Name' }, 'user-1');
 
       expect(result.name).toBe('Updated Name');
+    });
+
+    it('should throw BadRequestException when target date is before start date', async () => {
+      const projectWithDates = {
+        ...mockProject,
+        startDate: new Date('2024-06-01'),
+        targetDate: new Date('2024-12-01'),
+      };
+      prismaService.project.findUnique.mockResolvedValue(projectWithDates);
+      workspacesService.verifyAccess.mockResolvedValue(undefined);
+
+      await expect(
+        service.update('project-1', { targetDate: '2024-01-01' } as any, 'user-1')
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

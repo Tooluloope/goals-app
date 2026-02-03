@@ -30,7 +30,10 @@ import { useAuthStore } from '@/store/auth-store';
 import { isReviewDue, isDeadlineApproaching } from '@/lib/utils';
 
 export default function BoardPage() {
-  const { data: projects, isLoading } = useProjects();
+  const { data: projects, isLoading } = useProjects({
+    refetchOnWindowFocus: 'always',
+    refetchOnMount: 'always',
+  });
   const updateProjectStatus = useUpdateProjectStatus();
   const { boardFilters, setAddProjectModalOpen } = useUIStore();
   const { currentWorkspace } = useAuthStore();
