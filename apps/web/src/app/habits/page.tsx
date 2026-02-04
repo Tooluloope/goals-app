@@ -319,9 +319,11 @@ export default function HabitManagerPage() {
               <div className="flex h-full flex-col">
                 <div className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 overflow-hidden">
                       <p className="text-xs text-muted-foreground">Habit details</p>
-                      <p className="truncate text-sm font-semibold">{selectedHabit.name}</p>
+                      <p className="truncate text-sm font-semibold max-w-full">
+                        {selectedHabit.name}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -430,14 +432,14 @@ function HabitCard({
       )}
       onClick={onSelect}
     >
-      <CardContent className="p-4 min-w-0">
+      <CardContent className="p-4 min-w-0 max-w-full">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className={cn('rounded-lg p-2 shrink-0', `${color.class}/10`)}>
               <IconComponent className={cn('h-6 w-6', color.text)} />
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold truncate">{habit.name}</h3>
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <h3 className="font-semibold leading-tight break-words">{habit.name}</h3>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Flame className="h-3.5 w-3.5 text-orange-500" />
@@ -587,8 +589,8 @@ function HabitDetailPanel({
           <div className={cn('rounded-lg p-3 shrink-0', `${color.class}/10`)}>
             <IconComponent className={cn('h-8 w-8', color.text)} />
           </div>
-          <div className="min-w-0 flex-1">
-            <CardTitle className="truncate">{habit.name}</CardTitle>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <CardTitle className="truncate max-w-full">{habit.name}</CardTitle>
             <CardDescription>Habit performance</CardDescription>
           </div>
         </div>

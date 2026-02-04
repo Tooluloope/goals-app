@@ -159,12 +159,32 @@ const HABIT_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 };
 
 const COLOR_OPTIONS = [
-  { name: 'primary', class: 'bg-primary', hover: 'hover:bg-primary/80' },
-  { name: 'blue', class: 'bg-blue-500', hover: 'hover:bg-blue-400' },
-  { name: 'green', class: 'bg-green-500', hover: 'hover:bg-green-400' },
-  { name: 'orange', class: 'bg-orange-500', hover: 'hover:bg-orange-400' },
-  { name: 'pink', class: 'bg-pink-500', hover: 'hover:bg-pink-400' },
-  { name: 'purple', class: 'bg-purple-500', hover: 'hover:bg-purple-400' },
+  {
+    name: 'primary',
+    class: 'bg-primary',
+    textOnColor: 'text-primary-foreground',
+    hover: 'hover:bg-primary/80',
+  },
+  { name: 'blue', class: 'bg-blue-500', textOnColor: 'text-white', hover: 'hover:bg-blue-400' },
+  {
+    name: 'green',
+    class: 'bg-green-500',
+    textOnColor: 'text-white',
+    hover: 'hover:bg-green-400',
+  },
+  {
+    name: 'orange',
+    class: 'bg-orange-500',
+    textOnColor: 'text-white',
+    hover: 'hover:bg-orange-400',
+  },
+  { name: 'pink', class: 'bg-pink-500', textOnColor: 'text-white', hover: 'hover:bg-pink-400' },
+  {
+    name: 'purple',
+    class: 'bg-purple-500',
+    textOnColor: 'text-white',
+    hover: 'hover:bg-purple-400',
+  },
 ];
 
 export function HabitTracker({ selectedDate }: HabitTrackerProps) {
@@ -217,7 +237,7 @@ export function HabitTracker({ selectedDate }: HabitTrackerProps) {
   const getColorClasses = (colorName: string, isCompleted: boolean) => {
     const color = COLOR_OPTIONS.find((c) => c.name === colorName) || COLOR_OPTIONS[0];
     if (isCompleted) {
-      return `${color.class} text-white shadow-lg`;
+      return `${color.class} ${color.textOnColor} shadow-lg`;
     }
     return 'bg-card border-2 border-border hover:border-primary/50 text-muted-foreground hover:text-foreground';
   };
@@ -411,7 +431,7 @@ function HabitCard({
             </>
           )}
         </div>
-        <span className="text-xs font-semibold max-w-full truncate px-1">{habit.name}</span>
+        <span className="text-xs font-semibold w-full truncate px-1">{habit.name}</span>
 
         {/* Streak indicator with flame */}
         {habit.currentStreak > 0 && !isToggling && (
@@ -497,7 +517,7 @@ function SpecificDaysCard({
               </>
             )}
           </div>
-          <span className="text-[10px] font-semibold max-w-full truncate">{habit.name}</span>
+          <span className="text-[10px] font-semibold w-full truncate px-1">{habit.name}</span>
         </div>
 
         {/* Week progress text */}
@@ -605,7 +625,7 @@ function WeeklyCard({
             </>
           )}
         </div>
-        <span className="text-xs font-semibold max-w-full truncate px-1">{habit.name}</span>
+        <span className="text-xs font-semibold w-full truncate px-1">{habit.name}</span>
 
         {/* Week status */}
         <div className="text-[9px] font-medium opacity-80">
