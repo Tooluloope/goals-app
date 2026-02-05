@@ -11,6 +11,7 @@ import { NotificationSummaryModal } from '@/components/notifications/notificatio
 import { AddProjectModal } from '@/components/shared/add-project-modal';
 import { AddTaskModal } from '@/components/shared/add-task-modal';
 import { AddReviewModal } from '@/components/shared/add-review-modal';
+import { HabitSuggestionWizard } from '@/components/habits/habit-suggestion-wizard';
 import { getFocusModeRedirect } from '@/lib/mode-guard';
 import { getPlanRequirement, hasPlanAccess } from '@/lib/plan-guard';
 import { useSubscriptionStatus } from '@/hooks/use-subscription';
@@ -100,6 +101,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
       <AddProjectModal />
       <AddTaskModal />
       <AddReviewModal />
+      <HabitSuggestionWizard />
     </div>
   );
 }

@@ -28,6 +28,7 @@ import { TagSelect } from '@/components/ui/tag-select';
 import { AreaSelect } from '@/components/ui/area-select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUIStore } from '@/store/ui-store';
+import type { Project } from '@goals/shared';
 import { useAuthStore } from '@/store/auth-store';
 import { useConfigStore } from '@/store/config-store';
 import { useCreateProject } from '@/hooks/use-projects';
@@ -69,7 +70,7 @@ const projectSchema = z
 type ProjectFormData = z.infer<typeof projectSchema>;
 
 export function AddProjectModal() {
-  const { addProjectModalOpen, setAddProjectModalOpen } = useUIStore();
+  const { addProjectModalOpen, setAddProjectModalOpen, openHabitSuggestionWizard } = useUIStore();
   const { currentWorkspace, user } = useAuthStore();
   const {
     getAreasForWorkspace,
@@ -182,7 +183,7 @@ export function AddProjectModal() {
     if (!currentWorkspace) return;
 
     try {
-      await createProject.mutateAsync({
+      const createdProject = (await createProject.mutateAsync({
         workspaceId: currentWorkspace.id,
         name: data.name,
         objective: data.objective,
@@ -196,7 +197,7 @@ export function AddProjectModal() {
         successMetric: data.successMetric,
         tagIds: selectedTagIds,
         ownerId: data.ownerId || undefined,
-      });
+      })) as Project;
 
       toast({
         title: 'Goal created',
@@ -208,6 +209,9 @@ export function AddProjectModal() {
       setSelectedAreaIds([]);
       setSelectedTagIds([]);
       setAddProjectModalOpen(false);
+
+      // Open habit suggestion wizard after goal creation
+      openHabitSuggestionWizard(createdProject.id, createdProject.name);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to create goal. Please try again.';

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useCreateHabit } from '@/hooks/use-habits';
+import { useProjects } from '@/hooks/use-projects';
+import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,6 +12,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -91,6 +100,8 @@ interface AddHabitModalProps {
 export function AddHabitModal({ trigger, onSuccess }: AddHabitModalProps) {
   const createHabit = useCreateHabit();
   const { toast } = useToast();
+  const { currentWorkspace } = useAuthStore();
+  const { data: projects = [] } = useProjects();
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -101,13 +112,22 @@ export function AddHabitModal({ trigger, onSuccess }: AddHabitModalProps) {
     reminderEnabled: false,
     reminderTime: '09:00',
     goalArea: '',
+    projectId: '' as string | null,
+    weight: 50,
+  });
+
+  // Filter to only show active projects (not completed/cancelled)
+  const activeProjects = projects.filter((p) => {
+    // You could filter by status here if needed
+    return true;
   });
 
   const handleSubmit = async () => {
-    if (!formData.name.trim()) return;
+    if (!formData.name.trim() || !currentWorkspace?.id) return;
 
     try {
       await createHabit.mutateAsync({
+        workspaceId: currentWorkspace.id,
         name: formData.name.trim(),
         icon: formData.icon,
         color: formData.color,
@@ -116,6 +136,8 @@ export function AddHabitModal({ trigger, onSuccess }: AddHabitModalProps) {
         reminderEnabled: formData.reminderEnabled,
         reminderTime: formData.reminderEnabled ? formData.reminderTime : undefined,
         goalArea: formData.goalArea || undefined,
+        projectId: formData.projectId || undefined,
+        weight: formData.projectId ? formData.weight : undefined,
       });
 
       // Reset form
@@ -128,6 +150,8 @@ export function AddHabitModal({ trigger, onSuccess }: AddHabitModalProps) {
         reminderEnabled: false,
         reminderTime: '09:00',
         goalArea: '',
+        projectId: '',
+        weight: 50,
       });
       setIsOpen(false);
       onSuccess?.();
@@ -301,6 +325,64 @@ export function AddHabitModal({ trigger, onSuccess }: AddHabitModalProps) {
               ))}
             </div>
           </div>
+
+          {/* Link to Goal */}
+          {activeProjects.length > 0 && (
+            <div className="space-y-3 rounded-lg border p-4">
+              <div className="space-y-2">
+                <Label htmlFor="project-select">Link to Goal (Optional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Link this habit to a goal to track progress
+                </p>
+                <Select
+                  value={formData.projectId || 'none'}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      projectId: value === 'none' ? '' : value,
+                    })
+                  }
+                >
+                  <SelectTrigger id="project-select">
+                    <SelectValue placeholder="Select a goal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No goal</SelectItem>
+                    {activeProjects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Weight slider - only show when a project is selected */}
+              {formData.projectId && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="weight-slider">Importance Weight</Label>
+                    <span className="text-sm text-muted-foreground">{formData.weight}%</span>
+                  </div>
+                  <input
+                    id="weight-slider"
+                    type="range"
+                    min={1}
+                    max={100}
+                    step={1}
+                    value={formData.weight}
+                    onChange={(e) =>
+                      setFormData({ ...formData, weight: parseInt(e.target.value, 10) })
+                    }
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Higher weight means this habit contributes more to goal progress
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Reminder Toggle */}
           <div className="space-y-3 rounded-lg border p-4">

@@ -34,6 +34,13 @@ interface UIState {
   openAddReviewModal: (projectId: string) => void;
   closeAddReviewModal: () => void;
 
+  // Habit suggestion wizard (shown after goal creation)
+  habitSuggestionWizardOpen: boolean;
+  habitSuggestionWizardProjectId: string | null;
+  habitSuggestionWizardProjectName: string | null;
+  openHabitSuggestionWizard: (projectId: string, projectName: string) => void;
+  closeHabitSuggestionWizard: () => void;
+
   // Quick actions
   quickMoveProjectId: string | null;
   setQuickMoveProjectId: (projectId: string | null) => void;
@@ -100,6 +107,23 @@ export const useUIStore = create<UIState>((set) => {
     openAddReviewModal: (projectId: string) =>
       set({ addReviewModalOpen: true, addReviewProjectId: projectId }),
     closeAddReviewModal: () => set({ addReviewModalOpen: false, addReviewProjectId: null }),
+
+    // Habit suggestion wizard
+    habitSuggestionWizardOpen: false,
+    habitSuggestionWizardProjectId: null,
+    habitSuggestionWizardProjectName: null,
+    openHabitSuggestionWizard: (projectId: string, projectName: string) =>
+      set({
+        habitSuggestionWizardOpen: true,
+        habitSuggestionWizardProjectId: projectId,
+        habitSuggestionWizardProjectName: projectName,
+      }),
+    closeHabitSuggestionWizard: () =>
+      set({
+        habitSuggestionWizardOpen: false,
+        habitSuggestionWizardProjectId: null,
+        habitSuggestionWizardProjectName: null,
+      }),
 
     // Quick move
     quickMoveProjectId: null,

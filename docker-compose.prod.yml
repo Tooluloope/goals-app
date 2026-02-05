@@ -37,6 +37,30 @@ services:
           cpus: '0.25'
           memory: 256M
 
+  redis:
+    image: redis:7-alpine
+    container_name: goals-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - goals-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
   api:
     build:
       context: .
@@ -48,6 +72,7 @@ services:
     environment:
       # Override DATABASE_URL for Docker network
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/goals_db
+      REDIS_URL: redis://redis:6379
       DB_HOST: postgres
       DB_PORT: 5432
       API_PORT: 3001
@@ -55,6 +80,8 @@ services:
       ENABLE_SCHEDULER: 'false'
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - goals-network
@@ -94,12 +121,15 @@ services:
     environment:
       # Override DATABASE_URL for Docker network
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/goals_db
+      REDIS_URL: redis://redis:6379
       DB_HOST: postgres
       DB_PORT: 5432
       NODE_ENV: production
       ENABLE_SCHEDULER: 'true'
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       api:
         condition: service_healthy
@@ -233,4 +263,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local

@@ -516,6 +516,7 @@ describe('Validation Schemas', () => {
   describe('createHabitSchema', () => {
     it('should validate valid habit', () => {
       const data = {
+        workspaceId: '123e4567-e89b-12d3-a456-426614174000',
         name: 'Exercise',
         icon: '💪',
       };
@@ -524,6 +525,7 @@ describe('Validation Schemas', () => {
 
     it('should validate with all options', () => {
       const data = {
+        workspaceId: '123e4567-e89b-12d3-a456-426614174000',
         name: 'Morning Routine',
         icon: '🌅',
         color: 'blue',
@@ -533,12 +535,15 @@ describe('Validation Schemas', () => {
         reminderEnabled: true,
         reminderTime: '08:00',
         goalArea: 'Health',
+        projectId: '123e4567-e89b-12d3-a456-426614174001',
+        weight: 50,
       };
       expect(createHabitSchema.safeParse(data).success).toBe(true);
     });
 
     it('should reject name over 50 characters', () => {
       const data = {
+        workspaceId: '123e4567-e89b-12d3-a456-426614174000',
         name: 'A'.repeat(51),
         icon: '💪',
       };
@@ -548,6 +553,7 @@ describe('Validation Schemas', () => {
 
     it('should reject invalid reminder time format', () => {
       const data = {
+        workspaceId: '123e4567-e89b-12d3-a456-426614174000',
         name: 'Test',
         icon: '💪',
         reminderTime: '8:00 AM',
@@ -558,11 +564,32 @@ describe('Validation Schemas', () => {
 
     it('should accept valid 24-hour time', () => {
       const data = {
+        workspaceId: '123e4567-e89b-12d3-a456-426614174000',
         name: 'Test',
         icon: '💪',
         reminderTime: '23:59',
       };
       expect(createHabitSchema.safeParse(data).success).toBe(true);
+    });
+
+    it('should reject missing workspaceId', () => {
+      const data = {
+        name: 'Test',
+        icon: '💪',
+      };
+      const result = createHabitSchema.safeParse(data);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject invalid weight values', () => {
+      const data = {
+        workspaceId: '123e4567-e89b-12d3-a456-426614174000',
+        name: 'Test',
+        icon: '💪',
+        weight: 150, // Over max of 100
+      };
+      const result = createHabitSchema.safeParse(data);
+      expect(result.success).toBe(false);
     });
   });
 

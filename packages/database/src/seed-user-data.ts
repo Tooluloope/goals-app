@@ -304,6 +304,7 @@ async function main() {
       update: habit,
       create: {
         ...habit,
+        workspaceId: workspace.id,
         userId: user.id,
         order: i,
         frequency: 'daily',

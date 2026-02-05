@@ -1,8 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
 import type { Habit, HabitLog, User } from '@goals/database';
-import type { HabitWithStats } from '@goals/shared';
-import { CreateHabitDto, ToggleHabitLogDto, UpdateHabitDto } from '@goals/shared';
+import type { HabitWithStats, ProjectHabitProgress } from '@goals/shared';
+import {
+  CreateHabitDto,
+  LinkHabitToProjectDto,
+  ToggleHabitLogDto,
+  UpdateHabitDto,
+} from '@goals/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -23,6 +39,21 @@ export class HabitsController {
     @Query('date') date?: string
   ): Promise<HabitWithStats[]> {
     return this.habitsService.findAll(user.id, includeArchived === 'true', date);
+  }
+
+  @Get('workspace/:workspaceId')
+  findAllForWorkspace(
+    @Param('workspaceId') workspaceId: string,
+    @CurrentUser() user: UserWithoutPassword,
+    @Query('includeArchived') includeArchived?: string,
+    @Query('date') date?: string
+  ): Promise<HabitWithStats[]> {
+    return this.habitsService.findAllForWorkspace(
+      workspaceId,
+      user.id,
+      includeArchived === 'true',
+      date
+    );
   }
 
   @Get('today')
@@ -80,6 +111,23 @@ export class HabitsController {
     @CurrentUser() user: UserWithoutPassword
   ): Promise<HabitLog> {
     return this.habitsService.toggleLog(id, data, user.id);
+  }
+
+  @Patch(':id/link')
+  linkToProject(
+    @Param('id') id: string,
+    @Body() data: LinkHabitToProjectDto,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<Habit> {
+    return this.habitsService.linkToProject(id, data, user.id);
+  }
+
+  @Get('project/:projectId/progress')
+  getProjectProgress(
+    @Param('projectId') projectId: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<ProjectHabitProgress> {
+    return this.habitsService.calculateProjectProgress(projectId, user.id);
   }
 
   @Put('reorder')

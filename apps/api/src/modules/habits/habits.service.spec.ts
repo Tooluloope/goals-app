@@ -6,6 +6,7 @@ import { subDays } from 'date-fns';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { UsageService } from '../usage/usage.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 
 import { HabitsService } from './habits.service';
 
@@ -13,6 +14,7 @@ describe('HabitsService', () => {
   let service: HabitsService;
   let prisma: any;
   let _emailService: any;
+  let workspacesService: any;
 
   const mockUser = {
     id: 'user-1',
@@ -22,6 +24,9 @@ describe('HabitsService', () => {
   const mockHabit = {
     id: 'habit-1',
     userId: 'user-1',
+    workspaceId: 'workspace-1',
+    projectId: null,
+    weight: null,
     name: 'Exercise',
     icon: '💪',
     color: 'primary',
@@ -64,6 +69,9 @@ describe('HabitsService', () => {
         findUnique: jest.fn(),
         findMany: jest.fn(),
       } as any,
+      project: {
+        findUnique: jest.fn(),
+      } as any,
       $transaction: jest.fn((updates) => Promise.all(updates)),
     };
 
@@ -80,18 +88,24 @@ describe('HabitsService', () => {
       decrementUsage: jest.fn(),
     };
 
+    const mockWorkspacesService = {
+      verifyAccess: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HabitsService,
         { provide: PrismaService, useValue: mockPrismaService } as any,
         { provide: EmailService, useValue: mockEmailService } as any,
         { provide: UsageService, useValue: mockUsageService } as any,
+        { provide: WorkspacesService, useValue: mockWorkspacesService } as any,
       ],
     }).compile();
 
     service = module.get<HabitsService>(HabitsService);
     prisma = module.get(PrismaService);
     _emailService = module.get(EmailService);
+    workspacesService = module.get(WorkspacesService);
   });
 
   describe('create', () => {
@@ -190,8 +204,9 @@ describe('HabitsService', () => {
       expect(result.name).toBe('Updated Name');
     });
 
-    it('should throw NotFoundException when user does not own habit', async () => {
-      prisma.habit.findUnique.mockResolvedValue({ ...mockHabit, userId: 'other-user' });
+    it('should throw NotFoundException when user does not have workspace access', async () => {
+      prisma.habit.findUnique.mockResolvedValue(mockHabit);
+      workspacesService.verifyAccess.mockRejectedValue(new NotFoundException('Access denied'));
 
       await expect(service.update('habit-1', { name: 'Updated' }, 'user-1')).rejects.toThrow(
         NotFoundException
@@ -249,8 +264,9 @@ describe('HabitsService', () => {
       });
     });
 
-    it('should throw NotFoundException when user does not own habit', async () => {
-      prisma.habit.findUnique.mockResolvedValue({ ...mockHabit, userId: 'other-user' });
+    it('should throw NotFoundException when user does not have workspace access', async () => {
+      prisma.habit.findUnique.mockResolvedValue(mockHabit);
+      workspacesService.verifyAccess.mockRejectedValue(new NotFoundException('Access denied'));
 
       await expect(service.delete('habit-1', 'user-1')).rejects.toThrow(NotFoundException);
     });
@@ -391,8 +407,9 @@ describe('HabitsService', () => {
       expect(result.completed).toBe(false);
     });
 
-    it('should throw NotFoundException when user does not own habit', async () => {
-      prisma.habit.findUnique.mockResolvedValue({ ...mockHabit, userId: 'other-user' });
+    it('should throw NotFoundException when user does not have workspace access', async () => {
+      prisma.habit.findUnique.mockResolvedValue(mockHabit);
+      workspacesService.verifyAccess.mockRejectedValue(new NotFoundException('Access denied'));
 
       await expect(service.toggleLog('habit-1', { date: '2024-06-15' }, 'user-1')).rejects.toThrow(
         NotFoundException
@@ -425,8 +442,9 @@ describe('HabitsService', () => {
       expect(result).toEqual([mockHabitLog]);
     });
 
-    it('should throw NotFoundException when user does not own habit', async () => {
-      prisma.habit.findUnique.mockResolvedValue({ ...mockHabit, userId: 'other-user' });
+    it('should throw NotFoundException when user does not have workspace access', async () => {
+      prisma.habit.findUnique.mockResolvedValue(mockHabit);
+      workspacesService.verifyAccess.mockRejectedValue(new NotFoundException('Access denied'));
 
       await expect(
         service.getLogsForDateRange('habit-1', '2024-06-01', '2024-06-30', 'user-1')
@@ -606,6 +624,278 @@ describe('HabitsService', () => {
         where: { id: 'log-1' } as any,
         data: { completed: false } as any,
       });
+    });
+  });
+
+  describe('calculateProjectProgress', () => {
+    const mockProject = {
+      id: 'project-1',
+      workspaceId: 'workspace-1',
+      name: 'Test Project',
+      habits: [],
+    };
+
+    it('should return 0 progress when project has no habits', async () => {
+      prisma.project.findUnique.mockResolvedValue(mockProject);
+
+      const result = await service.calculateProjectProgress('project-1', 'user-1');
+
+      expect(result).toEqual({ progress: 0, habits: [] });
+    });
+
+    it('should throw NotFoundException when project not found', async () => {
+      prisma.project.findUnique.mockResolvedValue(null);
+
+      await expect(service.calculateProjectProgress('nonexistent', 'user-1')).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('should verify workspace access', async () => {
+      prisma.project.findUnique.mockResolvedValue(mockProject);
+
+      await service.calculateProjectProgress('project-1', 'user-1');
+
+      expect(workspacesService.verifyAccess).toHaveBeenCalledWith('workspace-1', 'user-1');
+    });
+
+    it('should calculate equal weighted progress when no weights set', async () => {
+      const today = new Date();
+      const projectWithHabits = {
+        ...mockProject,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Habit 1',
+            weight: null,
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: Array.from({ length: 30 }, (_, i) => ({
+              date: subDays(today, i),
+              completed: true, // 100% completion
+            })),
+          },
+          {
+            id: 'habit-2',
+            name: 'Habit 2',
+            weight: null,
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: [], // 0% completion
+          },
+        ],
+      };
+
+      prisma.project.findUnique.mockResolvedValue(projectWithHabits);
+
+      const result = await service.calculateProjectProgress('project-1', 'user-1');
+
+      // (100 + 0) / 2 = 50%
+      expect(result.progress).toBe(50);
+      expect(result.habits).toHaveLength(2);
+      expect(result.habits[0].completionRate).toBe(100);
+      expect(result.habits[1].completionRate).toBe(0);
+    });
+
+    it('should calculate weighted progress when weights are set', async () => {
+      const today = new Date();
+      const projectWithWeightedHabits = {
+        ...mockProject,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Important Habit',
+            weight: 80, // 80% weight
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: Array.from({ length: 30 }, (_, i) => ({
+              date: subDays(today, i),
+              completed: true, // 100% completion
+            })),
+          },
+          {
+            id: 'habit-2',
+            name: 'Minor Habit',
+            weight: 20, // 20% weight
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: [], // 0% completion
+          },
+        ],
+      };
+
+      prisma.project.findUnique.mockResolvedValue(projectWithWeightedHabits);
+
+      const result = await service.calculateProjectProgress('project-1', 'user-1');
+
+      // (100 * 80 + 0 * 20) / 100 = 80%
+      expect(result.progress).toBe(80);
+    });
+
+    it('should exclude archived habits from progress', async () => {
+      const projectWithMixedHabits = {
+        ...mockProject,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Active Habit',
+            weight: null,
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: [],
+          },
+        ],
+      };
+
+      prisma.project.findUnique.mockResolvedValue(projectWithMixedHabits);
+
+      const result = await service.calculateProjectProgress('project-1', 'user-1');
+
+      // Only non-archived habits should be included
+      expect(result.habits).toHaveLength(1);
+    });
+
+    it('should return habit stats with correct properties', async () => {
+      const today = new Date();
+      const projectWithHabit = {
+        ...mockProject,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Test Habit',
+            weight: 50,
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: Array.from({ length: 15 }, (_, i) => ({
+              date: subDays(today, i),
+              completed: true,
+            })),
+          },
+        ],
+      };
+
+      prisma.project.findUnique.mockResolvedValue(projectWithHabit);
+
+      const result = await service.calculateProjectProgress('project-1', 'user-1');
+
+      expect(result.habits[0]).toMatchObject({
+        id: 'habit-1',
+        name: 'Test Habit',
+        weight: 50,
+        completionRate: 50, // 15 out of 30 days
+      });
+    });
+
+    it('should handle mixed weighted and unweighted habits', async () => {
+      const today = new Date();
+      const projectWithMixedWeights = {
+        ...mockProject,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Weighted Habit',
+            weight: 60,
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: Array.from({ length: 30 }, (_, i) => ({
+              date: subDays(today, i),
+              completed: true, // 100%
+            })),
+          },
+          {
+            id: 'habit-2',
+            name: 'Unweighted Habit',
+            weight: null, // No weight
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: [], // 0%
+          },
+        ],
+      };
+
+      prisma.project.findUnique.mockResolvedValue(projectWithMixedWeights);
+
+      const result = await service.calculateProjectProgress('project-1', 'user-1');
+
+      // Only habit-1 has weight (60), habit-2 has null so treated as 0
+      // (100 * 60 + 0 * 0) / 60 = 100%
+      expect(result.progress).toBe(100);
+    });
+
+    it('should use equal weighting when all weights are 0 or null', async () => {
+      const today = new Date();
+      const projectWithZeroWeights = {
+        ...mockProject,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Habit 1',
+            weight: null,
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: Array.from({ length: 30 }, (_, i) => ({
+              date: subDays(today, i),
+              completed: true,
+            })),
+          },
+          {
+            id: 'habit-2',
+            name: 'Habit 2',
+            weight: null,
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: Array.from({ length: 30 }, (_, i) => ({
+              date: subDays(today, i),
+              completed: true,
+            })),
+          },
+        ],
+      };
+
+      prisma.project.findUnique.mockResolvedValue(projectWithZeroWeights);
+
+      const result = await service.calculateProjectProgress('project-1', 'user-1');
+
+      // Both at 100%, equal weight = 100%
+      expect(result.progress).toBe(100);
+    });
+
+    it('should round progress to nearest integer', async () => {
+      const today = new Date();
+      const projectWithOddProgress = {
+        ...mockProject,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Habit 1',
+            weight: null,
+            frequency: 'daily',
+            frequencyDays: [],
+            isArchived: false,
+            logs: Array.from({ length: 10 }, (_, i) => ({
+              date: subDays(today, i),
+              completed: true,
+            })),
+          },
+        ],
+      };
+
+      prisma.project.findUnique.mockResolvedValue(projectWithOddProgress);
+
+      const result = await service.calculateProjectProgress('project-1', 'user-1');
+
+      // 10/30 = 33.33...% should round to 33%
+      expect(Number.isInteger(result.progress)).toBe(true);
     });
   });
 });

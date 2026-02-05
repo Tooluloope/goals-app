@@ -939,6 +939,7 @@ describe('ApiClient', () => {
       });
 
       const habit = await apiClient.createHabit({
+        workspaceId: 'ws-1',
         name: 'New Habit',
         icon: 'target',
         color: 'primary',

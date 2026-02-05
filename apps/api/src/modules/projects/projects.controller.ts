@@ -1,10 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 
 import type { Project, ProjectDependency, User } from '@goals/database';
+import type { ProjectHabitProgress } from '@goals/shared';
 import { AddReviewDto, CreateProjectDto, UpdateProjectDto } from '@goals/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { HabitsService } from '../habits/habits.service';
 
 import { ProjectsService } from './projects.service';
 
@@ -13,7 +15,10 @@ type UserWithoutPassword = Omit<User, 'passwordHash'>;
 @Controller('projects')
 @UseGuards(JwtAuthGuard)
 export class ProjectsController {
-  constructor(private projectsService: ProjectsService) {}
+  constructor(
+    private projectsService: ProjectsService,
+    private habitsService: HabitsService
+  ) {}
 
   @Get('workspace/:workspaceId')
   findAllForWorkspace(
@@ -137,5 +142,17 @@ export class ProjectsController {
     @CurrentUser() user: UserWithoutPassword
   ): Promise<void> {
     return this.projectsService.removeBlocker(id, blockerId, user.id);
+  }
+
+  // ============================================================
+  // HABIT PROGRESS
+  // ============================================================
+
+  @Get(':id/habit-progress')
+  getHabitProgress(
+    @Param('id') id: string,
+    @CurrentUser() user: UserWithoutPassword
+  ): Promise<ProjectHabitProgress> {
+    return this.habitsService.calculateProjectProgress(id, user.id);
   }
 }

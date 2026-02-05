@@ -15,6 +15,8 @@ import { map, Observable } from 'rxjs';
 
 import type { AiConversation, AiInsight, AiMessage, AiSummary, InsightType } from '@goals/database';
 import { SummaryType } from '@goals/database';
+import type { SuggestedHabit } from '@goals/shared';
+import { GenerateHabitSuggestionsDto } from '@goals/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequiresPlan } from '../../common/decorators/requires-plan.decorator';
@@ -231,5 +233,18 @@ export class AiController {
     @Param('id') id: string
   ): Promise<AiInsight> {
     return this.aiService.dismissInsight(user.id, id);
+  }
+
+  // ============================================================
+  // HABIT SUGGESTIONS
+  // ============================================================
+
+  @Post('habits/generate')
+  @RequiresPlan('FREE') // Override class-level PRO requirement - habit suggestions are free
+  generateHabitSuggestions(
+    @CurrentUser() user: UserWithoutPassword,
+    @Body() dto: GenerateHabitSuggestionsDto
+  ): Promise<SuggestedHabit[]> {
+    return this.aiService.generateHabitSuggestions(user.id, dto.workspaceId, dto.projectId);
   }
 }

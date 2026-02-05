@@ -1,11 +1,15 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { endOfMonth, endOfWeek, endOfYear, format, parseISO, startOfDay } from 'date-fns';
 import { Observable } from 'rxjs';
 
 import type { AiConversation, AiInsight, AiMessage, AiSummary, InsightType } from '@goals/database';
 import { MessageRole, SummaryType } from '@goals/database';
+import type { SuggestedHabit } from '@goals/shared';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 
 import type { StreamEvent } from './providers/anthropic.provider';
 import { AnthropicProvider } from './providers/anthropic.provider';
@@ -91,14 +95,50 @@ JSON format:
 Valid types: "pattern", "recommendation", "celebration", "warning", "milestone"
 Confidence should be a number between 0.0 and 1.0`;
 
+const HABIT_SUGGESTIONS_SYSTEM_PROMPT = `${BASE_SYSTEM_PROMPT}
+
+You are generating habit suggestions based on a user's goal.
+
+IMPORTANT: Return ONLY a valid JSON array with no additional text, no markdown code blocks, no explanation.
+The response must be parseable by JSON.parse() directly.
+
+JSON format:
+[
+  {
+    "name": "Specific habit name (max 50 chars)",
+    "frequency": "daily",
+    "frequencyDays": [],
+    "description": "Why this habit supports the goal",
+    "icon": "dumbbell",
+    "suggestedWeight": 25
+  }
+]
+
+Rules:
+- Generate 3-5 relevant habits that directly support achieving the goal
+- Habits should be specific, measurable, and actionable
+- frequency must be one of: "daily", "weekly", "specific_days"
+- frequencyDays: array of numbers 0-6 (0=Sunday, 1=Monday, ..., 6=Saturday) - only used when frequency is "specific_days", otherwise empty array
+- suggestedWeight: number 1-100 reflecting importance to goal (higher = more important, weights should roughly sum to 100)
+- icon: use Lucide icon names (e.g., "dumbbell", "book-open", "dollar-sign", "heart", "brain", "target", "clock", "calendar", "check-circle", "trending-up")
+- Keep habit names concise and action-oriented`;
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
 
+  // Rate limit constants
+  private readonly FREE_TIER_DAILY_LIMIT = 1;
+  private readonly RATE_LIMIT_TTL_SECONDS = 24 * 60 * 60; // 24 hours
+  private readonly CACHE_TTL_SECONDS = 60 * 60; // 1 hour cache for suggestions
+
   constructor(
     private prisma: PrismaService,
     private anthropic: AnthropicProvider,
-    private dataAggregator: DataAggregatorService
+    private dataAggregator: DataAggregatorService,
+    private workspacesService: WorkspacesService,
+    private redisService: RedisService,
+    private subscriptionsService: SubscriptionsService
   ) {}
 
   // ============================================================
@@ -811,6 +851,147 @@ ${types ? `Focus on these types: ${types.join(', ')}` : ''}`;
     );
 
     return savedInsights;
+  }
+
+  // ============================================================
+  // HABIT SUGGESTIONS
+  // ============================================================
+
+  async generateHabitSuggestions(
+    userId: string,
+    workspaceId: string,
+    projectId: string
+  ): Promise<SuggestedHabit[]> {
+    // Verify user has access to the workspace
+    await this.workspacesService.verifyAccess(workspaceId, userId);
+
+    // Check subscription and apply rate limiting for free users
+    const subscription = await this.subscriptionsService.getOrCreateSubscription(userId);
+    const isFreeUser = subscription.plan === 'FREE';
+
+    if (isFreeUser) {
+      const rateLimitKey = `habit_suggestions_usage:${userId}`;
+      const usageCount = await this.redisService.get(rateLimitKey);
+
+      if (usageCount && parseInt(usageCount, 10) >= this.FREE_TIER_DAILY_LIMIT) {
+        // Get remaining TTL for the error message
+        const ttl = await this.redisService.ttl(rateLimitKey);
+        const hoursRemaining = ttl ? Math.ceil(ttl / 3600) : 24;
+
+        throw new ForbiddenException(
+          `Free plan allows ${this.FREE_TIER_DAILY_LIMIT} habit suggestion per day. ` +
+            `Upgrade to Pro for unlimited suggestions, or try again in ${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''}.`
+        );
+      }
+    }
+
+    // Check cache for existing suggestions (same project)
+    const cacheKey = `habit_suggestions_cache:${projectId}`;
+    const cached = await this.redisService.getJson<SuggestedHabit[]>(cacheKey);
+    if (cached && cached.length > 0) {
+      this.logger.debug(`Returning cached habit suggestions for project ${projectId}`);
+      // Still count against rate limit even for cached results
+      if (isFreeUser) {
+        await this.redisService.incrementWithTTL(
+          `habit_suggestions_usage:${userId}`,
+          this.RATE_LIMIT_TTL_SECONDS
+        );
+      }
+      return cached;
+    }
+
+    // Fetch project details
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        objective: true,
+        successMetric: true,
+        targetDate: true,
+        workspaceId: true,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Verify project belongs to the specified workspace
+    if (project.workspaceId !== workspaceId) {
+      throw new NotFoundException('Project not found in this workspace');
+    }
+
+    // Build prompt with goal context
+    const userPrompt = `Generate habit suggestions for this goal:
+
+Goal Name: ${project.name}
+Objective: ${project.objective}
+Success Metric: ${project.successMetric || 'Not specified'}
+Target Date: ${project.targetDate ? project.targetDate.toISOString().split('T')[0] : 'Not specified'}
+
+Based on this goal, suggest 3-5 specific, actionable habits that will help achieve it. Consider the timeline and success metric when determining frequency and importance.`;
+
+    try {
+      const response = await this.anthropic.createMessage(
+        HABIT_SUGGESTIONS_SYSTEM_PROMPT,
+        userPrompt
+      );
+
+      // Parse JSON response
+      let suggestions: SuggestedHabit[];
+      try {
+        let jsonContent = response.content.trim();
+        // Handle potential markdown code blocks
+        if (jsonContent.startsWith('```')) {
+          jsonContent = jsonContent.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+        }
+        suggestions = JSON.parse(jsonContent);
+      } catch (parseError) {
+        this.logger.warn(`Failed to parse habit suggestions JSON: ${parseError}`);
+        return [];
+      }
+
+      // Validate and sanitize suggestions
+      const validatedSuggestions = suggestions
+        .filter(
+          (s) =>
+            s.name &&
+            s.frequency &&
+            ['daily', 'weekly', 'specific_days'].includes(s.frequency) &&
+            typeof s.suggestedWeight === 'number'
+        )
+        .map((s) => ({
+          name: s.name.substring(0, 50), // Enforce max length
+          frequency: s.frequency,
+          frequencyDays: Array.isArray(s.frequencyDays) ? s.frequencyDays : [],
+          description: s.description || '',
+          icon: s.icon || 'target',
+          suggestedWeight: Math.min(100, Math.max(1, Math.round(s.suggestedWeight))),
+        }));
+
+      // Cache the suggestions
+      if (validatedSuggestions.length > 0) {
+        await this.redisService.setJson(cacheKey, validatedSuggestions, this.CACHE_TTL_SECONDS);
+      }
+
+      // Increment rate limit counter for free users
+      if (isFreeUser) {
+        await this.redisService.incrementWithTTL(
+          `habit_suggestions_usage:${userId}`,
+          this.RATE_LIMIT_TTL_SECONDS
+        );
+      }
+
+      return validatedSuggestions;
+    } catch (error) {
+      // Don't count rate limit if the API call failed
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      this.logger.error(`Failed to generate habit suggestions: ${error}`);
+      return [];
+    }
   }
 
   async dismissInsight(userId: string, insightId: string): Promise<AiInsight> {

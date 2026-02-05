@@ -11,6 +11,7 @@ import { HealthModule } from './modules/health/health.module';
 import { JournalModule } from './modules/journal/journal.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { RedisModule } from './modules/redis/redis.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { StripeModule } from './modules/stripe/stripe.module';
@@ -31,6 +32,7 @@ const schedulerEnabled = process.env.ENABLE_SCHEDULER !== 'false';
       envFilePath: ['.env.local', '.env', '../../.env'],
     }),
     PrismaModule,
+    RedisModule,
     EmailModule,
     AuthModule,
     AdminModule,

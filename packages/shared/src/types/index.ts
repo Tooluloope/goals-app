@@ -381,7 +381,10 @@ export type HabitFrequency = 'daily' | 'weekly' | 'specific_days';
 
 export interface Habit {
   id: string;
+  workspaceId: string;
   userId: string;
+  projectId?: string | null; // Optional link to a goal
+  weight?: number | null; // Optional weight for goal progress (1-100)
   name: string;
   icon: string;
   color: string;
@@ -419,6 +422,25 @@ export interface HabitWithStats extends Habit {
   longestStreak: number;
   completedToday: boolean;
   completionRate: number; // Last 30 days
+}
+
+export interface SuggestedHabit {
+  name: string;
+  frequency: HabitFrequency;
+  frequencyDays: number[];
+  description: string;
+  icon: string;
+  suggestedWeight: number;
+}
+
+export interface ProjectHabitProgress {
+  progress: number; // 0-100
+  habits: {
+    id: string;
+    name: string;
+    weight: number | null;
+    completionRate: number;
+  }[];
 }
 
 // ============================================================

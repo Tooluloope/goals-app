@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { PrismaModule } from '../../prisma/prisma.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
@@ -10,7 +11,7 @@ import { AnthropicProvider } from './providers/anthropic.provider';
 import { DataAggregatorService } from './services/data-aggregator.service';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, SubscriptionsModule],
+  imports: [PrismaModule, ConfigModule, SubscriptionsModule, WorkspacesModule],
   controllers: [AiController],
   providers: [AiService, AnthropicProvider, DataAggregatorService],
   exports: [AiService],

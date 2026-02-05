@@ -5,6 +5,7 @@ import { Loader2, FileText, Plus } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { ProjectHeader } from '@/components/project/project-header';
 import { ProjectSections } from '@/components/project/project-sections';
+import { HabitOverviewCard } from '@/components/project/habit-overview-card';
 import { Button } from '@/components/ui/button';
 import { AddTaskModal } from '@/components/shared/add-task-modal';
 import { AddReviewModal } from '@/components/shared/add-review-modal';
@@ -72,6 +73,11 @@ export default function ProjectPage() {
               <FileText className="mr-2 h-4 w-4" />
               Log Review
             </Button>
+          </div>
+
+          {/* Habit Overview */}
+          <div className="mb-6">
+            <HabitOverviewCard projectId={project.id} projectName={project.name} />
           </div>
 
           {/* Sections */}

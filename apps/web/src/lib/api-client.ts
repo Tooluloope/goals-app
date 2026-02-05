@@ -38,6 +38,8 @@ import type {
   AiInsight,
   AiSummaryResponse,
   SummaryType,
+  SuggestedHabit,
+  ProjectHabitProgress,
 } from '@goals/shared';
 
 // Dynamically determine API URL based on current hostname
@@ -1072,6 +1074,25 @@ class ApiClient {
     return this.fetch<AiInsight>(`/ai/insights/${id}/dismiss`, {
       method: 'PATCH',
     });
+  }
+
+  // ============================================================
+  // AI - HABIT SUGGESTIONS
+  // ============================================================
+
+  generateHabitSuggestions(workspaceId: string, projectId: string): Promise<SuggestedHabit[]> {
+    return this.fetch<SuggestedHabit[]>('/ai/habits/generate', {
+      method: 'POST',
+      body: JSON.stringify({ workspaceId, projectId }),
+    });
+  }
+
+  // ============================================================
+  // PROJECT HABIT PROGRESS
+  // ============================================================
+
+  getProjectHabitProgress(projectId: string): Promise<ProjectHabitProgress> {
+    return this.fetch<ProjectHabitProgress>(`/projects/${projectId}/habit-progress`);
   }
 
   // ============================================================

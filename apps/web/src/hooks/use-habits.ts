@@ -2,7 +2,14 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
-import type { Habit, HabitWithStats, CreateHabitDto, UpdateHabitDto } from '@goals/shared';
+import type {
+  Habit,
+  HabitWithStats,
+  CreateHabitDto,
+  UpdateHabitDto,
+  SuggestedHabit,
+  ProjectHabitProgress,
+} from '@goals/shared';
 
 // Query keys
 export const habitKeys = {
@@ -199,5 +206,22 @@ export function useReorderHabits() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: habitKeys.all });
     },
+  });
+}
+
+// Generate habit suggestions from AI
+export function useGenerateHabitSuggestions() {
+  return useMutation({
+    mutationFn: ({ workspaceId, projectId }: { workspaceId: string; projectId: string }) =>
+      apiClient.generateHabitSuggestions(workspaceId, projectId),
+  });
+}
+
+// Fetch habit progress for a project/goal
+export function useProjectHabitProgress(projectId: string) {
+  return useQuery({
+    queryKey: [...habitKeys.all, 'project-progress', projectId] as const,
+    queryFn: () => apiClient.getProjectHabitProgress(projectId),
+    enabled: !!projectId,
   });
 }

@@ -7,6 +7,8 @@ import type {
   CreateHabitDto,
   HabitFrequency,
   HabitWithStats,
+  LinkHabitToProjectDto,
+  ProjectHabitProgress,
   ToggleHabitLogDto,
   UpdateHabitDto,
 } from '@goals/shared';
@@ -14,6 +16,7 @@ import type {
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { UsageService } from '../usage/usage.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 
 // Streak milestones that trigger celebration emails
 const STREAK_MILESTONES = [7, 30, 100, 365] as const;
@@ -66,7 +69,8 @@ export class HabitsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-    private usageService: UsageService
+    private usageService: UsageService,
+    private workspacesService: WorkspacesService
   ) {}
 
   // Get user's timezone from database, default to UTC
@@ -79,18 +83,24 @@ export class HabitsService {
   }
 
   async create(data: CreateHabitDto, userId: string): Promise<Habit> {
+    // Verify user has access to the workspace
+    await this.workspacesService.verifyAccess(data.workspaceId, userId);
+
     // Check if user can create more habits (quota enforcement for FREE tier)
     await this.usageService.enforceQuota(userId, 'habits');
 
-    // Get the max order for user's habits
+    // Get the max order for workspace's habits
     const maxOrder = await this.prisma.habit.aggregate({
-      where: { userId },
+      where: { workspaceId: data.workspaceId },
       _max: { order: true },
     });
 
     const habit = await this.prisma.habit.create({
       data: {
+        workspaceId: data.workspaceId,
         userId,
+        projectId: data.projectId,
+        weight: data.weight,
         name: data.name,
         icon: data.icon,
         color: data.color || 'primary',
@@ -112,13 +122,14 @@ export class HabitsService {
   async update(id: string, data: UpdateHabitDto, userId: string): Promise<Habit> {
     const habit = await this.findById(id);
 
-    if (habit.userId !== userId) {
-      throw new NotFoundException('Habit not found');
-    }
+    // Verify user has access to the habit's workspace
+    await this.workspacesService.verifyAccess(habit.workspaceId, userId);
 
     return this.prisma.habit.update({
       where: { id },
       data: {
+        projectId: data.projectId,
+        weight: data.weight,
         name: data.name,
         icon: data.icon,
         color: data.color,
@@ -136,9 +147,8 @@ export class HabitsService {
   async delete(id: string, userId: string): Promise<void> {
     const habit = await this.findById(id);
 
-    if (habit.userId !== userId) {
-      throw new NotFoundException('Habit not found');
-    }
+    // Verify user has access to the habit's workspace
+    await this.workspacesService.verifyAccess(habit.workspaceId, userId);
 
     await this.prisma.habit.delete({ where: { id } });
 
@@ -218,9 +228,8 @@ export class HabitsService {
   async toggleLog(habitId: string, data: ToggleHabitLogDto, userId: string): Promise<HabitLog> {
     const habit = await this.findById(habitId);
 
-    if (habit.userId !== userId) {
-      throw new NotFoundException('Habit not found');
-    }
+    // Verify user has access to the habit's workspace
+    await this.workspacesService.verifyAccess(habit.workspaceId, userId);
 
     // Parse date as UTC midnight to avoid server timezone issues
     // Frontend sends date as "YYYY-MM-DD", we store it as UTC midnight
@@ -333,9 +342,8 @@ export class HabitsService {
   ): Promise<HabitLog[]> {
     const habit = await this.findById(habitId);
 
-    if (habit.userId !== userId) {
-      throw new NotFoundException('Habit not found');
-    }
+    // Verify user has access to the habit's workspace
+    await this.workspacesService.verifyAccess(habit.workspaceId, userId);
 
     return this.prisma.habitLog.findMany({
       where: {
@@ -380,6 +388,165 @@ export class HabitsService {
     );
 
     await this.prisma.$transaction(updates);
+  }
+
+  async findAllForWorkspace(
+    workspaceId: string,
+    userId: string,
+    includeArchived = false,
+    clientDate?: string
+  ): Promise<HabitWithStats[]> {
+    // Verify user has access to the workspace
+    await this.workspacesService.verifyAccess(workspaceId, userId);
+
+    // Get user's stored timezone
+    const userTimezone = await this.getUserTimezone(userId);
+
+    const habits = await this.prisma.habit.findMany({
+      where: {
+        workspaceId,
+        ...(includeArchived ? {} : { isArchived: false }),
+      },
+      orderBy: { order: 'asc' },
+      include: {
+        logs: {
+          where: {
+            date: {
+              gte: subDays(new Date(), 30),
+            },
+          },
+          orderBy: { date: 'desc' },
+        },
+      },
+    });
+
+    const todayStr = clientDate || getTodayInTimezone(userTimezone);
+
+    return habits.map((habit) => {
+      const completedToday = habit.logs.some(
+        (log) => getDbDateStr(log.date) === todayStr && log.completed
+      );
+
+      const { currentStreak, longestStreak } = this.calculateStreaks(
+        habit.logs,
+        todayStr,
+        habit.frequency as HabitFrequency,
+        habit.frequencyDays
+      );
+      const completionRate = this.calculateCompletionRate(
+        habit.logs,
+        habit.frequency as HabitFrequency,
+        habit.frequencyDays
+      );
+
+      return {
+        ...habit,
+        currentStreak,
+        longestStreak,
+        completedToday,
+        completionRate,
+      };
+    });
+  }
+
+  async linkToProject(
+    habitId: string,
+    data: LinkHabitToProjectDto,
+    userId: string
+  ): Promise<Habit> {
+    const habit = await this.findById(habitId);
+
+    // Verify user has access to the habit's workspace
+    await this.workspacesService.verifyAccess(habit.workspaceId, userId);
+
+    // If linking to a project, verify the project exists and belongs to the same workspace
+    if (data.projectId) {
+      const project = await this.prisma.project.findUnique({
+        where: { id: data.projectId },
+        select: { workspaceId: true },
+      });
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      if (project.workspaceId !== habit.workspaceId) {
+        throw new NotFoundException('Project must be in the same workspace as the habit');
+      }
+    }
+
+    return this.prisma.habit.update({
+      where: { id: habitId },
+      data: {
+        projectId: data.projectId,
+        weight: data.weight,
+      },
+    });
+  }
+
+  async calculateProjectProgress(projectId: string, userId: string): Promise<ProjectHabitProgress> {
+    // Get project with linked habits
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        habits: {
+          where: { isArchived: false },
+          include: {
+            logs: {
+              where: {
+                date: { gte: subDays(new Date(), 30) },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Verify user has access to the project's workspace
+    await this.workspacesService.verifyAccess(project.workspaceId, userId);
+
+    if (project.habits.length === 0) {
+      return { progress: 0, habits: [] };
+    }
+
+    // Calculate completion rate for each habit
+    const habitStats = project.habits.map((habit) => ({
+      id: habit.id,
+      name: habit.name,
+      weight: habit.weight,
+      completionRate: this.calculateCompletionRate(
+        habit.logs,
+        habit.frequency as HabitFrequency,
+        habit.frequencyDays
+      ),
+    }));
+
+    // Calculate weighted progress
+    // If no weights are set, use equal weighting
+    const hasWeights = habitStats.some((h) => h.weight !== null);
+
+    let progress: number;
+    if (hasWeights) {
+      const totalWeight = habitStats.reduce((sum, h) => sum + (h.weight ?? 0), 0);
+      if (totalWeight === 0) {
+        // All weights are null or 0, use equal weighting
+        progress = habitStats.reduce((sum, h) => sum + h.completionRate, 0) / habitStats.length;
+      } else {
+        progress = habitStats.reduce((sum, h) => {
+          const weight = h.weight ?? 0;
+          return sum + (h.completionRate * weight) / totalWeight;
+        }, 0);
+      }
+    } else {
+      // Equal weighting
+      progress = habitStats.reduce((sum, h) => sum + h.completionRate, 0) / habitStats.length;
+    }
+
+    return { progress: Math.round(progress), habits: habitStats };
   }
 
   private calculateStreaks(

@@ -236,6 +236,9 @@ export const updateJournalEntrySchema = createJournalEntrySchema.partial().omit(
 export const habitFrequencySchema = z.enum(['daily', 'weekly', 'specific_days']);
 
 export const createHabitSchema = z.object({
+  workspaceId: z.string().uuid('Invalid workspace ID'),
+  projectId: z.string().uuid('Invalid project ID').optional().nullable(),
+  weight: z.number().int().min(1).max(100).optional().nullable(),
   name: z.string().min(1, 'Name is required').max(50, 'Name must be 50 characters or less'),
   icon: z.string().min(1, 'Icon is required'),
   color: z.string().default('primary'),
@@ -255,6 +258,8 @@ export const createHabitSchema = z.object({
 });
 
 export const updateHabitSchema = z.object({
+  projectId: z.string().uuid('Invalid project ID').optional().nullable(),
+  weight: z.number().int().min(1).max(100).optional().nullable(),
   name: z
     .string()
     .min(1, 'Name is required')
@@ -287,6 +292,16 @@ export const logHabitSchema = z.object({
 
 export const toggleHabitLogSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+});
+
+export const linkHabitToProjectSchema = z.object({
+  projectId: z.string().uuid('Invalid project ID').nullable(),
+  weight: z.number().int().min(1).max(100).optional().nullable(),
+});
+
+export const generateHabitSuggestionsSchema = z.object({
+  workspaceId: z.string().uuid('Invalid workspace ID'),
+  projectId: z.string().uuid('Invalid project ID'),
 });
 
 // ============================================================
@@ -564,6 +579,8 @@ export type CreateHabitDto = z.infer<typeof createHabitSchema>;
 export type UpdateHabitDto = z.infer<typeof updateHabitSchema>;
 export type LogHabitDto = z.infer<typeof logHabitSchema>;
 export type ToggleHabitLogDto = z.infer<typeof toggleHabitLogSchema>;
+export type LinkHabitToProjectDto = z.infer<typeof linkHabitToProjectSchema>;
+export type GenerateHabitSuggestionsDto = z.infer<typeof generateHabitSuggestionsSchema>;
 
 // Review DTOs
 export type CreateWeeklyReviewDto = z.infer<typeof createWeeklyReviewSchema>;
