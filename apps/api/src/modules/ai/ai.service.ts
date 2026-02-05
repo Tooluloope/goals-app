@@ -720,7 +720,6 @@ Generate a comprehensive year in review celebrating achievements and identifying
       where: {
         userId,
         workspaceId,
-        ...(types ? { type: { in: types } } : {}),
         createdAt: {
           gte: startOfDay,
           lte: endOfDay,
@@ -730,7 +729,9 @@ Generate a comprehensive year in review celebrating achievements and identifying
     });
 
     if (existingToday.length > 0) {
-      return existingToday;
+      return types
+        ? existingToday.filter((insight) => types.includes(insight.type))
+        : existingToday;
     }
 
     const userContext = await this.dataAggregator.getUserContext(userId, workspaceId);
@@ -781,6 +782,15 @@ ${types ? `Focus on these types: ${types.join(', ')}` : ''}`;
       this.logger.warn('Failed to parse insights response:', response.content.substring(0, 200));
       return [];
     }
+
+    // Discard previous insights before saving a new daily set
+    await this.prisma.aiInsight.deleteMany({
+      where: {
+        userId,
+        workspaceId,
+        ...(types ? { type: { in: types } } : {}),
+      },
+    });
 
     // Save insights
     const savedInsights = await Promise.all(

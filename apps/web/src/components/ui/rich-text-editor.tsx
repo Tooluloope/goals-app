@@ -325,7 +325,15 @@ const RichTextEditor = React.forwardRef<HTMLDivElement, RichTextEditorProps>(
             )}
 
             {/* Editor Content */}
-            <div className="px-4 py-3 overflow-hidden" style={{ minHeight }}>
+            <div
+              className="px-4 py-3 overflow-hidden"
+              style={{ minHeight }}
+              onClick={() => {
+                if (!disabled) {
+                  editor?.chain().focus().run();
+                }
+              }}
+            >
               <EditorContent editor={editor} className="min-h-full overflow-hidden" />
             </div>
           </div>

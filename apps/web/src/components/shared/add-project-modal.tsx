@@ -83,8 +83,9 @@ export function AddProjectModal() {
   const { data: workspaceMembers = [] } = useWorkspaceMembers(currentWorkspace?.id);
   const { toast } = useToast();
 
-  // Check if workspace has multiple members (show owner selector only then)
+  // Show owner selector only for family workspaces with multiple members
   const hasMultipleMembers = workspaceMembers.length > 1;
+  const showOwnerSelector = currentWorkspace?.type === 'family' && hasMultipleMembers;
 
   const areas = useMemo(
     () => (currentWorkspace ? getAreasForWorkspace(currentWorkspace.id) : []),
@@ -387,7 +388,7 @@ export function AddProjectModal() {
             </div>
 
             {/* Owner Selector - only show for workspaces with multiple members */}
-            {hasMultipleMembers && (
+            {showOwnerSelector && (
               <div className="space-y-2">
                 <Label htmlFor="owner">Owner (optional)</Label>
                 <Select

@@ -88,49 +88,51 @@ export function AreaSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-2" align="start">
-        <div className="max-h-60 overflow-auto">
-          {areas.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">No areas available</p>
-          ) : (
-            areas.map((area) => {
-              const isSelected = selectedAreaIds.includes(area.id);
-              const colors = getColorClasses(area.color);
-              return (
-                <button
-                  key={area.id}
-                  type="button"
-                  onClick={() => toggleArea(area.id)}
+      <PopoverContent
+        className="w-full p-2 max-h-60 overflow-y-auto overscroll-contain"
+        align="start"
+        portalled={false}
+      >
+        {areas.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">No areas available</p>
+        ) : (
+          areas.map((area) => {
+            const isSelected = selectedAreaIds.includes(area.id);
+            const colors = getColorClasses(area.color);
+            return (
+              <button
+                key={area.id}
+                type="button"
+                onClick={() => toggleArea(area.id)}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-accent',
+                  isSelected && 'bg-accent'
+                )}
+              >
+                <div
                   className={cn(
-                    'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-accent',
-                    isSelected && 'bg-accent'
+                    'flex h-4 w-4 items-center justify-center rounded border',
+                    isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'
                   )}
                 >
-                  <div
-                    className={cn(
-                      'flex h-4 w-4 items-center justify-center rounded border',
-                      isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'
-                    )}
-                  >
-                    {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                  </div>
-                  <span
-                    className={cn(
-                      'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                      colors.bg,
-                      colors.text
-                    )}
-                  >
-                    {area.name}
-                  </span>
-                  {area.description && (
-                    <span className="text-xs text-muted-foreground">{area.description}</span>
+                  {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                </div>
+                <span
+                  className={cn(
+                    'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                    colors.bg,
+                    colors.text
                   )}
-                </button>
-              );
-            })
-          )}
-        </div>
+                >
+                  {area.name}
+                </span>
+                {area.description && (
+                  <span className="text-xs text-muted-foreground">{area.description}</span>
+                )}
+              </button>
+            );
+          })
+        )}
       </PopoverContent>
     </Popover>
   );
