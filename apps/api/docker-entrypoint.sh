@@ -36,14 +36,14 @@ MIGRATION_STATUS=$(npx prisma migrate status 2>&1 || true)
 if echo "$MIGRATION_STATUS" | grep -q "failed"; then
   echo "Found failed migration: $MIGRATION_NAME"
   echo "Running migration SQL directly (idempotent)..."
-  npx prisma db execute --file "$MIGRATION_FILE"
+  npx prisma db execute --file "$MIGRATION_FILE" --schema ./prisma/schema.prisma
   echo "Marking migration as applied..."
   npx prisma migrate resolve --applied "$MIGRATION_NAME"
   echo "Failed migration resolved!"
 elif echo "$MIGRATION_STATUS" | grep -q "not yet been applied"; then
   echo "Found pending migration: $MIGRATION_NAME"
   echo "Running migration SQL directly (idempotent)..."
-  npx prisma db execute --file "$MIGRATION_FILE"
+  npx prisma db execute --file "$MIGRATION_FILE" --schema ./prisma/schema.prisma
   echo "Marking migration as applied..."
   npx prisma migrate resolve --applied "$MIGRATION_NAME"
   echo "Pending migration applied!"
