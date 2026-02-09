@@ -1,36 +1,62 @@
-/*
-  Warnings:
-
-  - Added the required column `workspaceId` to the `Habit` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- DropIndex
-DROP INDEX "Habit_userId_isArchived_idx";
+DROP INDEX IF EXISTS "Habit_userId_isArchived_idx";
 
--- AlterTable
-ALTER TABLE "Habit" ADD COLUMN     "projectId" TEXT,
-ADD COLUMN     "weight" INTEGER,
-ADD COLUMN     "workspaceId" TEXT NOT NULL;
+-- AlterTable: Add columns as nullable first
+ALTER TABLE "Habit" ADD COLUMN IF NOT EXISTS "projectId" TEXT;
+ALTER TABLE "Habit" ADD COLUMN IF NOT EXISTS "weight" INTEGER;
+ALTER TABLE "Habit" ADD COLUMN IF NOT EXISTS "workspaceId" TEXT;
 
--- AlterTable
-ALTER TABLE "MonthlyReview" ADD COLUMN     "submitted" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "submittedAt" TIMESTAMP(3);
+-- Backfill workspaceId for existing habits from user's personal workspace
+UPDATE "Habit" h
+SET "workspaceId" = (
+  SELECT w.id FROM "Workspace" w
+  WHERE w."ownerId" = h."userId" AND w."type" = 'personal'
+  LIMIT 1
+)
+WHERE h."workspaceId" IS NULL;
 
--- AlterTable
-ALTER TABLE "WeeklyReview" ADD COLUMN     "submitted" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "submittedAt" TIMESTAMP(3);
+-- Fallback: for any remaining habits without a workspace, use ANY workspace owned by the user
+UPDATE "Habit" h
+SET "workspaceId" = (
+  SELECT w.id FROM "Workspace" w
+  WHERE w."ownerId" = h."userId"
+  LIMIT 1
+)
+WHERE h."workspaceId" IS NULL;
 
--- CreateIndex
-CREATE INDEX "Habit_workspaceId_idx" ON "Habit"("workspaceId");
+-- Make workspaceId NOT NULL after backfill (only if no NULLs remain)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM "Habit" WHERE "workspaceId" IS NULL) THEN
+    ALTER TABLE "Habit" ALTER COLUMN "workspaceId" SET NOT NULL;
+  ELSE
+    RAISE NOTICE 'WARNING: Some habits still have NULL workspaceId, skipping NOT NULL constraint';
+  END IF;
+END $$;
 
--- CreateIndex
-CREATE INDEX "Habit_workspaceId_isArchived_idx" ON "Habit"("workspaceId", "isArchived");
+-- AlterTable (these are safe - adding with defaults)
+ALTER TABLE "MonthlyReview" ADD COLUMN IF NOT EXISTS "submitted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "MonthlyReview" ADD COLUMN IF NOT EXISTS "submittedAt" TIMESTAMP(3);
 
--- CreateIndex
-CREATE INDEX "Habit_projectId_idx" ON "Habit"("projectId");
+ALTER TABLE "WeeklyReview" ADD COLUMN IF NOT EXISTS "submitted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "WeeklyReview" ADD COLUMN IF NOT EXISTS "submittedAt" TIMESTAMP(3);
 
--- AddForeignKey
-ALTER TABLE "Habit" ADD CONSTRAINT "Habit_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- CreateIndex (with IF NOT EXISTS for safety)
+CREATE INDEX IF NOT EXISTS "Habit_workspaceId_idx" ON "Habit"("workspaceId");
+CREATE INDEX IF NOT EXISTS "Habit_workspaceId_isArchived_idx" ON "Habit"("workspaceId", "isArchived");
+CREATE INDEX IF NOT EXISTS "Habit_projectId_idx" ON "Habit"("projectId");
 
--- AddForeignKey
-ALTER TABLE "Habit" ADD CONSTRAINT "Habit_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- AddForeignKey (only if not exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Habit_workspaceId_fkey') THEN
+    ALTER TABLE "Habit" ADD CONSTRAINT "Habit_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Habit_projectId_fkey') THEN
+    ALTER TABLE "Habit" ADD CONSTRAINT "Habit_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
