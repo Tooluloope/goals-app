@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Query, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AdminGuard } from '../../common/guards/admin.guard';
@@ -29,6 +29,11 @@ export class AdminController {
       offset: offset ? parseInt(offset, 10) : undefined,
       includeEmail: includeEmail === 'true',
     });
+  }
+
+  @Post('activate-plan')
+  activatePlan(@CurrentUser() user: UserWithoutPassword, @Body() body: { plan: 'PRO' | 'FAMILY' }) {
+    return this.adminService.activatePlan(user.id, body.plan);
   }
 
   @Patch('users/role')

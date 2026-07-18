@@ -95,6 +95,28 @@ export class AdminService {
     };
   }
 
+  async activatePlan(userId: string, plan: 'PRO' | 'FAMILY') {
+    const subscription = await this.prisma.subscription.findUnique({ where: { userId } });
+
+    if (subscription) {
+      return this.prisma.subscription.update({
+        where: { userId },
+        data: { plan, status: 'ACTIVE', cancelAtPeriodEnd: false },
+        select: { plan: true, status: true },
+      });
+    }
+
+    return this.prisma.subscription.create({
+      data: {
+        userId,
+        stripeCustomerId: `admin_${userId}`,
+        plan,
+        status: 'ACTIVE',
+      },
+      select: { plan: true, status: true },
+    });
+  }
+
   async updateUserRole(targetUserId: string, role: AdminRole) {
     if (!['USER', 'ADMIN'].includes(role)) {
       throw new BadRequestException('Role must be USER or ADMIN');

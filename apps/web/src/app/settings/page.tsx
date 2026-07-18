@@ -824,8 +824,16 @@ export default function SettingsPage() {
     }
   };
 
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
   const handleUpgrade = async (plan: 'PRO' | 'FAMILY') => {
     try {
+      if (isAdmin) {
+        await apiClient.adminActivatePlan(plan);
+        await fetchSubscription();
+        toast({ title: 'Plan activated', description: `${plan} plan activated successfully.` });
+        return;
+      }
       const appUrl = window.location.origin;
       const { url } = await apiClient.createCheckoutSession(
         plan,

@@ -33,11 +33,12 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-// Calculate project progress based on checklist items and tasks
-// Now accepts completed task status IDs for flexibility
+// Calculate project progress based on checklist items, tasks, and optionally habit completion rates.
+// habitProgressPercentage (0-100) comes from the /projects/:id/habit-progress API endpoint.
 export function calculateProjectProgress(
   project: Project,
-  completedTaskStatusIds: string[] = ['task-done']
+  completedTaskStatusIds: string[] = ['task-done'],
+  habitProgressPercentage?: number | null
 ): ProjectProgress {
   const requirements = project.requirements ?? [];
   const definitionOfDone = project.definitionOfDone ?? [];
@@ -50,11 +51,18 @@ export function calculateProjectProgress(
   const completed = requirementsDone + definitionDone + tasksDone;
   const total = requirements.length + definitionOfDone.length + tasks.length;
 
-  return {
-    completed,
-    total,
-    percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
-  };
+  const taskPercentage = total > 0 ? Math.round((completed / total) * 100) : null;
+
+  let percentage: number;
+  if (taskPercentage !== null && habitProgressPercentage != null) {
+    percentage = Math.round((taskPercentage + habitProgressPercentage) / 2);
+  } else if (habitProgressPercentage != null) {
+    percentage = Math.round(habitProgressPercentage);
+  } else {
+    percentage = taskPercentage ?? 0;
+  }
+
+  return { completed, total, percentage };
 }
 
 // Check if review is due based on cadence days

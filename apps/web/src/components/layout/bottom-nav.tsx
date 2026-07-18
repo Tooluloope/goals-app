@@ -56,7 +56,7 @@ const focusFamilyNavigation = [
 export function BottomNav() {
   const pathname = usePathname();
   const { data: unreadCount } = useUnreadNotificationsCount();
-  const { currentWorkspace } = useAuthStore();
+  const { currentWorkspace, user } = useAuthStore();
   const viewMode = useViewMode();
   const { data: subscription } = useSubscriptionStatus();
   const userPlan = subscription?.plan ?? 'FREE';
@@ -74,7 +74,7 @@ export function BottomNav() {
     return baseNavigation.filter((item) => {
       const requirement = getPlanRequirement(item.href);
       if (!requirement) return true;
-      return hasPlanAccess(userPlan, requirement.requiredPlan);
+      return hasPlanAccess(userPlan, requirement.requiredPlan, user?.role);
     });
   })();
 

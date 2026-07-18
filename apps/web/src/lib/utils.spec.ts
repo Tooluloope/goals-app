@@ -139,6 +139,54 @@ describe('utils', () => {
       const result = calculateProjectProgress(project, ['custom-done']);
       expect(result.completed).toBe(1);
     });
+
+    it('should use habit progress when no tasks/requirements exist', () => {
+      const project = {
+        id: '1',
+        requirements: [],
+        definitionOfDone: [],
+        tasks: [],
+      } as any;
+
+      const result = calculateProjectProgress(project, ['task-done'], 75);
+      expect(result).toEqual({ completed: 0, total: 0, percentage: 75 });
+    });
+
+    it('should blend task and habit progress when both exist', () => {
+      const project = {
+        id: '1',
+        requirements: [],
+        definitionOfDone: [],
+        tasks: [
+          { id: '1', statusId: 'task-done' },
+          { id: '2', statusId: 'task-done' },
+          { id: '3', statusId: 'task-todo' },
+          { id: '4', statusId: 'task-todo' },
+          { id: '5', statusId: 'task-todo' },
+        ],
+      } as any;
+
+      // tasks: 2/5 = 40%, habits: 80% → blended: (40 + 80) / 2 = 60%
+      const result = calculateProjectProgress(project, ['task-done'], 80);
+      expect(result.completed).toBe(2);
+      expect(result.total).toBe(5);
+      expect(result.percentage).toBe(60);
+    });
+
+    it('should ignore null habitProgressPercentage (tasks-only behavior)', () => {
+      const project = {
+        id: '1',
+        requirements: [{ id: '1', completed: true }],
+        definitionOfDone: [],
+        tasks: [
+          { id: '1', statusId: 'task-done' },
+          { id: '2', statusId: 'task-todo' },
+        ],
+      } as any;
+
+      const result = calculateProjectProgress(project, ['task-done'], null);
+      expect(result).toEqual({ completed: 2, total: 3, percentage: 67 });
+    });
   });
 
   describe('isReviewDue', () => {

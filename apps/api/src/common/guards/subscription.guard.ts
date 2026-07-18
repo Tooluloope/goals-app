@@ -31,6 +31,12 @@ export class SubscriptionGuard implements CanActivate {
       return false; // User not authenticated
     }
 
+    // Admins and super admins bypass all plan restrictions
+    const role = user?.role;
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+      return true;
+    }
+
     // Will throw ForbiddenException if plan requirement not met
     await this.subscriptionsService.enforceplan(userId, requiredPlan);
 

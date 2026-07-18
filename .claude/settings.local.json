@@ -39,7 +39,9 @@
       "Bash(pnpm lint:*)",
       "Bash(npx eslint:*)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm tsc:*)"
+      "Bash(pnpm tsc:*)",
+      "Bash(xargs basename -a)",
+      "Bash(pnpm --filter web test)"
     ]
   }
 }

@@ -20,8 +20,9 @@ import {
   getDaysUntilDeadline,
   areaColors,
   priorityColors,
+  cn,
 } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { useProjectHabitProgress } from '@/hooks/use-habits';
 
 interface ProjectCardProps {
   project: Project;
@@ -45,7 +46,12 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
     ? config.taskStatuses.filter((ts) => ts.countAsProgress).map((ts) => ts.id)
     : ['task-done'];
 
-  const progress = calculateProjectProgress(project, completedTaskStatusIds);
+  const { data: habitProgress } = useProjectHabitProgress(project.id);
+  const progress = calculateProjectProgress(
+    project,
+    completedTaskStatusIds,
+    habitProgress?.progress
+  );
   const daysUntil = getDaysUntilDeadline(project.targetDate);
 
   // Get area and priority config (use first area for primary display)
@@ -175,7 +181,7 @@ export function ProjectCard({ project, statusId, isDragging }: ProjectCardProps)
             )}
 
             {/* Progress */}
-            {progress.total > 0 && (
+            {(progress.total > 0 || (habitProgress?.habits?.length ?? 0) > 0) && (
               <div className="mt-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                   <span>Progress</span>

@@ -201,7 +201,7 @@ export function Sidebar() {
     const filtered = baseNavigation.filter((item) => {
       const requirement = getPlanRequirement(item.href);
       if (!requirement) return true;
-      return hasPlanAccess(userPlan, requirement.requiredPlan);
+      return hasPlanAccess(userPlan, requirement.requiredPlan, user?.role);
     });
 
     if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') {

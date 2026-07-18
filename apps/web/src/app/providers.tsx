@@ -69,6 +69,7 @@ function WorkspaceInitializer({ children }: { children: React.ReactNode }) {
         return;
       }
       setIsSyncing(true);
+      apiClient.loadTokens();
       apiClient
         .getCurrentUser()
         .then((apiUser) => setUser(apiUser))

@@ -45,6 +45,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { calculateProjectProgress, formatDate, cn } from '@/lib/utils';
 import { triggerCelebration } from '@/lib/confetti';
 import { useUpdateProjectStatus, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
+import { useProjectHabitProgress } from '@/hooks/use-habits';
 import { useWorkspaceMembers } from '@/hooks/use-workspace-members';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/auth-store';
@@ -100,7 +101,12 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     ? getConfidenceById(currentWorkspace.id, project.confidenceId)
     : null;
 
-  const progress = calculateProjectProgress(project, completedTaskStatusIds);
+  const { data: habitProgress } = useProjectHabitProgress(project.id);
+  const progress = calculateProjectProgress(
+    project,
+    completedTaskStatusIds,
+    habitProgress?.progress
+  );
   const primaryAreaColors = primaryArea
     ? getColorClasses(primaryArea.color)
     : { bg: 'bg-slate-100', text: 'text-slate-700' };
@@ -380,12 +386,14 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         </div>
 
         {/* Progress Bar */}
-        {progress.total > 0 && (
+        {(progress.total > 0 || (habitProgress?.habits?.length ?? 0) > 0) && (
           <div className="mt-4">
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-muted-foreground">Progress</span>
               <span className="font-medium">
-                {progress.completed}/{progress.total} ({progress.percentage}%)
+                {progress.total > 0
+                  ? `${progress.completed}/${progress.total} (${progress.percentage}%)`
+                  : `Habit Progress (${progress.percentage}%)`}
               </span>
             </div>
             <Progress value={progress.percentage} className="h-2" />

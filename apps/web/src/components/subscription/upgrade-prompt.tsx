@@ -6,6 +6,7 @@ import { Sparkles, ShieldCheck, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/store/auth-store';
 import { cn } from '@/lib/utils';
 import type { SubscriptionPlan } from '@/lib/plan-guard';
 
@@ -50,6 +51,8 @@ const PLAN_COPY: Record<
 
 export function UpgradePrompt({ requiredPlan, title, description }: UpgradePromptProps) {
   const [isUpgrading, setIsUpgrading] = useState(false);
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
   const plan = PLAN_COPY[requiredPlan];
   const Icon = plan.icon;
 
@@ -73,6 +76,11 @@ export function UpgradePrompt({ requiredPlan, title, description }: UpgradePromp
     if (isUpgrading) return;
     setIsUpgrading(true);
     try {
+      if (isAdmin) {
+        await apiClient.adminActivatePlan(requiredPlan);
+        window.location.reload();
+        return;
+      }
       const appUrl = window.location.origin;
       const { url } = await apiClient.createCheckoutSession(
         requiredPlan,
@@ -106,8 +114,10 @@ export function UpgradePrompt({ requiredPlan, title, description }: UpgradePromp
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                   {plan.label} plan
                 </p>
-                <p className="text-2xl font-bold">{plan.price}</p>
-                <p className="text-xs text-muted-foreground">Includes a 14-day free trial.</p>
+                <p className="text-2xl font-bold">{isAdmin ? 'Free (Admin)' : plan.price}</p>
+                {!isAdmin && (
+                  <p className="text-xs text-muted-foreground">Includes a 14-day free trial.</p>
+                )}
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <ShieldCheck className="h-6 w-6" />
@@ -129,7 +139,13 @@ export function UpgradePrompt({ requiredPlan, title, description }: UpgradePromp
               className={cn('w-full sm:w-auto', isUpgrading && 'opacity-70')}
               disabled={isUpgrading}
             >
-              {isUpgrading ? 'Redirecting…' : `Upgrade to ${plan.label}`}
+              {isUpgrading
+                ? isAdmin
+                  ? 'Activating…'
+                  : 'Redirecting…'
+                : isAdmin
+                  ? `Activate ${plan.label} (Admin)`
+                  : `Upgrade to ${plan.label}`}
             </Button>
             <Button variant="outline" asChild className="w-full sm:w-auto">
               <Link href="/dashboard">Go back to dashboard</Link>

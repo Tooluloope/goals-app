@@ -95,8 +95,10 @@ export function getPlanRequirement(pathname: string): PlanRequirement | null {
 
 export function hasPlanAccess(
   userPlan: SubscriptionPlan | null | undefined,
-  requiredPlan: PaidPlan
+  requiredPlan: PaidPlan,
+  userRole?: string | null
 ): boolean {
+  if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') return true;
   if (!userPlan) return false;
   return PLAN_LEVEL[userPlan] >= PLAN_LEVEL[requiredPlan];
 }

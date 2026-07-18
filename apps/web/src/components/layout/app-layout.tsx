@@ -66,7 +66,7 @@ export function AppLayout({ children, title, showHeader = true }: AppLayoutProps
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       );
-    } else if (!hasPlanAccess(subscription?.plan, planRequirement.requiredPlan)) {
+    } else if (!hasPlanAccess(subscription?.plan, planRequirement.requiredPlan, user?.role)) {
       content = (
         <UpgradePrompt
           requiredPlan={planRequirement.requiredPlan}

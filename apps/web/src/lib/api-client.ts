@@ -395,6 +395,13 @@ class ApiClient {
     return this.fetch(`/admin/overview${qs ? `?${qs}` : ''}`);
   }
 
+  adminActivatePlan(plan: 'PRO' | 'FAMILY'): Promise<{ plan: string; status: string }> {
+    return this.fetch('/admin/activate-plan', {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    });
+  }
+
   updateUserRole(payload: { userId: string; role: 'USER' | 'ADMIN' }): Promise<{
     id: string;
     role: string;

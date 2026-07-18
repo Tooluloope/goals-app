@@ -212,7 +212,7 @@ export function Header({ title }: HeaderProps) {
                   return baseNavigation.filter((item) => {
                     const requirement = getPlanRequirement(item.href);
                     if (!requirement) return true;
-                    return hasPlanAccess(userPlan, requirement.requiredPlan);
+                    return hasPlanAccess(userPlan, requirement.requiredPlan, user?.role);
                   });
                 })().map((item) => {
                   const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
