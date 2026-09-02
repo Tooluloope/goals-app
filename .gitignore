@@ -28,6 +28,7 @@ yarn-error.log*
 .env*.local
 .env
 .env.prod
+.env.docker
 
 # App-specific env files
 apps/*/.env
@@ -52,3 +53,6 @@ packages/database/prisma/*.db
 packages/database/prisma/*.db-journal
 **/test-results
 **/playwright-report
+
+# Playwright authentication state and local test credentials
+packages/e2e/storageStates/*.json
